@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - Driver View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .driver-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+  .online-toggle { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--sage-300); border-radius: 999px; padding: 8px 8px 8px 16px; box-shadow: var(--shadow-sm); }
+  .switch { position: relative; width: 46px; height: 26px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--sage-300); border-radius: 999px; cursor: pointer; transition: 0.2s; }
+  .slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: var(--shadow-sm); }
+  input:checked + .slider { background: #3F9B5E; }
+  input:checked + .slider::before { transform: translateX(20px); }
+  .map { height: 55vh; }
+  #status { padding: 10px 0; font-size: 14px; color: var(--ink-soft); }
+  .active-ride-empty { color: var(--sage-500); font-size: 13.5px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html">Book a Ride</a>
+    <a href="/rides.html">All Rides</a>
+    <a href="/driver.html" aria-current="page">Driver View</a>
+    <a href="/passenger.html">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="driver-toolbar">
+    <div>
+      <h2 style="font-size: 28px; margin-bottom: 2px;">Driver Dashboard</h2>
+      <label for="driverSelect" style="display: inline; font-weight: 500;">Signed in as</label>
+      <select id="driverSelect" style="width: auto; display: inline-block; margin-left: 6px;">
+        <option value="d1">Mang Ricky (d1)</option>
+        <option value="d2">Aling Nena (d2)</option>
+      </select>
+    </div>
+    <div class="online-toggle">
+      <span id="onlineLabel" style="font-weight: 700; font-size: 13.5px;">Online</span>
+      <label class="switch">
+        <input type="checkbox" id="onlineToggle" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="dashboard-stats">
+    <div class="dash-stat"><div class="label">Today's rides</div><div class="value" id="statRides">—</div></div>
+    <div class="dash-stat"><div class="label">Today's earnings</div><div class="value" id="statEarnings">—</div></div>
+    <div class="dash-stat"><div class="label">Completed rides</div><div class="value" id="statCompleted">—</div></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin: 0 0 10px; font-size: 17px;">Active ride</h3>
+    <div id="activeRideInfo"><p class="active-ride-empty">Enter a Ride ID below to load its details.</p></div>
+  </div>
+
+  <div class="card">
+    <label for="rideId">Ride ID to track</label>
+    <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+      <input id="rideId" value="demo-ride-1" style="max-width: 220px;" />
+      <button class="green" id="realBtn">Share Real GPS</button>
+      <button id="simBtn">Simulate Movement</button>
+      <button class="red" id="stopBtn">Stop Sharing</button>
+    </div>
+    <div id="status" role="status" aria-live="polite">Status: not sharing location yet</div>
+    <div id="map" class="map" role="application" aria-label="Live map showing your current location"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const statusEl = document.getElementById("status");
+  const rideIdInput = document.getElementById("rideId");
+  const driverSelect = document.getElementById("driverSelect");
+
+  document.getElementById("onlineToggle").addEventListener("change", (e) => {
+    document.getElementById("onlineLabel").textContent = e.target.checked ? "Online" : "Offline";
+  });
+
+  // Load REAL stats for the selected driver from the rides API
+  async function loadDriverStats() {
+    const driverId = driverSelect.value;
+    try {
+      const res = await fetch("/api/rides");
+      const rides = await res.json();
+      const mine = rides.filter(r => r.driverId === driverId);
+      const completed = mine.filter(r => r.status === "completed");
+      const earnings = mine.reduce((sum, r) => sum + (r.fareEstimate || 0), 0);
+
+      document.getElementById("statRides").textContent = mine.length;
+      document.getElementById("statCompleted").textContent = completed.length;
+      document.getElementById("statEarnings").textContent = "₱" + earnings;
+    } catch (err) {
+      console.warn("Could not load driver stats:", err.message);
+    }
+  }
+  driverSelect.addEventListener("change", loadDriverStats);
+  loadDriverStats();
+
+  // Load REAL active ride details for whatever Ride ID is being tracked
+  async function loadActiveRide() {
+    const rideId = rideIdInput.value.trim();
+    const infoEl = document.getElementById("activeRideInfo");
+    try {
+      const res = await fetch(`/api/rides/${rideId}`);
+      if (!res.ok) { infoEl.innerHTML = `<p class="active-ride-empty">No ride found with ID "${rideId}".</p>`; return; }
+      const ride = await res.json();
+      infoEl.innerHTML = `
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Passenger</span><span>${ride.passengerName}</span></div>
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Pickup</span><span style="font-family:var(--font-mono); font-size:12.5px;">${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}</span></div>
+        <div class="trip-summary-row" style="padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span style="font-family:var(--font-display); color:var(--amber-deep); font-size:17px;">₱${ride.fareEstimate ?? "—"}</span></div>
+      `;
+    } catch (err) {
+      infoEl.innerHTML = `<p class="active-ride-empty">Could not load ride details.</p>`;
+    }
+  }
+  rideIdInput.addEventListener("change", () => { joinRoom(); loadActiveRide(); });
+  loadActiveRide();
+
+  let currentLat = 8.9475;
+  let currentLng = 125.5406;
+
+  const map = L.map("map").setView([currentLat, currentLng], 15);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(map);
+
+  const driverMarker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("You (Driver)").openPopup();
+
+  let watchId = null;
+  let simInterval = null;
+
+  function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); }
+  joinRoom();
+
+  function sendLocation(lat, lng) {
+    driverMarker.setLatLng([lat, lng]);
+    map.panTo([lat, lng]);
+    socket.emit("driver:location", { rideId: rideIdInput.value.trim(), lat, lng });
+    statusEl.textContent = `Status: sharing location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+  }
+
+  document.getElementById("realBtn").addEventListener("click", () => {
+    stopAll();
+    if (!navigator.geolocation) { alert("Your browser doesn't support GPS location."); return; }
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => sendLocation(pos.coords.latitude, pos.coords.longitude),
+      (err) => alert("Location error: " + err.message),
+      { enableHighAccuracy: true }
+    );
+  });
+
+  document.getElementById("simBtn").addEventListener("click", () => {
+    stopAll();
+    const path = [
+      [8.9475, 125.5406], [8.9480, 125.5415], [8.9490, 125.5425],
+      [8.9500, 125.5435], [8.9510, 125.5445], [8.9520, 125.5455],
+    ];
+    let i = 0;
+    simInterval = setInterval(() => {
+      if (i >= path.length) i = 0;
+      sendLocation(path[i][0], path[i][1]);
+      i++;
+    }, 2000);
+  });
+
+  document.getElementById("stopBtn").addEventListener("click", stopAll);
+
+  function stopAll() {
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (simInterval !== null) { clearInterval(simInterval); simInterval = null; }
+    statusEl.textContent = "Status: not sharing location";
+  }
+</script>
+</body>
+</html>

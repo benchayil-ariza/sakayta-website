@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - All Rides</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .ride-card-header { display: grid; grid-template-columns: 1fr 1.4fr 0.8fr 0.8fr 0.9fr auto; gap: 16px; padding: 0 20px 10px; }
+  .ride-card-header span { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sage-500); font-weight: 700; }
+  @media (max-width: 900px) { .ride-card-header { display: none; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html">Book a Ride</a>
+    <a href="/rides.html" aria-current="page">All Rides</a>
+    <a href="/driver.html">Driver View</a>
+    <a href="/passenger.html">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+  </div>
+</header>
+
+<main class="container">
+  <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+    <div>
+      <h2 style="font-size: 30px; margin-bottom: 4px;">All Rides</h2>
+      <p style="color: var(--ink-soft); margin: 0;">Every ride booked through SakayTa, with live status.</p>
+    </div>
+    <div>
+      <button onclick="loadRides()" id="refreshBtn">Refresh</button>
+      <span id="ridesStatus" class="status-text" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div class="ride-filters" role="group" aria-label="Filter rides by status">
+    <button class="filter-pill active" data-filter="all">All</button>
+    <button class="filter-pill" data-filter="pending">Upcoming</button>
+    <button class="filter-pill" data-filter="assigned">Assigned</button>
+    <button class="filter-pill" data-filter="completed">Completed</button>
+    <button class="filter-pill" data-filter="cancelled">Cancelled</button>
+  </div>
+
+  <div class="ride-card-header">
+    <span>Passenger</span><span>Route</span><span>Type</span><span>Fare</span><span>Status</span><span></span>
+  </div>
+  <div id="ridesBody"></div>
+
+  <div class="card" style="margin-top: 32px;">
+    <h2 style="font-size: 19px;">Test SOAP Driver Verification Directly</h2>
+    <p style="color: var(--ink-soft); font-size: 14px;">Calls the PHP SOAP service straight from the browser, through a Node.js proxy endpoint — useful to show the raw request/response at your defense.</p>
+    <label for="driverIdInput">Driver ID</label>
+    <input id="driverIdInput" value="d1" placeholder="d1 or d2" style="max-width: 200px;" />
+    <button onclick="testSoap()" style="margin-top: 12px;">Verify Driver</button>
+    <pre id="soapResult" style="background: var(--sage-100); padding: 14px; border-radius: var(--radius-sm); margin-top: 14px; white-space: pre-wrap; font-family: var(--font-mono); font-size: 12.5px;"></pre>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script>
+  let allRides = [];
+  let currentFilter = "all";
+
+  document.querySelectorAll(".filter-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".filter-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentFilter = pill.dataset.filter;
+      renderRides();
+    });
+  });
+
+  async function loadRides() {
+    const statusEl = document.getElementById("ridesStatus");
+    const refreshBtn = document.getElementById("refreshBtn");
+    refreshBtn.disabled = true;
+    statusEl.textContent = "Loading...";
+
+    try {
+      const res = await fetch("/api/rides");
+      if (!res.ok) throw new Error("Could not load rides.");
+      allRides = await res.json();
+      renderRides();
+      statusEl.textContent = `Loaded ${allRides.length} ride(s).`;
+    } catch (err) {
+      statusEl.textContent = "Error loading rides: " + err.message;
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  }
+
+  function renderRides() {
+    const body = document.getElementById("ridesBody");
+    const filtered = currentFilter === "all" ? allRides : allRides.filter(r => r.status === currentFilter);
+
+    if (filtered.length === 0) {
+      body.innerHTML = `<div class="card" style="text-align:center; color: var(--ink-soft);">No rides here yet${currentFilter !== "all" ? " with this status" : ""}. <a href="/book.html">Book one</a> to see it appear.</div>`;
+      return;
+    }
+
+    body.innerHTML = filtered.map(r => `
+      <div class="ride-card">
+        <div><div class="label">Passenger</div><div class="value">${r.passengerName}</div></div>
+        <div class="route-line">📍 ${r.pickupLat?.toFixed(3)}, ${r.pickupLng?.toFixed(3)} → ${r.dropoffLat?.toFixed(3) ?? "—"}, ${r.dropoffLng?.toFixed(3) ?? "—"}</div>
+        <div><div class="label">Type</div><div class="value">${r.rideType || "Tricycle"}</div></div>
+        <div><div class="label">Fare</div><div class="value">${r.fareEstimate ? "₱" + r.fareEstimate : "—"}</div></div>
+        <div><span class="status-badge status-${r.status}">${r.status}</span></div>
+        <div class="fmt-links">
+          <a href="/api/rides/${r.id}" target="_blank">JSON</a><br/>
+          <a href="/api/rides/${r.id}/xml" target="_blank">XML</a>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function testSoap() {
+    const driverId = document.getElementById("driverIdInput").value;
+    const res = await fetch(`/api/rides/verify-driver/${driverId}`, { method: "POST" });
+    const data = await res.json();
+    document.getElementById("soapResult").textContent = JSON.stringify(data, null, 2);
+  }
+
+  loadRides();
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - Book a Ride</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .booking-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 24px; align-items: start; }
+  .map-wrap { position: relative; }
+  .trip-summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px; }
+  .trip-summary-row:last-child { border-bottom: none; }
+  .trip-summary-row .k { color: var(--ink-soft); font-weight: 600; }
+  .trip-summary-row .v { font-family: var(--font-mono); font-size: 12.5px; text-align: right; }
+  @media (max-width: 900px) { .booking-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html" aria-current="page">Book a Ride</a>
+    <a href="/rides.html">All Rides</a>
+    <a href="/driver.html">Driver View</a>
+    <a href="/passenger.html">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+  </div>
+</header>
+
+<main class="container">
+  <h2 style="font-size: 30px; margin-bottom: 4px;">Book a Ride</h2>
+  <p style="color: var(--ink-soft); margin-top: 0; margin-bottom: 24px;">Set your trip, pick a ride type, and see your fare before confirming.</p>
+
+  <div class="booking-grid">
+    <div>
+      <div class="card">
+        <label for="passengerName">Your name</label>
+        <input id="passengerName" placeholder="e.g. Juan Dela Cruz" style="margin-bottom: 4px;"
+               aria-describedby="nameError" required />
+        <p id="nameError" class="field-error" role="alert" hidden>Please enter your name.</p>
+
+        <label style="margin-top: 16px;">Ride type</label>
+        <div class="ride-type-grid" role="radiogroup" aria-label="Ride type">
+          <div class="ride-type-card selected" data-type="Tricycle" role="radio" aria-checked="true" tabindex="0">
+            <span class="emoji" aria-hidden="true">🛺</span>
+            Tricycle
+          </div>
+          <div class="ride-type-card" data-type="Habal-Habal" role="radio" aria-checked="false" tabindex="0">
+            <span class="emoji" aria-hidden="true">🏍️</span>
+            Habal-Habal
+          </div>
+        </div>
+
+        <p id="mapInstructions" class="status-text" style="margin-top: 4px;">Click the map once for <strong>pickup</strong>, click again for <strong>drop-off</strong>.</p>
+        <p id="bookingError" class="field-error" role="alert" hidden></p>
+
+        <button id="bookBtn" class="primary" disabled aria-disabled="true" style="width: 100%; justify-content: center; margin-top: 8px;">Book Ride</button>
+        <span id="bookingSpinner" class="spinner" hidden aria-hidden="true"></span>
+      </div>
+
+      <div class="card">
+        <h3 style="margin: 0 0 8px; font-size: 17px;">Trip summary</h3>
+        <div class="trip-summary-row"><span class="k">Ride type</span><span class="v" id="summaryType">Tricycle</span></div>
+        <div class="trip-summary-row"><span class="k">Pickup</span><span class="v" id="summaryPickup">Not set</span></div>
+        <div class="trip-summary-row"><span class="k">Destination</span><span class="v" id="summaryDropoff">Not set</span></div>
+      </div>
+
+      <div id="resultCard" class="card" style="display:none; border-color: var(--amber-deep);" role="status" aria-live="polite">
+        <h3 style="margin: 0 0 8px;">Booking Confirmed</h3>
+        <div class="trip-summary-row"><span class="k">Ride ID</span><span class="v" id="rideIdOut"></span></div>
+        <div class="trip-summary-row"><span class="k">Estimated Fare</span><span class="v" style="font-family: var(--font-display); font-size: 18px; color: var(--amber-deep);">₱<span id="fareOut"></span></span></div>
+        <p style="font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 0;">Source: <span id="fareSourceOut"></span></p>
+        <p style="font-size: 13.5px; margin: 12px 0 0;">Use this Ride ID on <a href="/driver.html">Driver View</a> and <a href="/passenger.html">Passenger View</a> to track it live.</p>
+      </div>
+    </div>
+
+    <div class="map-wrap">
+      <div id="map" class="map" role="application" aria-label="Map for selecting pickup and drop-off points" aria-describedby="mapInstructions"></div>
+      <div id="fareFloatCard" class="floating-card glass" style="display:none; position: absolute; bottom: 16px; right: 16px; color: var(--ink); background: rgba(255,255,255,0.9); border-color: var(--sage-300);">
+        <span class="fc-title" style="color: var(--ink-soft);">Estimated fare</span>
+        <span class="fc-value" id="fareFloatValue" style="color: var(--amber-deep);">—</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map("map").setView([8.9475, 125.5406], 14);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(map);
+
+  let pickup = null;
+  let dropoff = null;
+  let pickupMarker = null;
+  let dropoffMarker = null;
+  let rideType = "Tricycle";
+
+  // Ride type selector (visual choice, sent along with the booking)
+  document.querySelectorAll(".ride-type-card").forEach((card) => {
+    card.addEventListener("click", () => selectRideType(card));
+    card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectRideType(card); } });
+  });
+  function selectRideType(card) {
+    document.querySelectorAll(".ride-type-card").forEach((c) => { c.classList.remove("selected"); c.setAttribute("aria-checked", "false"); });
+    card.classList.add("selected");
+    card.setAttribute("aria-checked", "true");
+    rideType = card.dataset.type;
+    document.getElementById("summaryType").textContent = rideType;
+  }
+
+  map.on("click", (e) => {
+    if (!pickup) {
+      pickup = e.latlng;
+      pickupMarker = L.marker(pickup, { title: "Pickup" }).addTo(map).bindPopup("Pickup").openPopup();
+    } else if (!dropoff) {
+      dropoff = e.latlng;
+      dropoffMarker = L.marker(dropoff, { title: "Drop-off" }).addTo(map).bindPopup("Drop-off").openPopup();
+    } else {
+      map.removeLayer(pickupMarker);
+      map.removeLayer(dropoffMarker);
+      pickup = e.latlng;
+      dropoff = null;
+      pickupMarker = L.marker(pickup, { title: "Pickup" }).addTo(map).bindPopup("Pickup").openPopup();
+      document.getElementById("resultCard").style.display = "none";
+      document.getElementById("fareFloatCard").style.display = "none";
+    }
+    updateStatus();
+  });
+
+  function updateStatus() {
+    const bookBtn = document.getElementById("bookBtn");
+    document.getElementById("summaryPickup").textContent = pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : "Not set";
+    document.getElementById("summaryDropoff").textContent = dropoff ? `${dropoff.lat.toFixed(4)}, ${dropoff.lng.toFixed(4)}` : "Not set";
+    bookBtn.disabled = !(pickup && dropoff);
+  }
+
+  document.getElementById("bookBtn").addEventListener("click", async () => {
+    const nameInput = document.getElementById("passengerName");
+    const nameError = document.getElementById("nameError");
+    const bookingError = document.getElementById("bookingError");
+    const bookBtn = document.getElementById("bookBtn");
+    const spinner = document.getElementById("bookingSpinner");
+
+    const passengerName = nameInput.value.trim();
+    if (!passengerName) {
+      nameError.hidden = false;
+      nameInput.focus();
+      return;
+    }
+    nameError.hidden = true;
+
+    if (!pickup || !dropoff) {
+      bookingError.hidden = false;
+      bookingError.textContent = "Please set both a pickup and drop-off point on the map first.";
+      return;
+    }
+    bookingError.hidden = true;
+
+    bookBtn.disabled = true;
+    bookBtn.textContent = "Booking...";
+    spinner.hidden = false;
+
+    try {
+      const res = await fetch("/api/rides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          passengerName,
+          rideType,
+          pickupLat: pickup.lat,
+          pickupLng: pickup.lng,
+          dropoffLat: dropoff.lat,
+          dropoffLng: dropoff.lng,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Server returned an error. Please try again.");
+      const data = await res.json();
+
+      document.getElementById("rideIdOut").textContent = data.id;
+      document.getElementById("fareOut").textContent = data.fareEstimate;
+      document.getElementById("fareSourceOut").textContent = data.fareSource;
+      document.getElementById("resultCard").style.display = "block";
+      document.getElementById("resultCard").scrollIntoView({ behavior: "smooth" });
+
+      document.getElementById("fareFloatValue").textContent = "₱" + data.fareEstimate;
+      document.getElementById("fareFloatCard").style.display = "flex";
+    } catch (err) {
+      bookingError.hidden = false;
+      bookingError.textContent = "Something went wrong: " + err.message;
+    } finally {
+      bookBtn.disabled = false;
+      bookBtn.textContent = "Book Ride";
+      spinner.hidden = true;
+    }
+  });
+</script>
+</body>
+</html>

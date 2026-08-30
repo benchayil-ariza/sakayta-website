@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - Passenger View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .map { height: 60vh; }
+  .map-wrap { position: relative; }
+  .ride-status-line { display:flex; align-items:center; gap: 8px; font-size: 14px; color: var(--sage-700); font-weight: 700; margin-top: 4px; }
+  .ride-status-line .dot { width: 8px; height: 8px; border-radius: 50%; background: #3F9B5E; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html">Book a Ride</a>
+    <a href="/rides.html">All Rides</a>
+    <a href="/driver.html">Driver View</a>
+    <a href="/passenger.html" aria-current="page">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+  </div>
+</header>
+
+<main class="container">
+  <h2 id="greeting" style="font-size: 28px; margin-bottom: 4px;">Good day, passenger.</h2>
+  <p style="color: var(--ink-soft); margin-top: 0 0 20px;">Here's where your ride is right now.</p>
+
+  <label for="rideId">Ride ID</label>
+  <input id="rideId" value="demo-ride-1" style="max-width: 220px; margin-bottom: 20px;" />
+
+  <div class="card">
+    <h3 style="margin: 0 0 12px; font-size: 17px;">Current ride</h3>
+    <div id="currentRideInfo">
+      <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Driver</span><span id="riderDriverName">Verified driver</span></div>
+      <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Tricycle</span></div>
+      <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span id="rideFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 17px;">—</span></div>
+      <div class="trip-summary-row" style="padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">ETA (estimated)</span><span id="rideEta">—</span></div>
+    </div>
+    <div class="ride-status-line"><span class="dot"></span><span id="status">Waiting for driver location...</span></div>
+  </div>
+
+  <div class="map-wrap">
+    <div id="map" class="map" role="application" aria-label="Live map showing your driver's location"></div>
+    <div id="distanceFloatCard" class="floating-card glass" style="display:none; position:absolute; top:16px; right:16px; background: rgba(255,255,255,0.92); color: var(--ink); border-color: var(--sage-300);">
+      <span class="fc-title" style="color: var(--ink-soft);">Driver distance</span>
+      <span class="fc-value" id="distanceFloatValue" style="color: var(--sage-700);">—</span>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const statusEl = document.getElementById("status");
+  const rideIdInput = document.getElementById("rideId");
+
+  const passengerLat = 8.9475;
+  const passengerLng = 125.5406;
+
+  const map = L.map("map").setView([passengerLat, passengerLng], 15);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(map);
+
+  const passengerMarker = L.marker([passengerLat, passengerLng]).addTo(map).bindPopup("You (Passenger)").openPopup();
+  let driverMarker = null;
+
+  // Load REAL ride info (passenger name used for greeting, real fare) from the API
+  async function loadRideInfo() {
+    const rideId = rideIdInput.value.trim();
+    try {
+      const res = await fetch(`/api/rides/${rideId}`);
+      if (!res.ok) return;
+      const ride = await res.json();
+      document.getElementById("greeting").textContent = `Good day, ${ride.passengerName}.`;
+      document.getElementById("rideFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
+      document.getElementById("rideVehicleType").textContent = ride.rideType || "Tricycle";
+    } catch (err) {
+      console.warn("Could not load ride info:", err.message);
+    }
+  }
+
+  function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); loadRideInfo(); }
+  joinRoom();
+  rideIdInput.addEventListener("change", joinRoom);
+
+  socket.on("ride:driverLocation", ({ lat, lng }) => {
+    if (!driverMarker) {
+      driverMarker = L.marker([lat, lng]).addTo(map).bindPopup("Your Driver").openPopup();
+    } else {
+      driverMarker.setLatLng([lat, lng]);
+    }
+    map.fitBounds([[passengerLat, passengerLng], [lat, lng]]);
+    const distanceKm = getDistanceKm(passengerLat, passengerLng, lat, lng);
+    statusEl.textContent = `Driver is on the way — ${distanceKm.toFixed(2)} km away`;
+
+    document.getElementById("distanceFloatValue").textContent = distanceKm.toFixed(2) + " km";
+    document.getElementById("distanceFloatCard").style.display = "flex";
+
+    // Rough ETA estimate assuming ~20km/h average tricycle speed - clearly labeled as an estimate
+    const etaMin = Math.max(1, Math.round((distanceKm / 20) * 60));
+    document.getElementById("rideEta").textContent = `~${etaMin} min`;
+  });
+
+  function getDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+</script>
+</body>
+</html>

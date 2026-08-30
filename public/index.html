@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa — Modern rides. Local roads.</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html">Book a Ride</a>
+    <a href="/rides.html">All Rides</a>
+    <a href="/driver.html">Driver View</a>
+    <a href="/passenger.html">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow">Tricycle &amp; habal-habal dispatch</div>
+      <h2>Your Ride.<br>Your Route.<br>Your Sakay.</h2>
+      <p class="lead">SakayTa connects passengers with verified local tricycle and habal-habal drivers — a fare before you commit, and a live view of them on the way.</p>
+      <div class="hero-ctas">
+        <a href="/book.html" class="btn primary">Book a Ride</a>
+        <a href="#how-it-works" class="btn ghost">Explore SakayTa</a>
+      </div>
+    </div>
+
+    <div class="map-hero">
+      <svg class="map-svg" viewBox="0 0 500 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stylized map showing a live route from pickup to destination">
+        <!-- Faint road grid -->
+        <g stroke="rgba(184,196,192,0.14)" stroke-width="2">
+          <line x1="20" y1="140" x2="480" y2="140"/>
+          <line x1="20" y1="260" x2="480" y2="260"/>
+          <line x1="20" y1="380" x2="480" y2="380"/>
+          <line x1="120" y1="20" x2="120" y2="540"/>
+          <line x1="260" y1="20" x2="260" y2="540"/>
+          <line x1="380" y1="20" x2="380" y2="540"/>
+        </g>
+        <!-- Building blocks for depth -->
+        <g fill="rgba(124,156,136,0.12)">
+          <rect x="30" y="30" width="70" height="90" rx="6"/>
+          <rect x="140" y="160" width="90" height="70" rx="6"/>
+          <rect x="290" y="30" width="70" height="90" rx="6"/>
+          <rect x="150" y="290" width="80" height="70" rx="6"/>
+          <rect x="300" y="290" width="60" height="60" rx="6"/>
+          <rect x="30" y="400" width="70" height="100" rx="6"/>
+          <rect x="290" y="400" width="80" height="100" rx="6"/>
+        </g>
+        <!-- Area labels -->
+        <text x="35" y="55" class="map-label">POBLACION</text>
+        <text x="150" y="185" class="map-label">MUNICIPAL HALL</text>
+        <text x="300" y="55" class="map-label">MARKET AREA</text>
+        <text x="160" y="315" class="map-label">TERMINAL</text>
+        <text x="305" y="435" class="map-label">JH CERILLES SC</text>
+
+        <!-- Live route -->
+        <path id="routePath" d="M60,460 C150,420 120,300 220,260 S 340,160 400,90"
+              fill="none" stroke="rgba(232,178,61,0.6)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+
+        <!-- Pickup marker -->
+        <circle cx="60" cy="460" r="6" fill="var(--amber)"/>
+        <circle cx="60" cy="460" r="10" fill="none" stroke="var(--amber)" stroke-width="1.5" opacity="0.5">
+          <animate attributeName="r" values="8;16;8" dur="2.6s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- Destination marker -->
+        <circle cx="400" cy="90" r="6" fill="var(--paper)"/>
+
+        <!-- Moving driver marker -->
+        <circle r="7" fill="var(--amber)">
+          <animateMotion dur="9s" repeatCount="indefinite" path="M60,460 C150,420 120,300 220,260 S 340,160 400,90"/>
+        </circle>
+        <circle r="12" fill="var(--amber)" opacity="0.35">
+          <animateMotion dur="9s" repeatCount="indefinite" path="M60,460 C150,420 120,300 220,260 S 340,160 400,90"/>
+          <animate attributeName="r" values="9;15;9" dur="1.4s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+
+      <div class="map-floating-card map-fc-driver">
+        <span class="fc-title">Driver nearby</span>
+        <span class="fc-value">3 min away</span>
+      </div>
+      <div class="map-floating-card map-fc-fare">
+        <span class="fc-title">Estimated fare</span>
+        <span class="fc-value">₱45–₱60</span>
+      </div>
+      <div class="map-floating-card map-fc-route">
+        <span class="fc-title">Live route</span>
+        <span class="fc-value" style="font-size:14px; color:white;">3.2 km</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust-section">
+  <div class="trust-inner">
+    <div class="trust-eyebrow">Built for local rides</div>
+    <div class="stat-grid">
+      <div class="stat-block"><div class="stat-number">2,500+</div><div class="stat-label">Local rides</div></div>
+      <div class="stat-block"><div class="stat-number">500+</div><div class="stat-label">Verified drivers</div></div>
+      <div class="stat-block"><div class="stat-number">98%</div><div class="stat-label">Successful trips</div></div>
+      <div class="stat-block"><div class="stat-number">24/7</div><div class="stat-label">Availability</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="steps-section" id="how-it-works">
+  <h2>How SakayTa Works</h2>
+  <p class="section-sub">Three steps between deciding to go somewhere, and actually getting there.</p>
+  <div class="steps-grid">
+    <div class="step-card lift">
+      <div class="step-number">01</div>
+      <h3>Set your trip</h3>
+      <p>Choose your pickup and destination. Your fare estimate appears before you book anything.</p>
+    </div>
+    <div class="step-card lift">
+      <div class="step-number">02</div>
+      <h3>Get matched</h3>
+      <p>A nearby driver is assigned automatically, license-verified before your trip is confirmed.</p>
+    </div>
+    <div class="step-card lift">
+      <div class="step-number">03</div>
+      <h3>Ride &amp; track</h3>
+      <p>Follow your driver's journey in real time, from pickup until they reach you.</p>
+    </div>
+  </div>
+</section>
+
+<section class="features-section">
+  <h2>Built for how people actually get around here</h2>
+  <p>Not a copy of a city ride-hailing app — a system designed around how tricycle and habal-habal trips really work.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" aria-hidden="true">₱</div>
+      <h3>Upfront fares</h3>
+      <p>No haggling at the roadside. See your estimated fare before you confirm a ride.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" aria-hidden="true">✓</div>
+      <h3>Verified drivers</h3>
+      <p>Every driver is checked against a license verification service before assignment.</p>
+      <span class="badge">SOAP-verified</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" aria-hidden="true">◉</div>
+      <h3>Live tracking</h3>
+      <p>Real-time location updates, both ways — you see them, they see you.</p>
+    </div>
+  </div>
+</section>
+
+<div class="cta-band">
+  <div class="cta-band-inner">
+    <h2>Ready to book your ride?</h2>
+    <p>Set your pickup and destination — see your fare before you commit.</p>
+    <a href="/book.html" class="btn primary">Book a Ride</a>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+</body>
+</html>

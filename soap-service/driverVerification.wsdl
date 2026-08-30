@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<definitions name="DriverVerificationService"
+    targetNamespace="urn:DriverVerificationWsdl"
+    xmlns:tns="urn:DriverVerificationWsdl"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+  <message name="VerifyDriverRequest">
+    <part name="driverId" type="xsd:string"/>
+  </message>
+  <message name="VerifyDriverResponse">
+    <part name="verified" type="xsd:boolean"/>
+    <part name="licenseNumber" type="xsd:string"/>
+  </message>
+
+  <portType name="DriverVerificationPortType">
+    <operation name="VerifyDriver">
+      <input message="tns:VerifyDriverRequest"/>
+      <output message="tns:VerifyDriverResponse"/>
+    </operation>
+  </portType>
+
+  <binding name="DriverVerificationBinding" type="tns:DriverVerificationPortType">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="VerifyDriver">
+      <soap:operation soapAction="urn:DriverVerificationWsdl#VerifyDriver"/>
+      <input>
+        <soap:body use="encoded" namespace="urn:DriverVerificationWsdl"
+                    encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </input>
+      <output>
+        <soap:body use="encoded" namespace="urn:DriverVerificationWsdl"
+                    encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"/>
+      </output>
+    </operation>
+  </binding>
+
+  <service name="DriverVerificationService">
+    <port name="DriverVerificationPort" binding="tns:DriverVerificationBinding">
+      <soap:address location="http://localhost:8080/driverVerification.php"/>
+    </port>
+  </service>
+</definitions>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - Log In</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <a href="/index.html" class="brand">
+    <img src="/assets/logo-icon-nav.png" alt="" />
+    <span class="brand-name">SakayTa</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/book.html">Book a Ride</a>
+    <a href="/rides.html">All Rides</a>
+    <a href="/driver.html">Driver View</a>
+    <a href="/passenger.html">Passenger View</a>
+  </nav>
+  <div class="nav-auth-buttons">
+    <a href="/login.html" class="nav-login-btn" aria-current="page">Log In</a>
+    <a href="/signup.html" class="nav-signup-btn" onclick="event.preventDefault(); authNavigate('/signup.html','signup');">Sign Up</a>
+  </div>
+</header>
+
+<section class="auth-page-section">
+  <div class="auth-page-visual">
+    <svg class="route-svg" viewBox="0 0 500 700" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path id="loginRoute" d="M40,600 C140,540 100,380 220,320 S 380,180 460,80" fill="none" stroke="rgba(232,178,61,0.35)" stroke-width="2.5" stroke-dasharray="1 12" stroke-linecap="round"/>
+      <circle cx="40" cy="600" r="6" fill="var(--amber)" opacity="0.7"/>
+      <circle cx="460" cy="80" r="6" fill="white" opacity="0.6"/>
+      <circle r="5" fill="var(--amber)">
+        <animateMotion dur="7s" repeatCount="indefinite" path="M40,600 C140,540 100,380 220,320 S 380,180 460,80"/>
+      </circle>
+    </svg>
+    <div class="brand-mark">
+      <img src="/assets/logo-icon.png" alt="" />
+      <span>SakayTa</span>
+    </div>
+    <h2>Your ride starts here.</h2>
+    <p>Simple local rides, made smarter — sign in to book, track, and manage your trips.</p>
+  </div>
+
+  <div class="auth-page-form-wrap">
+    <div class="auth-page-card">
+      <h3>Welcome back</h3>
+      <p class="auth-sub">Sign in to continue your SakayTa journey.</p>
+
+      <div class="auth-field">
+        <label for="loginEmail">Email address</label>
+        <input type="email" id="loginEmail" placeholder="Enter your email" />
+      </div>
+      <div class="auth-field">
+        <label for="loginPassword">Password</label>
+        <div class="input-icon-wrap">
+          <input type="password" id="loginPassword" class="has-toggle" placeholder="Enter your password" />
+          <button type="button" class="icon-right" onclick="togglePw('loginPassword', this)" aria-label="Show password">
+            <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none;"><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.5 5.3A11 11 0 0112 5c7 0 11 7 11 7a13.2 13.2 0 01-3.2 3.9M6.6 6.6A13.5 13.2 0 001 12s4 7 11 7a10.7 10.7 0 004.4-.9"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="auth-forgot"><a href="#">Forgot password?</a></div>
+      <button class="primary auth-submit" onclick="return false;">Log In</button>
+
+      <p class="auth-switch-link">Don't have an account? <a href="/signup.html" onclick="event.preventDefault(); authNavigate('/signup.html','signup');">Sign Up</a></p>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script src="/js/auth-transition.js"></script>
+<script>
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    const openIcon = btn.querySelector(".eye-open");
+    const closedIcon = btn.querySelector(".eye-closed");
+    openIcon.style.display = isPassword ? "none" : "block";
+    closedIcon.style.display = isPassword ? "block" : "none";
+    btn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+  }
+</script>
+</body>
+</html>
