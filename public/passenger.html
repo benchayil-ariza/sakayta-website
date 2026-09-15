@@ -333,17 +333,17 @@ function updateNotificationUI() {
   }
 
   list.innerHTML = notifications.length === 0
-    ? '<div style=\"padding: 12px; color: var(--ink-soft); text-align: center;\">No notifications</div>'
+    ? "<div style='padding: 12px; color: var(--ink-soft); text-align: center;'>No notifications</div>"
     : notifications.map(n => `
-      <div style=\"padding: 10px; border-bottom: 1px solid var(--sage-200); ${n.read ? \"opacity: 0.6;\" : \"background: var(--sage-100);\"}\">
-        <div style=\"font-weight: 600; color: var(--ink); font-size: 13px;\">${escapeHtml(n.title)}</div>
-        <div style=\"color: var(--ink-soft); font-size: 12px; margin-top: 2px;\">${escapeHtml(n.message)}</div>
-        <div style=\"display: flex; gap: 8px; margin-top: 6px; font-size: 11px;\">
-          ${!n.read ? `<button class=\"mark-read-btn\" data-id=\"${n.id}\" style=\"background: var(--sage-600); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;\">Mark read</button>` : \"\"}
-          <button class=\"delete-notif-btn\" data-id=\"${n.id}\" style=\"background: var(--ink-soft); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;\">Delete</button>
+      <div style="padding: 10px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100);"}">
+        <div style="font-weight: 600; color: var(--ink); font-size: 13px;">${escapeHtml(n.title)}</div>
+        <div style="color: var(--ink-soft); font-size: 12px; margin-top: 2px;">${escapeHtml(n.message)}</div>
+        <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
+          ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
+          <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
         </div>
       </div>
-    `).join(\"\");
+    `).join("");
 
   // Add event listeners for mark read / delete
   document.querySelectorAll(".mark-read-btn").forEach(btn => {
@@ -994,18 +994,18 @@ function renderFullNotifications() {
   }
 
   list.innerHTML = notifications.map(n => `
-    <div style=\"padding: 15px; border-bottom: 1px solid var(--sage-200); ${n.read ? \"opacity: 0.6;\" : \"background: var(--sage-100); margin-bottom: 10px;\"}\">
-      <div style=\"font-weight: 600; color: var(--ink); font-size: 14px;\">${escapeHtml(n.title)}</div>
-      <div style=\"color: var(--ink-soft); font-size: 12px; margin-top: 4px;\">${escapeHtml(n.message)}</div>
-      <div style=\"margin-top: 8px; font-size: 11px; color: var(--ink-soft);\">
+    <div style="padding: 15px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100); margin-bottom: 10px;"}">
+      <div style="font-weight: 600; color: var(--ink); font-size: 14px;">${escapeHtml(n.title)}</div>
+      <div style="color: var(--ink-soft); font-size: 12px; margin-top: 4px;">${escapeHtml(n.message)}</div>
+      <div style="margin-top: 8px; font-size: 11px; color: var(--ink-soft);">
         ${new Date(n.created_at).toLocaleString()}
       </div>
-      <div style=\"display: flex; gap: 8px; margin-top: 6px; font-size: 11px;\">
-        ${!n.read ? `<button class=\"mark-read-btn\" data-id=\"${n.id}\" style=\"background: var(--sage-600); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;\">Mark read</button>` : \"\"}
-        <button class=\"delete-notif-btn\" data-id=\"${n.id}\" style=\"background: var(--ink-soft); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;\">Delete</button>
+      <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
+        ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
+        <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
       </div>
     </div>
-  `).join(\"\");
+  `).join("");
 
   // Add event listeners for mark read / delete
   document.querySelectorAll(".mark-read-btn").forEach(btn => {
