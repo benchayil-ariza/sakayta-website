@@ -2,130 +2,431 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>SakayTa - Driver View</title>
+<title>SakayTa - Driver Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="/css/style.css" />
-<style>
-  .driver-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
-  .online-toggle { display: flex; align-items: center; gap: 10px; background: var(--paper); border: 1px solid var(--sage-300); border-radius: 999px; padding: 8px 8px 8px 16px; box-shadow: var(--shadow-sm); }
-  .switch { position: relative; width: 46px; height: 26px; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: var(--sage-300); border-radius: 999px; cursor: pointer; transition: 0.2s; }
-  .slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: var(--shadow-sm); }
-  input:checked + .slider { background: #3F9B5E; }
-  input:checked + .slider::before { transform: translateX(20px); }
-  .map { height: 55vh; }
-  #status { padding: 10px 0; font-size: 14px; color: var(--ink-soft); }
-  .active-ride-empty { color: var(--sage-500); font-size: 13.5px; font-style: italic; }
-</style>
 </head>
 <body>
 
-<header class="site-header">
-  <a href="/index.html" class="brand">
-    <img src="/assets/logo-icon-nav.png" alt="" />
-    <span class="brand-name">SakayTa</span>
-  </a>
-  <nav aria-label="Main navigation">
-    <a href="/book.html">Book a Ride</a>
-    <a href="/rides.html">All Rides</a>
-    <a href="/driver.html" aria-current="page">Driver View</a>
-    <a href="/passenger.html">Passenger View</a>
-  </nav>
-  <div class="nav-auth-buttons">
-    <a href="/login.html" class="nav-login-btn">Log In</a>
-    <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
-  </div>
-</header>
+<!-- ============================================================
+     LOCATION PERMISSION OVERLAY
+     Shown on page load; hides after location is obtained or skipped.
+     ============================================================ -->
+<div id="locationOverlay" class="driver-location-overlay" role="dialog" aria-label="Location permission">
+  <div class="location-request-card">
+    <span class="location-request-icon" aria-hidden="true">📍</span>
+    <h2>Location access is needed</h2>
+    <p>SakayTa uses your location to match you with nearby ride requests. Your location is only used while you are online.</p>
 
-<main class="container">
-  <div class="driver-toolbar">
-    <div>
-      <h2 style="font-size: 28px; margin-bottom: 2px;">Driver Dashboard</h2>
-      <label for="driverSelect" style="display: inline; font-weight: 500;">Signed in as</label>
-      <select id="driverSelect" style="width: auto; display: inline-block; margin-left: 6px;">
-        <option value="d1">Mang Ricky (d1)</option>
-        <option value="d2">Aling Nena (d2)</option>
-      </select>
+    <div id="locLoading" class="loc-loading" role="status" aria-live="polite">
+      <div class="loc-spinner" aria-hidden="true"></div>
+      <span>Getting your location...</span>
     </div>
-    <div class="online-toggle">
-      <span id="onlineLabel" style="font-weight: 700; font-size: 13.5px;">Online</span>
-      <label class="switch">
-        <input type="checkbox" id="onlineToggle" checked />
-        <span class="slider"></span>
-      </label>
-    </div>
-  </div>
 
-  <div class="dashboard-stats">
-    <div class="dash-stat"><div class="label">Today's rides</div><div class="value" id="statRides">—</div></div>
-    <div class="dash-stat"><div class="label">Today's earnings</div><div class="value" id="statEarnings">—</div></div>
-    <div class="dash-stat"><div class="label">Completed rides</div><div class="value" id="statCompleted">—</div></div>
-  </div>
+    <button id="locAllowBtn" class="green loc-btn" aria-label="Allow location access">Use My Location</button>
+    <button id="locSkipBtn" class="loc-skip-btn" aria-label="Continue without location">Continue Without Location</button>
 
-  <div class="card">
-    <h3 style="margin: 0 0 10px; font-size: 17px;">Active ride</h3>
-    <div id="activeRideInfo"><p class="active-ride-empty">Enter a Ride ID below to load its details.</p></div>
+    <div id="locStatus" class="loc-status-msg" role="alert" aria-live="assertive" style="display:none;"></div>
   </div>
+</div>
 
-  <div class="card">
-    <label for="rideId">Ride ID to track</label>
-    <div style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-      <input id="rideId" value="demo-ride-1" style="max-width: 220px;" />
-      <button class="green" id="realBtn">Share Real GPS</button>
-      <button id="simBtn">Simulate Movement</button>
-      <button class="red" id="stopBtn">Stop Sharing</button>
+<!-- ============================================================
+     DRIVER WORKSPACE — fixed application shell
+     ============================================================ -->
+<div class="driver-app">
+
+  <!-- Minimal top header -->
+  <header class="driver-topbar">
+    <div class="driver-topbar-left">
+      <button id="sidebarToggle" class="driver-menu-btn" aria-label="Toggle navigation menu" aria-controls="driverSidebar" aria-expanded="false">☰</button>
+      <a href="/index.html" class="driver-topbar-brand">
+        <img src="/assets/logo-icon-nav.png" alt="" />
+        <span class="brand-name">SakayTa</span>
+      </a>
     </div>
-    <div id="status" role="status" aria-live="polite">Status: not sharing location yet</div>
-    <div id="map" class="map" role="application" aria-label="Live map showing your current location"></div>
+    <span class="driver-topbar-title">Driver Dashboard</span>
+    <div class="driver-topbar-right">
+      <span id="topbarDriver" aria-hidden="true">Loading&hellip;</span>
+    </div>
+    <!-- Auth-aware contract elements (navbar-auth.js). Kept in the DOM but
+         never displayed here; the sidebar owns logout. -->
+    <div class="driver-auth-hidden">
+      <a href="/login.html" class="nav-login-btn">Log In</a>
+      <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+      <a href="#" id="nav-logout-btn" class="nav-login-btn">Log Out</a>
+    </div>
+  </header>
+
+  <div class="driver-app-body">
+
+    <!-- Fixed sidebar -->
+    <aside class="driver-sidebar" id="driverSidebar" aria-label="Driver navigation">
+      <!-- Driver identity — the whole card is clickable and opens the Driver Profile view -->
+      <div class="sidebar-profile" id="sidebarProfile" role="button" tabindex="0" aria-label="Open driver profile">
+        <div class="sidebar-profile-badge" aria-hidden="true">🚖</div>
+        <div class="sidebar-profile-info">
+          <div class="sidebar-profile-name" id="sidebarDriverName">Loading&hellip;</div>
+          <div class="sidebar-profile-sub">Driver profile</div>
+        </div>
+      </div>
+
+      <!-- Application navigation: switches the visible view -->
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <button type="button" class="sidebar-link active" data-view="dashboard">
+          <span class="sl-ico" aria-hidden="true">▣</span> Dashboard
+        </button>
+        <button type="button" class="sidebar-link" data-view="active-ride">
+          <span class="sl-ico" aria-hidden="true">🚕</span> Active Ride
+        </button>
+        <button type="button" class="sidebar-link" data-view="location">
+          <span class="sl-ico" aria-hidden="true">📍</span> Location
+        </button>
+        <button type="button" class="sidebar-link" data-view="notifications">
+          <span class="sl-ico" aria-hidden="true">🔔</span> Notifications
+        </button>
+      </nav>
+
+      <!-- System -->
+      <div class="sidebar-foot">
+        <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out">Log Out</button>
+      </div>
+    </aside>
+
+    <!-- Mobile drawer backdrop -->
+    <div id="sidebarBackdrop" class="driver-sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Main content: only the active view is shown -->
+    <main class="driver-main">
+      <div class="driver-main-inner">
+
+        <!-- ==================== DASHBOARD VIEW ==================== -->
+        <section id="view-dashboard" class="driver-view active">
+          <div class="view-head">
+            <h2 class="view-title" id="dashGreeting">Good day, Driver</h2>
+            <span id="dashStatusChip" class="status-chip" data-on="1">● Online</span>
+          </div>
+          <p class="view-subtitle">Here&rsquo;s how your day is going so far.</p>
+
+          <div id="driverProfileNotice" class="driver-alert" role="alert" style="display:none;">
+            <strong>Driver profile not set up yet.</strong>
+            Your account needs a driver profile before you can receive ride requests.
+          </div>
+
+          <div class="driver-kpis">
+            <div class="driver-kpi">
+              <span class="driver-kpi-label">Today's Rides</span>
+              <span class="driver-kpi-value" id="statRides">&mdash;</span>
+            </div>
+            <div class="driver-kpi">
+              <span class="driver-kpi-label">Today's Earnings</span>
+              <span class="driver-kpi-value" id="statEarnings">&mdash;</span>
+            </div>
+            <div class="driver-kpi">
+              <span class="driver-kpi-label">Completed Rides</span>
+              <span class="driver-kpi-value" id="statCompleted">&mdash;</span>
+            </div>
+          </div>
+
+          <div class="dash-overview-grid">
+            <div class="dash-panel">
+              <div class="dash-panel-head"><h3>Current Ride Status</h3></div>
+              <div class="dash-panel-body" id="dashboardRideStatus">
+                <p class="active-ride-empty">Checking&hellip;</p>
+              </div>
+            </div>
+            <div class="dash-panel">
+              <div class="dash-panel-head"><h3>Driver Verification</h3></div>
+              <div class="dash-panel-body" id="dashboardLicenseStatus">
+                <p class="active-ride-empty">Checking&hellip;</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== ACTIVE RIDE VIEW ==================== -->
+        <section id="view-active-ride" class="driver-view">
+          <div class="view-head">
+            <h2 class="view-title">Active Ride</h2>
+          </div>
+          <p class="view-subtitle">View and manage your current or incoming ride.</p>
+
+          <div class="dash-panel">
+            <div class="dash-panel-body">
+              <!-- Ride request (hidden by default; JS toggles display) -->
+              <div class="card driver-ride-request-card" id="rideRequestCard">
+                <div class="driver-ride-request-header">
+                  <h3>🚖 New Ride Request</h3>
+                  <div id="requestTimer" class="driver-ride-request-timer">15s</div>
+                </div>
+                <div id="requestDetails">
+                  <div class="trip-summary-row"><span class="k">Passenger</span><span id="reqPassenger">&mdash;</span></div>
+                  <div class="trip-summary-row"><span class="k">Pickup</span><span id="reqPickup" style="font-family: var(--font-mono); font-size: 12px;">&mdash;</span></div>
+                  <div class="trip-summary-row"><span class="k">Drop-off</span><span id="reqDropoff" style="font-family: var(--font-mono); font-size: 12px;">&mdash;</span></div>
+                  <div class="trip-summary-row"><span class="k">Fare</span><span id="reqFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 16px;">&mdash;</span></div>
+                </div>
+                <div class="driver-ride-request-actions">
+                  <button id="acceptBtn" class="green">ACCEPT RIDE</button>
+                  <button id="declineBtn" class="red">DECLINE</button>
+                </div>
+                <div id="requestStatus" class="dash-msg-center"></div>
+              </div>
+
+              <div id="activeRideInfo">
+                <p class="active-ride-empty">No active ride. Ride details will appear here when a ride is assigned.</p>
+              </div>
+              <div id="rideActionButtons" class="driver-active-ride-actions">
+                <button id="startRouteBtn" class="green" style="display: none;">Start Route</button>
+                <button id="completeBtn" class="green" style="display: none;">Complete Ride</button>
+              </div>
+              <div id="rideActionStatus" class="dash-msg-center-soft"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== LOCATION VIEW ==================== -->
+        <section id="view-location" class="driver-view">
+          <div class="view-head">
+            <h2 class="view-title">Location</h2>
+            <span id="status" class="dash-panel-sub" role="status" aria-live="polite">Status: not sharing location yet</span>
+          </div>
+          <p class="view-subtitle">Your location is matched with nearby ride requests while you are online.</p>
+
+          <div class="dash-panel">
+            <div class="dash-panel-body">
+              <div class="dash-map-controls">
+                <input id="rideId" type="text" value="demo-ride-1" aria-label="Ride ID" placeholder="Ride ID (optional)" />
+                <button class="green" id="realBtn">Share Real GPS</button>
+                <button id="simBtn">Simulate</button>
+                <button class="red" id="stopBtn">Stop</button>
+              </div>
+              <div id="map" class="map driver-map-view" role="application" aria-label="Live map showing your current location"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== NOTIFICATIONS VIEW ==================== -->
+        <section id="view-notifications" class="driver-view">
+          <div class="view-head">
+            <h2 class="view-title">Notifications</h2>
+            <span id="unreadCount" class="unread-badge driver-notif-badge" aria-label="unread count" style="display:none;">0</span>
+          </div>
+          <p class="view-subtitle">Updates about your rides and account.</p>
+
+          <div class="driver-notif-card">
+            <div id="notificationList" class="driver-notif-list"></div>
+          </div>
+
+          <!-- Kept for the existing ID contract; never displayed -->
+          <button id="notificationBell" aria-hidden="true" style="display:none;">🔔</button>
+          <div id="notificationPanel" style="display:none;"></div>
+        </section>
+
+        <!-- ==================== DRIVER PROFILE VIEW ==================== -->
+        <section id="view-profile" class="driver-view">
+          <div class="view-head">
+            <h2 class="view-title">Driver Profile</h2>
+            <span id="profileStatusChip" class="status-chip" data-on="1">● Online</span>
+          </div>
+          <p class="view-subtitle">Your identity, availability, and license verification.</p>
+
+          <div class="dash-panel" style="margin-bottom: 14px;">
+            <div class="dash-panel-head"><h3>Account</h3></div>
+            <div class="dash-panel-body">
+              <div class="profile-identity">
+                <div class="sidebar-profile-badge" aria-hidden="true">🚖</div>
+                <div>
+                  <div class="profile-driver-name" id="profileDriverName">Driver</div>
+                  <div class="profile-driver-sub">Profile and identity are managed in the sidebar.</div>
+                </div>
+              </div>
+              <p class="dash-panel-note" style="margin: 0;">This is your authenticated driver account. Your session is shown as online while you are signed in.</p>
+            </div>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel-head"><h3>License Verification</h3></div>
+            <div class="dash-panel-body">
+              <div id="licenseInfo">
+                <p class="active-ride-empty">Loading license information...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
   </div>
-</main>
+</div>
 
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <img src="/assets/logo-footer.png" alt="SakayTa" />
-      <p class="footer-tagline">Modern rides for local communities.</p>
-    </div>
-    <div class="footer-col">
-      <h4>Navigate</h4>
-      <a href="/index.html">Home</a>
-      <a href="/book.html">Book a Ride</a>
-      <a href="/rides.html">All Rides</a>
-      <a href="/driver.html">Driver View</a>
-      <a href="/passenger.html">Passenger View</a>
-    </div>
-    <div class="footer-col">
-      <h4>Support</h4>
-      <a href="#">Help Center</a>
-      <a href="#">Safety</a>
-      <a href="#">Contact</a>
-    </div>
-  </div>
-  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
-</footer>
-
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  const socket = io();
-  const statusEl = document.getElementById("status");
-  const rideIdInput = document.getElementById("rideId");
-  const driverSelect = document.getElementById("driverSelect");
+  // All element lookups and initialization run only after the DOM is fully
+  // parsed, so sidebar/nav elements are guaranteed to exist when listeners
+  // are attached.
+  document.addEventListener("DOMContentLoaded", () => {
 
-  document.getElementById("onlineToggle").addEventListener("change", (e) => {
-    document.getElementById("onlineLabel").textContent = e.target.checked ? "Online" : "Offline";
+  // ===== Socket.io init =====
+  const token = localStorage.getItem("sakayta_token");
+  const socket = io({
+    auth: { token: token }
   });
 
-  // Load REAL stats for the selected driver from the rides API
-  async function loadDriverStats() {
-    const driverId = driverSelect.value;
+  const statusEl = document.getElementById("status");
+  const rideIdInput = document.getElementById("rideId");
+  // Authenticated driver profile (loaded from GET /api/drivers/me).
+  // This is the ONLY source of driver identity — never selected manually.
+  let currentDriver = null;
+
+  // ===== Escape HTML helper =====
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // ===== Notification system (FR-16) =====
+  let notifications = [];
+
+  async function loadNotifications() {
+    if (!token) return;
     try {
-      const res = await fetch("/api/rides");
+      const res = await fetch("/api/notifications", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      notifications = data.notifications || [];
+      updateNotificationUI();
+    } catch (err) {
+      console.warn("Could not load notifications:", err.message);
+    }
+  }
+
+  function updateNotificationUI() {
+    const unreadCount = notifications.filter(n => !n.read).length;
+    const badge = document.getElementById("unreadCount");
+    const list = document.getElementById("notificationList");
+
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.style.display = "inline-flex";
+    } else {
+      badge.style.display = "none";
+    }
+
+    list.innerHTML = notifications.length === 0
+      ? "<div style='padding: 18px; color: var(--ink-soft); text-align: center;'>No notifications</div>"
+      : notifications.map(n => `
+        <div style="padding: 12px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100);"}">
+          <div style="font-weight: 600; color: var(--ink); font-size: 13px;">${escapeHtml(n.title)}</div>
+          <div style="color: var(--ink-soft); font-size: 12px; margin-top: 2px;">${escapeHtml(n.message)}</div>
+          <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
+            ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
+            <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
+          </div>
+        </div>
+      `).join("");
+
+    document.querySelectorAll(".mark-read-btn").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.dataset.id;
+        try {
+          const res = await fetch(`/api/notifications/${id}/read`, {
+            method: "PUT",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (res.ok) await loadNotifications();
+        } catch (err) {
+          console.error("Failed to mark read:", err.message);
+        }
+      });
+    });
+
+    document.querySelectorAll(".delete-notif-btn").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.dataset.id;
+        try {
+          const res = await fetch(`/api/notifications/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (res.ok) await loadNotifications();
+        } catch (err) {
+          console.error("Failed to delete notification:", err.message);
+        }
+      });
+    });
+  }
+
+  // Notification bell toggle (kept for the existing element contract)
+  document.getElementById("notificationBell").addEventListener("click", () => {
+    const panel = document.getElementById("notificationPanel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  });
+
+  // Real-time notification listener
+  socket.on("notification:new", (notification) => {
+    notifications.unshift(notification);
+    updateNotificationUI();
+  });
+
+  // ===== Driver identity helpers =====
+  function getDriverId() {
+    return currentDriver ? currentDriver.id : null;
+  }
+
+  // Render the authenticated driver's name everywhere (idempotent)
+  function updateDriverLabels() {
+    const name = currentDriver && currentDriver.name ? currentDriver.name : "Driver";
+    const greet = document.getElementById("dashGreeting");
+    if (greet) greet.textContent = "Good day, " + name;
+    const top = document.getElementById("topbarDriver");
+    if (top) top.textContent = currentDriver ? name : "Loading…";
+    const pro = document.getElementById("profileDriverName");
+    if (pro) pro.textContent = name;
+    const side = document.getElementById("sidebarDriverName");
+    if (side) side.textContent = currentDriver ? name : "Loading…";
+  }
+
+  // Reflect whether the authenticated driver has a linked driver profile
+  function setDriverProfileState(hasProfile) {
+    const notice = document.getElementById("driverProfileNotice");
+    if (notice) notice.style.display = hasProfile ? "none" : "block";
+    if (!hasProfile) {
+      const infoEl = document.getElementById("licenseInfo");
+      if (infoEl) {
+        infoEl.innerHTML = `<p style="color: var(--ink-soft); margin: 0;">Driver profile not set up yet. Your account needs a driver profile before you can receive ride requests.</p>`;
+      }
+      const dashLic = document.getElementById("dashboardLicenseStatus");
+      if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">Driver profile not set up yet.</p>`;
+      const dashRide = document.getElementById("dashboardRideStatus");
+      if (dashRide) dashRide.innerHTML = `<p class="active-ride-empty">Driver profile not set up yet — you cannot receive ride requests.</p>`;
+    }
+  }
+
+  // ===== Driver Stats =====
+  async function loadDriverStats() {
+    const driverId = getDriverId();
+    if (!driverId) return; // no authenticated profile yet — fail gracefully
+    try {
+      const statsToken = localStorage.getItem("sakayta_token");
+      const headers = {};
+      if (statsToken) headers["Authorization"] = `Bearer ${statsToken}`;
+
+      const res = await fetch("/api/rides", { headers });
       const rides = await res.json();
       const mine = rides.filter(r => r.driverId === driverId);
       const completed = mine.filter(r => r.status === "completed");
@@ -138,67 +439,570 @@
       console.warn("Could not load driver stats:", err.message);
     }
   }
-  driverSelect.addEventListener("change", loadDriverStats);
-  loadDriverStats();
 
-  // Load REAL active ride details for whatever Ride ID is being tracked
+  // ===== License Info =====
+  async function loadLicenseInfo() {
+    const driverId = getDriverId();
+    const infoEl = document.getElementById("licenseInfo");
+    const dashLic = document.getElementById("dashboardLicenseStatus");
+    if (!driverId) {
+      if (infoEl) infoEl.innerHTML = `<p style="color: var(--ink-soft); margin: 0;">Driver profile not set up yet. Your account needs a driver profile before you can receive ride requests.</p>`;
+      if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">Driver profile not set up yet.</p>`;
+      return;
+    }
+    try {
+      const licToken = localStorage.getItem("sakayta_token");
+      const headers = {};
+      if (licToken) headers["Authorization"] = `Bearer ${licToken}`;
+
+      const res = await fetch(`/api/drivers/${driverId}`, { headers });
+      if (!res.ok) {
+        infoEl.innerHTML = `<p style="color: var(--ink-soft);">Could not load driver information.</p>`;
+        if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">License status unavailable.</p>`;
+        return;
+      }
+
+      const driver = await res.json();
+      const statusColor = driver.licenseStatus === "verified" ? "#2F7D55" : driver.licenseStatus === "rejected" ? "#B43A2E" : "#B7791F";
+      const statusLabel = driver.licenseStatus === "verified" ? "✓ Verified" : driver.licenseStatus === "rejected" ? "✗ Rejected" : "⏳ Pending";
+      const licTxt = driver.licenseNumber ? escapeHtml(driver.licenseNumber) : "Not submitted";
+
+      // Compact summary for the Dashboard overview
+      if (dashLic) {
+        dashLic.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: ${statusColor}18; color: ${statusColor}; border: 1px solid ${statusColor}25;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusColor};"></span>
+              ${statusLabel}
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 12.5px; color: var(--ink);">${licTxt}</span>
+          </div>`;
+      }
+
+      infoEl.innerHTML = `
+        <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px;">
+          <div>
+            <div style="font-size: 11.5px; color: var(--ink-soft); margin-bottom: 2px;">License Number</div>
+            <div style="font-family: var(--font-mono); font-size: 13.5px; font-weight: 600;">${licTxt}</div>
+          </div>
+          <div>
+            <div style="font-size: 11.5px; color: var(--ink-soft); margin-bottom: 2px;">Status</div>
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: ${statusColor}18; color: ${statusColor}; border: 1px solid ${statusColor}25;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusColor};"></span>
+              ${statusLabel}
+            </span>
+          </div>
+        </div>
+        <div style="padding-top: 12px; border-top: 1px dashed var(--sage-300);">
+          <label for="licenseNumberInput" style="display: block; margin-bottom: 6px; font-size: 12.5px; color: var(--ink-soft);">Submit / Update License Number</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input type="text" id="licenseNumberInput" placeholder="e.g., N01-23-456789" style="flex: 1; min-width: 160px;" />
+            <button id="submitLicenseBtn" class="green" style="white-space: nowrap;">Submit License</button>
+          </div>
+          <p id="licenseError" style="color: var(--danger); font-size: 12px; margin-top: 6px; display: none;"></p>
+          <p id="licenseSuccess" style="color: var(--accent); font-size: 12px; margin-top: 6px; display: none;"></p>
+        </div>
+      `;
+
+      document.getElementById("submitLicenseBtn").addEventListener("click", submitLicense);
+    } catch (err) {
+      infoEl.innerHTML = `<p style="color: var(--ink-soft);">Error loading license info: ${escapeHtml(err.message)}</p>`;
+      if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">License status unavailable.</p>`;
+    }
+  }
+
+  async function submitLicense() {
+    const driverId = getDriverId();
+    const licenseNumber = document.getElementById("licenseNumberInput").value.trim();
+    const errorEl = document.getElementById("licenseError");
+    const successEl = document.getElementById("licenseSuccess");
+    const submitBtn = document.getElementById("submitLicenseBtn");
+
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    if (!driverId) {
+      errorEl.textContent = "Driver profile not set up yet. Set up your driver profile before submitting a license.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    if (!licenseNumber) {
+      errorEl.textContent = "License number is required.";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Verifying...";
+
+    try {
+      const licToken = localStorage.getItem("sakayta_token");
+      if (!licToken) {
+        errorEl.textContent = "You must be logged in to submit a license.";
+        errorEl.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit License";
+        return;
+      }
+
+      const res = await fetch(`/api/drivers/${driverId}/submit-license`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${licToken}`,
+        },
+        body: JSON.stringify({ licenseNumber }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.error || "License submission failed.";
+        errorEl.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit License";
+        return;
+      }
+
+      successEl.textContent = data.message;
+      successEl.style.display = "block";
+      document.getElementById("licenseNumberInput").value = "";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit License";
+      setTimeout(loadLicenseInfo, 1000);
+    } catch (err) {
+      errorEl.textContent = "Network error: " + err.message;
+      errorEl.style.display = "block";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit License";
+    }
+  }
+
+  // There is no manual driver selection. Authenticated identity is loaded
+// asynchronously via loadAuthenticatedDriver() at the bottom of this script.
+
+  // ===== Dashboard overview summary =====
+  async function loadDashboardSummary() {
+    const el = document.getElementById("dashboardRideStatus");
+    if (!getDriverId()) {
+      el.innerHTML = `<p class="active-ride-empty">Driver profile not set up yet — you cannot receive ride requests.</p>`;
+      return;
+    }
+    const rideId = rideIdInput.value.trim();
+    try {
+      const res = await fetch(`/api/rides/${rideId}`);
+      if (!res.ok) {
+        el.innerHTML = `<p class="active-ride-empty">No active ride.</p>`;
+        return;
+      }
+      const ride = await res.json();
+      let html;
+      if (ride.requestStatus === "pending" && ride.requestedDriver === getDriverId()) {
+        const who = ride.passengerName ? ` from <b>${escapeHtml(ride.passengerName)}</b>` : "";
+        html = `A new ride request${who} is waiting for your response.`;
+      } else if (ride.status === "assigned" || ride.status === "en_route") {
+        html = `Ride <b>${escapeHtml(ride.id)}</b> is ${escapeHtml(ride.status.replace(/_/g, " "))}${ride.passengerName ? ` for <b>${escapeHtml(ride.passengerName)}</b>` : ""}.`;
+      } else {
+        html = "No active ride.";
+      }
+      el.innerHTML = `<p style="margin: 0; font-size: 13.5px; color: var(--ink);">${html}</p>`;
+    } catch (err) {
+      el.innerHTML = `<p class="active-ride-empty">No active ride.</p>`;
+    }
+  }
+
+  // ===== Ride Request Handling =====
+  let currentRequestId = null;
+  let requestTimerInterval = null;
+  let requestExpiresAt = null;
+
+  function displayRideRequest(ride) {
+    if (!ride.requestedDriver || ride.requestStatus !== "pending") {
+      document.getElementById("rideRequestCard").style.display = "none";
+      clearRideRequestTimer();
+      return;
+    }
+
+    currentRequestId = ride.id;
+    requestExpiresAt = new Date(ride.requestExpiresAt);
+
+    document.getElementById("reqPassenger").textContent = escapeHtml(ride.passengerName);
+    document.getElementById("reqPickup").textContent = `${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}`;
+    document.getElementById("reqDropoff").textContent = `${ride.dropoffLat?.toFixed(4)}, ${ride.dropoffLng?.toFixed(4)}`;
+    document.getElementById("reqFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
+
+    document.getElementById("rideRequestCard").style.display = "block";
+    startRideRequestTimer();
+  }
+
+  function startRideRequestTimer() {
+    clearRideRequestTimer();
+    const updateTimer = () => {
+      if (!requestExpiresAt) return;
+      const now = new Date();
+      const remaining = Math.ceil((requestExpiresAt - now) / 1000);
+      if (remaining <= 0) {
+        document.getElementById("requestTimer").textContent = "0s";
+        document.getElementById("requestTimer").style.color = "var(--danger)";
+        document.getElementById("requestStatus").textContent = "⏰ Request expired";
+        document.getElementById("acceptBtn").disabled = true;
+        document.getElementById("declineBtn").disabled = true;
+        clearRideRequestTimer();
+        return;
+      }
+      document.getElementById("requestTimer").textContent = remaining + "s";
+      if (remaining <= 5) {
+        document.getElementById("requestTimer").style.color = "var(--warn)";
+      }
+    };
+    updateTimer();
+    requestTimerInterval = setInterval(updateTimer, 100);
+  }
+
+  function clearRideRequestTimer() {
+    if (requestTimerInterval) {
+      clearInterval(requestTimerInterval);
+      requestTimerInterval = null;
+    }
+    document.getElementById("requestTimer").style.color = "var(--accent)";
+  }
+
+  document.getElementById("acceptBtn").addEventListener("click", async () => {
+    if (!currentRequestId) return;
+    const btn = document.getElementById("acceptBtn");
+    btn.disabled = true;
+    btn.textContent = "Accepting...";
+    document.getElementById("requestStatus").textContent = "";
+
+    try {
+      const rideToken = localStorage.getItem("sakayta_token");
+      if (!rideToken) {
+        document.getElementById("requestStatus").textContent = "⚠️ You must be logged in to accept rides.";
+        btn.disabled = false;
+        btn.textContent = "ACCEPT RIDE";
+        return;
+      }
+
+      const res = await fetch(`/api/rides/${currentRequestId}/accept`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${rideToken}`,
+        },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById("requestStatus").textContent = "❌ " + (data.error || "Failed to accept ride");
+        btn.disabled = false;
+        btn.textContent = "ACCEPT RIDE";
+        return;
+      }
+
+      document.getElementById("requestStatus").textContent = "✅ Ride accepted! Driver assignment confirmed.";
+      clearRideRequestTimer();
+      setTimeout(() => {
+        document.getElementById("rideRequestCard").style.display = "none";
+        currentRequestId = null;
+      }, 2000);
+    } catch (err) {
+      document.getElementById("requestStatus").textContent = "❌ Network error: " + err.message;
+      btn.disabled = false;
+      btn.textContent = "ACCEPT RIDE";
+    }
+  });
+
+  document.getElementById("declineBtn").addEventListener("click", async () => {
+    if (!currentRequestId) return;
+    const btn = document.getElementById("declineBtn");
+    btn.disabled = true;
+    btn.textContent = "Declining...";
+    document.getElementById("requestStatus").textContent = "";
+
+    try {
+      const rideToken = localStorage.getItem("sakayta_token");
+      if (!rideToken) {
+        document.getElementById("requestStatus").textContent = "⚠️ You must be logged in to decline rides.";
+        btn.disabled = false;
+        btn.textContent = "DECLINE";
+        return;
+      }
+
+      const res = await fetch(`/api/rides/${currentRequestId}/decline`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${rideToken}`,
+        },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById("requestStatus").textContent = "❌ " + (data.error || "Failed to decline ride");
+        btn.disabled = false;
+        btn.textContent = "DECLINE";
+        return;
+      }
+
+      document.getElementById("requestStatus").textContent = "✅ Ride declined. Request sent to next driver.";
+      clearRideRequestTimer();
+      setTimeout(() => {
+        document.getElementById("rideRequestCard").style.display = "none";
+        currentRequestId = null;
+      }, 2000);
+    } catch (err) {
+      document.getElementById("requestStatus").textContent = "❌ Network error: " + err.message;
+      btn.disabled = false;
+      btn.textContent = "DECLINE";
+    }
+  });
+
+  // Socket listeners for ride requests
+  socket.on("ride:request", (ride) => {
+    if (ride.requestedDriver === getDriverId()) {
+      displayRideRequest(ride);
+      if (document.getElementById("view-dashboard").classList.contains("active")) {
+        loadDashboardSummary();
+      }
+    }
+  });
+
+  socket.on("ride:accepted", (data) => {
+    if (data.driverId === getDriverId()) {
+      console.log("Your ride acceptance was confirmed:", data.rideId);
+    }
+  });
+
+  socket.on("ride:declined", (data) => {
+    console.log("Ride declined, reassigning:", data.rideId);
+  });
+
+  socket.on("ride:timeout", (data) => {
+    console.log("Ride request timed out:", data.rideId);
+    if (currentRequestId === data.rideId) {
+      document.getElementById("rideRequestCard").style.display = "none";
+      currentRequestId = null;
+      clearRideRequestTimer();
+    }
+  });
+
+  // ===== Active Ride =====
   async function loadActiveRide() {
     const rideId = rideIdInput.value.trim();
     const infoEl = document.getElementById("activeRideInfo");
     try {
       const res = await fetch(`/api/rides/${rideId}`);
-      if (!res.ok) { infoEl.innerHTML = `<p class="active-ride-empty">No ride found with ID "${rideId}".</p>`; return; }
+      if (!res.ok) {
+        infoEl.innerHTML = `<p class="active-ride-empty">No ride found with ID "${escapeHtml(rideId)}".</p>`;
+        return;
+      }
       const ride = await res.json();
+
+      if (ride.requestStatus === "pending" && ride.requestedDriver === getDriverId()) {
+        displayRideRequest(ride);
+      }
+
       infoEl.innerHTML = `
-        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Passenger</span><span>${ride.passengerName}</span></div>
-        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Pickup</span><span style="font-family:var(--font-mono); font-size:12.5px;">${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}</span></div>
-        <div class="trip-summary-row" style="padding:8px 0;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span style="font-family:var(--font-display); color:var(--amber-deep); font-size:17px;">₱${ride.fareEstimate ?? "—"}</span></div>
+        <div class="trip-summary-row"><span class="k">Passenger</span><span>${escapeHtml(ride.passengerName)}</span></div>
+        <div class="trip-summary-row"><span class="k">Pickup</span><span style="font-family: var(--font-mono); font-size: 12px;">${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}</span></div>
+        <div class="trip-summary-row"><span class="k">Fare</span><span style="font-family: var(--font-display); color: var(--amber-deep); font-size: 16px;">₱${ride.fareEstimate ?? "—"}</span></div>
+        <div class="trip-summary-row"><span class="k">Status</span><span style="font-weight: 600; color: var(--info);">${escapeHtml(ride.status)}</span></div>
       `;
+
+      const startBtn = document.getElementById("startRouteBtn");
+      const completeBtn = document.getElementById("completeBtn");
+      const actionDiv = document.getElementById("rideActionButtons");
+
+      if (ride.status === "assigned") {
+        startBtn.style.display = "block";
+        completeBtn.style.display = "none";
+        actionDiv.classList.add("visible");
+      } else if (ride.status === "en_route") {
+        startBtn.style.display = "none";
+        completeBtn.style.display = "block";
+        actionDiv.classList.add("visible");
+      } else {
+        actionDiv.classList.remove("visible");
+      }
     } catch (err) {
       infoEl.innerHTML = `<p class="active-ride-empty">Could not load ride details.</p>`;
     }
   }
+
+  // Start Route
+  document.getElementById("startRouteBtn").addEventListener("click", async () => {
+    const rideId = rideIdInput.value.trim();
+    if (!rideId) return;
+    const btn = document.getElementById("startRouteBtn");
+    const rideStatusEl = document.getElementById("rideActionStatus");
+    btn.disabled = true;
+    btn.textContent = "Starting...";
+    rideStatusEl.textContent = "";
+
+    try {
+      const rideToken = localStorage.getItem("sakayta_token");
+      if (!rideToken) {
+        rideStatusEl.textContent = "⚠️ You must be logged in.";
+        btn.disabled = false;
+        btn.textContent = "Start Route";
+        return;
+      }
+
+      const res = await fetch(`/api/rides/${rideId}/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${rideToken}`,
+        },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        rideStatusEl.textContent = "❌ " + (data.error || "Failed to start route");
+        btn.disabled = false;
+        btn.textContent = "Start Route";
+        return;
+      }
+
+      rideStatusEl.textContent = "✅ Route started!";
+      btn.disabled = false;
+      btn.textContent = "Start Route";
+      setTimeout(loadActiveRide, 500);
+    } catch (err) {
+      rideStatusEl.textContent = "❌ Network error: " + err.message;
+      btn.disabled = false;
+      btn.textContent = "Start Route";
+    }
+  });
+
+  // Complete Ride
+  document.getElementById("completeBtn").addEventListener("click", async () => {
+    const rideId = rideIdInput.value.trim();
+    if (!rideId) return;
+    const btn = document.getElementById("completeBtn");
+    const rideStatusEl = document.getElementById("rideActionStatus");
+    btn.disabled = true;
+    btn.textContent = "Completing...";
+    rideStatusEl.textContent = "";
+
+    try {
+      const rideToken = localStorage.getItem("sakayta_token");
+      if (!rideToken) {
+        rideStatusEl.textContent = "⚠️ You must be logged in.";
+        btn.disabled = false;
+        btn.textContent = "Complete Ride";
+        return;
+      }
+
+      const res = await fetch(`/api/rides/${rideId}/complete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${rideToken}`,
+        },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        rideStatusEl.textContent = "❌ " + (data.error || "Failed to complete ride");
+        btn.disabled = false;
+        btn.textContent = "Complete Ride";
+        return;
+      }
+
+      rideStatusEl.textContent = "✅ Ride completed! You're now available for new rides.";
+      btn.disabled = false;
+      btn.textContent = "Complete Ride";
+      setTimeout(() => {
+        document.getElementById("rideActionButtons").classList.remove("visible");
+        loadActiveRide();
+      }, 1500);
+    } catch (err) {
+      rideStatusEl.textContent = "❌ Network error: " + err.message;
+      btn.disabled = false;
+      btn.textContent = "Complete Ride";
+    }
+  });
+
+  // Ride status socket listeners
+  socket.on("ride:en_route", (data) => {
+    if (data.driverId === getDriverId() && rideIdInput.value.trim() === data.rideId) {
+      loadActiveRide();
+    }
+  });
+
+  socket.on("ride:completed", (data) => {
+    if (data.driverId === getDriverId() && rideIdInput.value.trim() === data.rideId) {
+      loadActiveRide();
+    }
+  });
+
   rideIdInput.addEventListener("change", () => { joinRoom(); loadActiveRide(); });
   loadActiveRide();
 
-  let currentLat = 8.9475;
-  let currentLng = 125.5406;
-
-  const map = L.map("map").setView([currentLat, currentLng], 15);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(map);
-
-  const driverMarker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("You (Driver)").openPopup();
-
+  // ===== Map & Location (Location-First) =====
+  let currentLat = null;
+  let currentLng = null;
+  let map = null;
+  let driverMarker = null;
   let watchId = null;
   let simInterval = null;
 
-  function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); }
+  function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); loadNotifications(); }
   joinRoom();
 
+  function initMap(lat, lng) {
+    map = L.map("map").setView([lat, lng], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+    driverMarker = L.marker([lat, lng]).addTo(map).bindPopup("You (Driver)").openPopup();
+  }
+
   function sendLocation(lat, lng) {
-    driverMarker.setLatLng([lat, lng]);
-    map.panTo([lat, lng]);
+    currentLat = lat;
+    currentLng = lng;
+    if (driverMarker) {
+      driverMarker.setLatLng([lat, lng]);
+      map.panTo([lat, lng]);
+    }
     socket.emit("driver:location", { rideId: rideIdInput.value.trim(), lat, lng });
     statusEl.textContent = `Status: sharing location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
   }
 
+  function stopAll() {
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (simInterval !== null) { clearInterval(simInterval); simInterval = null; }
+    statusEl.textContent = "Status: not sharing location";
+  }
+
+  // Real GPS
   document.getElementById("realBtn").addEventListener("click", () => {
     stopAll();
-    if (!navigator.geolocation) { alert("Your browser doesn't support GPS location."); return; }
+    if (!navigator.geolocation) {
+      statusEl.textContent = "Status: GPS not supported by this browser";
+      return;
+    }
     watchId = navigator.geolocation.watchPosition(
       (pos) => sendLocation(pos.coords.latitude, pos.coords.longitude),
-      (err) => alert("Location error: " + err.message),
+      (err) => { statusEl.textContent = "Status: location error — " + err.message; },
       { enableHighAccuracy: true }
     );
   });
 
+  // Simulate Movement
   document.getElementById("simBtn").addEventListener("click", () => {
     stopAll();
+    const originLat = currentLat || 8.9475;
+    const originLng = currentLng || 125.5406;
     const path = [
-      [8.9475, 125.5406], [8.9480, 125.5415], [8.9490, 125.5425],
-      [8.9500, 125.5435], [8.9510, 125.5445], [8.9520, 125.5455],
+      [originLat, originLng],
+      [originLat + 0.0005, originLng + 0.0009],
+      [originLat + 0.0015, originLng + 0.0019],
+      [originLat + 0.0025, originLng + 0.0029],
+      [originLat + 0.0035, originLng + 0.0039],
+      [originLat + 0.0045, originLng + 0.0049],
     ];
     let i = 0;
     simInterval = setInterval(() => {
@@ -208,13 +1012,236 @@
     }, 2000);
   });
 
+  // Stop
   document.getElementById("stopBtn").addEventListener("click", stopAll);
 
-  function stopAll() {
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-    if (simInterval !== null) { clearInterval(simInterval); simInterval = null; }
-    statusEl.textContent = "Status: not sharing location";
+  // ===== Location Permission Flow =====
+  const overlay = document.getElementById("locationOverlay");
+  const locAllowBtn = document.getElementById("locAllowBtn");
+  const locSkipBtn = document.getElementById("locSkipBtn");
+  const locLoading = document.getElementById("locLoading");
+  const locStatus = document.getElementById("locStatus");
+
+  function showLocStatus(msg, type) {
+    locStatus.textContent = msg;
+    locStatus.className = "loc-status-msg " + type;
+    locStatus.style.display = "block";
   }
+
+  function hideOverlay() {
+    overlay.classList.add("hidden");
+    // Ensure Leaflet renders correctly after overlay is removed
+    setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+  }
+
+  function handleLocationSuccess(pos) {
+    currentLat = pos.coords.latitude;
+    currentLng = pos.coords.longitude;
+    locLoading.classList.remove("active");
+    initMap(currentLat, currentLng);
+    hideOverlay();
+  }
+
+  function handleLocationError(err) {
+    locLoading.classList.remove("active");
+    locAllowBtn.disabled = false;
+    locAllowBtn.textContent = "Retry Location";
+
+    if (err.code === 1) {
+      showLocStatus("Location access was denied. Your dashboard is available, but you cannot receive location-based ride requests until location access is enabled. You can retry any time.", "warning");
+    } else if (err.code === 2) {
+      showLocStatus("Your position could not be determined. Please check your device settings and try again.", "error");
+    } else {
+      showLocStatus("Location request timed out. Please try again or continue without location.", "error");
+    }
+  }
+
+  locAllowBtn.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      showLocStatus("Your browser does not support location services. Please use a modern browser to enable ride matching.", "error");
+      locAllowBtn.style.display = "none";
+      locSkipBtn.style.display = "none";
+      currentLat = 8.9475;
+      currentLng = 125.5406;
+      initMap(currentLat, currentLng);
+      hideOverlay();
+      return;
+    }
+
+    locAllowBtn.disabled = true;
+    locAllowBtn.textContent = "Requesting...";
+    locLoading.classList.add("active");
+    locStatus.style.display = "none";
+
+    navigator.geolocation.getCurrentPosition(
+      handleLocationSuccess,
+      handleLocationError,
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  locSkipBtn.addEventListener("click", () => {
+    // Degraded mode: map at default area, no location sharing
+    currentLat = 8.9475;
+    currentLng = 125.5406;
+    initMap(currentLat, currentLng);
+    hideOverlay();
+  });
+
+  // ===== View switching (client-side application navigation) =====
+  const views = document.querySelectorAll(".driver-view");
+  const navLinks = document.querySelectorAll(".sidebar-link[data-view]");
+
+  function showView(name) {
+    views.forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
+    navLinks.forEach((l) => l.classList.toggle("active", l.dataset.view === name));
+
+    if (name === "dashboard") { loadDashboardSummary(); }
+    if (name === "profile" || name === "dashboard") { updateDriverLabels(); }
+    if (name === "notifications") { loadNotifications(); }
+    if (name === "location" && map) { setTimeout(() => map.invalidateSize(), 80); }
+
+    closeMobileSidebar();
+  }
+
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => { showView(link.dataset.view); });
+  });
+
+  // ===== Sidebar logout (reuses the navbar-auth.js handler via #nav-logout-btn) =====
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+  const sidebarLogoutBtn = document.getElementById("sidebarLogoutBtn");
+
+  function openMobileSidebar() {
+    document.body.classList.add("drawer-open");
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "true");
+  }
+  function closeMobileSidebar() {
+    document.body.classList.remove("drawer-open");
+    if (sidebarToggle) sidebarToggle.setAttribute("aria-expanded", "false");
+  }
+
+  if (sidebarToggle) {
+    sidebarToggle.setAttribute("aria-expanded", "false");
+    sidebarToggle.addEventListener("click", () => {
+      if (document.body.classList.contains("drawer-open")) closeMobileSidebar();
+      else openMobileSidebar();
+    });
+  }
+  if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeMobileSidebar);
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 901) closeMobileSidebar();
+  });
+
+  // ===== Sidebar logout with confirmation modal (direct, self-contained) =====
+  if (sidebarLogoutBtn) {
+    sidebarLogoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const modal = document.getElementById("logoutModal");
+      if (modal) modal.classList.remove("hidden");
+    });
+  }
+
+  // Modal buttons: cancel dismisses, confirm performs the direct logout.
+  const logoutCancelBtn = document.getElementById("logoutCancelBtn");
+  const logoutConfirmBtn = document.getElementById("logoutConfirmBtn");
+  const logoutModal = document.getElementById("logoutModal");
+
+  function closeLogoutModal() {
+    if (logoutModal) logoutModal.classList.add("hidden");
+  }
+
+  if (logoutCancelBtn) {
+    logoutCancelBtn.addEventListener("click", closeLogoutModal);
+  }
+
+  if (logoutModal) {
+    // Clicking the dark backdrop dismisses the modal, like a native dialog.
+    logoutModal.addEventListener("click", (e) => {
+      if (e.target === logoutModal) closeLogoutModal();
+    });
+  }
+
+  if (logoutConfirmBtn) {
+    logoutConfirmBtn.addEventListener("click", () => {
+      localStorage.removeItem("sakayta_token");
+      localStorage.removeItem("sakayta_user");
+      window.location.href = "/index.html";
+    });
+  }
+
+  // ===== Clickable driver profile area (opens the Driver Profile view) =====
+  const sidebarProfileEl = document.getElementById("sidebarProfile");
+  if (sidebarProfileEl) {
+    sidebarProfileEl.addEventListener("click", () => showView("profile"));
+    sidebarProfileEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        showView("profile");
+      }
+    });
+  }
+
+  // ===== Authenticated driver loading =====
+  async function loadAuthenticatedDriver() {
+    if (!token) {
+      setDriverProfileState(false);
+      updateDriverLabels();
+      return;
+    }
+
+    try {
+      // Confirm the authenticated identity from the JWT
+      const meRes = await fetch("/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
+      if (!meRes.ok) {
+        setDriverProfileState(false);
+        updateDriverLabels();
+        return;
+      }
+
+      // Fetch the logged-in driver's own profile (backend resolves
+      // drivers.user_id from the JWT user id — no driverId is ever accepted)
+      const res = await fetch("/api/drivers/me", { headers: { "Authorization": `Bearer ${token}` } });
+      if (res.status === 404 || !res.ok) {
+        setDriverProfileState(false);
+        updateDriverLabels();
+        return;
+      }
+
+      const driver = await res.json();
+      currentDriver = driver;
+      setDriverProfileState(true);
+      updateDriverLabels();
+      // Refresh driver-scoped views now that the real identity is known
+      loadDriverStats();
+      loadLicenseInfo();
+      loadActiveRide();
+    } catch (err) {
+      console.warn("Could not load authenticated driver:", err.message);
+      setDriverProfileState(false);
+      updateDriverLabels();
+    }
+  }
+
+  // ===== Default view =====
+  showView("dashboard");
+  loadAuthenticatedDriver();
+
+  }); // end DOMContentLoaded
 </script>
+<!-- Logout confirmation modal -->
+<div id="logoutModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3>Confirm Logout</h3>
+    <p>Are you sure you want to log out of your account?</p>
+    <div class="modal-actions">
+      <button id="logoutCancelBtn" class="ghost">Cancel</button>
+      <button id="logoutConfirmBtn" class="red">Log Out</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/navbar-auth.js"></script>
 </body>
 </html>

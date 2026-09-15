@@ -488,3 +488,74 @@ footer.site-footer { background: var(--forest-900); color: rgba(255,255,255,0.75
   .auth-page-visual h2 { font-size: 30px; }
   .auth-page-card { animation: none; }
 }
+
+/* ============ Confirmation Modal ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.hidden {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+.modal-card {
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  animation: modalAppear 0.2s ease-out;
+}
+@keyframes modalAppear {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.modal-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--ink);
+}
+.modal-card p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.modal-actions button {
+  flex: 1;
+  padding: 10px 20px;
+  font-size: 13px;
+}
+.modal-actions button.ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+}
+.modal-actions button.ghost:hover {
+  background: var(--sage-100);
+  color: var(--ink);
+}
+.modal-actions button.red {
+  background: var(--danger);
+  color: #ffffff;
+  border: 1px solid var(--danger);
+}
+.modal-actions button.red:hover {
+  background: #9A2F25;
+}
