@@ -6,6 +6,7 @@
 const soap = require("soap");
 
 const WSDL_URL = process.env.SOAP_URL || "http://localhost:8080/driverVerification.php?wsdl";
+const SOAP_TIMEOUT = 10000; // 10 seconds
 
 // The WSDL uses RPC/encoded style, so the soap library sometimes wraps
 // primitive values like { attributes: {...}, "$value": true } instead of
@@ -20,16 +21,38 @@ function unwrapValue(field) {
 
 function verifyDriver(driverId) {
   return new Promise((resolve, reject) => {
-    soap.createClient(WSDL_URL, (err, client) => {
-      if (err) return reject(err);
+    let finished = false;
+    const timer = setTimeout(() => {
+      if (!finished) {
+        finished = true;
+        reject(
+          new Error(
+            `SOAP request timed out after ${SOAP_TIMEOUT}ms (is PHP service running at ${WSDL_URL}?)`
+          )
+        );
+      }
+    }, SOAP_TIMEOUT);
+
+    soap.createClient(WSDL_URL, { timeout: SOAP_TIMEOUT }, (err, client) => {
+      if (finished) return;
+      if (err) {
+        clearTimeout(timer);
+        finished = true;
+        return reject(new Error(`Failed to connect to SOAP service: ${err.message}`));
+      }
+      // NOTE: for a SOAP method call (unlike createClient), the "soap" package
+      // expects (args, callback, options) - callback 2nd, options 3rd.
       client.VerifyDriver({ driverId }, (err2, rawResult, rawResponse) => {
-        if (err2) return reject(err2);
+        if (finished) return;
+        clearTimeout(timer);
+        finished = true;
+        if (err2) return reject(new Error(`SOAP VerifyDriver error: ${err2.message || JSON.stringify(err2)}`));
         const result = {
-          verified: unwrapValue(rawResult.verified) === true || unwrapValue(rawResult.verified) === "true",
-          licenseNumber: unwrapValue(rawResult.licenseNumber),
+          verified: unwrapValue(rawResult?.verified) === true || unwrapValue(rawResult?.verified) === "true",
+          licenseNumber: unwrapValue(rawResult?.licenseNumber) || "",
         };
         resolve({ result, rawResponse: rawResponse ? rawResponse.toString() : null });
-      });
+      }, { timeout: SOAP_TIMEOUT });
     });
   });
 }

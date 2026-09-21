@@ -28,8 +28,10 @@ async function publishNewRide(ride) {
       persistent: true,
     });
     console.log(`Queued ride ${ride.id} for driver assignment`);
+    return true;
   } catch (err) {
     console.warn("Could not publish to RabbitMQ (is it running?):", err.message);
+    return false;
   }
 }
 

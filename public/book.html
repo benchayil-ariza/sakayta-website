@@ -16,6 +16,38 @@
   .trip-summary-row:last-child { border-bottom: none; }
   .trip-summary-row .k { color: var(--ink-soft); font-weight: 600; }
   .trip-summary-row .v { font-family: var(--font-mono); font-size: 12.5px; text-align: right; }
+
+  /* Location-first map initialization prompt */
+  .location-prompt-overlay {
+    position: absolute; inset: 0; z-index: 800;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(244, 240, 230, 0.92);
+    backdrop-filter: blur(4px);
+    border-radius: inherit;
+    transition: opacity 0.35s ease;
+  }
+  .location-prompt-overlay.hidden { opacity: 0; pointer-events: none; }
+  .location-prompt-card {
+    background: var(--paper); border: 1px solid var(--line-strong);
+    border-radius: 12px; padding: 28px 24px; max-width: 340px;
+    text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .location-prompt-card .lp-icon { font-size: 40px; margin-bottom: 12px; }
+  .location-prompt-card h3 { margin: 0 0 8px; font-size: 18px; color: var(--ink); }
+  .location-prompt-card p { margin: 0 0 20px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; }
+  .location-prompt-card .lp-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .location-prompt-card .lp-status { margin-top: 14px; font-size: 12.5px; color: var(--ink-soft); }
+  .location-prompt-card .lp-status.error { color: var(--danger); }
+  .location-prompt-card .lp-status.ok { color: var(--ok); }
+
+  /* Current-location marker label */
+  .you-are-here-marker {
+    background: var(--accent); color: white; border: 2px solid white;
+    border-radius: 8px; padding: 4px 10px; font-size: 11.5px; font-weight: 700;
+    font-family: var(--font-mono); white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .you-are-here-marker::after { content: " ★ You are here"; }
   @media (max-width: 900px) { .booking-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -35,10 +67,14 @@
   <div class="nav-auth-buttons">
     <a href="/login.html" class="nav-login-btn">Log In</a>
     <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+    <a href="#" id="nav-logout-btn" class="nav-login-btn" style="display:none;">Log Out</a>
   </div>
 </header>
 
 <main class="container">
+  <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
+    <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">Book a ride</span>
+  </nav>
   <h2 style="font-size: 30px; margin-bottom: 4px;">Book a Ride</h2>
   <p style="color: var(--ink-soft); margin-top: 0; margin-bottom: 24px;">Set your trip, pick a ride type, and see your fare before confirming.</p>
 
@@ -74,6 +110,7 @@
         <div class="trip-summary-row"><span class="k">Ride type</span><span class="v" id="summaryType">Tricycle</span></div>
         <div class="trip-summary-row"><span class="k">Pickup</span><span class="v" id="summaryPickup">Not set</span></div>
         <div class="trip-summary-row"><span class="k">Destination</span><span class="v" id="summaryDropoff">Not set</span></div>
+        <div class="trip-summary-row" style="border-bottom: none;"><span class="k">Distance & Fare</span><span class="v" id="summaryDistanceFare">Not calculated</span></div>
       </div>
 
       <div id="resultCard" class="card" style="display:none; border-color: var(--amber-deep);" role="status" aria-live="polite">
@@ -87,6 +124,18 @@
 
     <div class="map-wrap">
       <div id="map" class="map" role="application" aria-label="Map for selecting pickup and drop-off points" aria-describedby="mapInstructions"></div>
+      <div id="locationPrompt" class="location-prompt-overlay" role="dialog" aria-label="Location access required" aria-modal="false">
+        <div class="location-prompt-card">
+          <div class="lp-icon" aria-hidden="true">📍</div>
+          <h3>Find your location</h3>
+          <p>To set the map to your current location, SakayTa needs access to your location. Your pickup point will default to where you are.</p>
+          <div class="lp-actions">
+            <button id="useMyLocationBtn" class="primary" style="padding: 10px 24px;">Use My Location</button>
+            <button id="skipLocationBtn" class="ghost" style="padding: 10px 24px;">Skip</button>
+          </div>
+          <p id="locationPromptStatus" class="lp-status" aria-live="polite"></p>
+        </div>
+      </div>
       <div id="fareFloatCard" class="floating-card glass" style="display:none; position: absolute; bottom: 16px; right: 16px; color: var(--ink); background: rgba(255,255,255,0.9); border-color: var(--sage-300);">
         <span class="fc-title" style="color: var(--ink-soft);">Estimated fare</span>
         <span class="fc-value" id="fareFloatValue" style="color: var(--amber-deep);">—</span>
@@ -121,7 +170,8 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  const map = L.map("map").setView([8.9475, 125.5406], 14);
+  // Create the map WITHOUT a default view — we wait for user location or skip
+  const map = L.map("map").setView([0, 0], 2);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
@@ -131,6 +181,7 @@
   let pickupMarker = null;
   let dropoffMarker = null;
   let rideType = "Tricycle";
+  let userLocationMarker = null;
 
   // Ride type selector (visual choice, sent along with the booking)
   document.querySelectorAll(".ride-type-card").forEach((card) => {
@@ -164,11 +215,45 @@
     updateStatus();
   });
 
+  async function fetchFareEstimate() {
+    if (!pickup || !dropoff) {
+        document.getElementById("summaryDistanceFare").textContent = "Not calculated";
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("sakayta_token");
+        const headers = { "Content-Type": "application/json" };
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(
+            `http://localhost:8088/api/rides/estimate?pickupLat=${pickup.lat}&pickupLng=${pickup.lng}&dropoffLat=${dropoff.lat}&dropoffLng=${dropoff.lng}`,
+            { method: "GET", headers }
+        );
+
+        if (!res.ok) {
+            console.warn("Estimate fetch failed:", await res.text());
+            return;
+        }
+
+        const data = await res.json();
+        document.getElementById("summaryDistanceFare").textContent =
+            `${data.distanceKm.toFixed(2)} km → ₱${data.fareEstimate} (${data.baseFare}+${data.ratePerKm}/km, source: ${data.fareSource})`;
+    } catch (err) {
+        console.warn("Error fetching fare estimate:", err);
+    }
+  }
+
   function updateStatus() {
     const bookBtn = document.getElementById("bookBtn");
     document.getElementById("summaryPickup").textContent = pickup ? `${pickup.lat.toFixed(4)}, ${pickup.lng.toFixed(4)}` : "Not set";
     document.getElementById("summaryDropoff").textContent = dropoff ? `${dropoff.lat.toFixed(4)}, ${dropoff.lng.toFixed(4)}` : "Not set";
     bookBtn.disabled = !(pickup && dropoff);
+    if (pickup && dropoff) {
+        fetchFareEstimate();
+    }
   }
 
   document.getElementById("bookBtn").addEventListener("click", async () => {
@@ -198,9 +283,15 @@
     spinner.hidden = false;
 
     try {
-      const res = await fetch("/api/rides", {
+      const token = localStorage.getItem("sakayta_token");
+      const headers = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("http://localhost:8088/api/rides", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           passengerName,
           rideType,
@@ -211,7 +302,10 @@
         }),
       });
 
-      if (!res.ok) throw new Error("Server returned an error. Please try again.");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Server returned an error. Please try again.");
+      }
       const data = await res.json();
 
       document.getElementById("rideIdOut").textContent = data.id;
@@ -231,6 +325,112 @@
       spinner.hidden = true;
     }
   });
-</script>
+
+  // --- Location-first map initialization ---
+  var LocationError = {
+    PERMISSION_DENIED: 1,
+    POSITION_UNAVAILABLE: 2,
+    TIMEOUT: 3
+  };
+
+  function showLocationError(message) {
+    var status = document.getElementById("locationPromptStatus");
+    status.textContent = message;
+    status.className = "lp-status error";
+  }
+
+  function showLocationSuccess(message) {
+    var status = document.getElementById("locationPromptStatus");
+    status.textContent = message;
+    status.className = "lp-status ok";
+  }
+
+  function initializeMapAt(lat, lng, zoom) {
+    map.setView([lat, lng], zoom);
+
+    // Remove any existing "you are here" marker
+    if (userLocationMarker) {
+      map.removeLayer(userLocationMarker);
+    }
+
+    userLocationMarker = L.marker([lat, lng]).addTo(map)
+      .bindPopup("You are here").openPopup();
+
+    // Hide location prompt so user can select pickup/dropoff
+    document.getElementById("locationPrompt").classList.add("hidden");
+  }
+
+  function requestUserLocation() {
+    var prompt = document.getElementById("locationPrompt");
+    var status = document.getElementById("locationPromptStatus");
+    var button = document.getElementById("useMyLocationBtn");
+
+    if (!navigator.geolocation) {
+      showLocationError("Your browser does not support location access. You can select a pickup point manually on the map.");
+      button.disabled = false;
+      return;
+    }
+
+    // Indicate we're requesting location
+    status.textContent = "Finding your location...";
+    status.className = "lp-status";
+    button.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        var lat = position.coords.latitude;
+        var lng = position.coords.longitude;
+
+        if (typeof lat !== "number" || typeof lng !== "number" ||
+            isNaN(lat) || isNaN(lng) ||
+            lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          showLocationError("We received an invalid location. Please try again or select manually.");
+          button.disabled = false;
+          return;
+        }
+
+        initializeMapAt(lat, lng, 15);
+        showLocationSuccess("Map centered on your location");
+        button.disabled = false;
+      },
+      function(error) {
+        var message = "Location access was not allowed. You can choose your pickup location manually on the map.";
+        status.className = "lp-status error";
+
+        switch (error.code) {
+          case LocationError.PERMISSION_DENIED:
+            message = "Location access was not allowed. You can choose your pickup location manually on the map.";
+            break;
+          case LocationError.POSITION_UNAVAILABLE:
+            message = "Your location is currently unavailable. Please try again or select manually.";
+            break;
+          case LocationError.TIMEOUT:
+            message = "Location request timed out. Please try again.";
+            break;
+          default:
+            message = "Could not retrieve your location. Please try again or select manually.";
+        }
+
+        showLocationError(message);
+        button.disabled = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  }
+
+  function hideLocationPrompt() {
+    var prompt = document.getElementById("locationPrompt");
+    prompt.classList.add("hidden");
+  }
+
+  document.getElementById("useMyLocationBtn").addEventListener("click", requestUserLocation);
+  document.getElementById("skipLocationBtn").addEventListener("click", hideLocationPrompt);
+
+  </script>
+<script src="/js/navbar-auth.js"></script>
 </body>
 </html>

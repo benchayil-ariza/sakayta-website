@@ -16,15 +16,9 @@
     <img src="/assets/logo-icon-nav.png" alt="" />
     <span class="brand-name">SakayTa</span>
   </a>
-  <nav aria-label="Main navigation">
-    <a href="/book.html">Book a Ride</a>
-    <a href="/rides.html">All Rides</a>
-    <a href="/driver.html">Driver View</a>
-    <a href="/passenger.html">Passenger View</a>
-  </nav>
   <div class="nav-auth-buttons">
-    <a href="/login.html" class="nav-login-btn" onclick="event.preventDefault(); authNavigate('/login.html','login');">Log In</a>
-    <a href="/signup.html" class="nav-signup-btn" aria-current="page">Sign Up</a>
+    <a href="/index.html" class="nav-login-btn ghost">Home</a>
+    <a href="#" id="nav-logout-btn" class="nav-login-btn" style="display:none;">Log Out</a>
   </div>
 </header>
 
@@ -56,8 +50,8 @@
         <input type="text" id="signupName" placeholder="Enter your full name" />
       </div>
       <div class="auth-field">
-        <label for="signupEmail">Email address</label>
-        <input type="email" id="signupEmail" placeholder="Enter your email" />
+        <label for="signupIdentifier">Email or mobile number</label>
+        <input type="text" id="signupIdentifier" placeholder="Email or mobile number" />
       </div>
       <div class="auth-field">
         <label for="signupPassword">Password</label>
@@ -86,7 +80,9 @@
         </div>
       </div>
 
-      <button class="primary auth-submit" onclick="return false;">Create Account</button>
+      <p id="signupError" class="field-error" role="alert" style="margin-top: 12px;" hidden></p>
+      <button class="primary auth-submit" id="signupBtn">Create Account</button>
+      <span id="signupSpinner" class="spinner" hidden aria-hidden="true"></span>
       <p class="auth-terms">By creating an account, you agree to SakayTa's Terms of Service and Privacy Policy.</p>
       <p class="auth-switch-link">Already have an account? <a href="/login.html" onclick="event.preventDefault(); authNavigate('/login.html','login');">Log In</a></p>
     </div>
@@ -102,10 +98,6 @@
     <div class="footer-col">
       <h4>Navigate</h4>
       <a href="/index.html">Home</a>
-      <a href="/book.html">Book a Ride</a>
-      <a href="/rides.html">All Rides</a>
-      <a href="/driver.html">Driver View</a>
-      <a href="/passenger.html">Passenger View</a>
     </div>
     <div class="footer-col">
       <h4>Support</h4>
@@ -130,6 +122,7 @@
     btn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
   }
 
+  let selectedRole = "passenger";
   document.querySelectorAll(".account-type-card").forEach((card) => {
     card.addEventListener("click", () => selectAccountType(card));
     card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectAccountType(card); } });
@@ -138,7 +131,73 @@
     document.querySelectorAll(".account-type-card").forEach((c) => { c.classList.remove("selected"); c.setAttribute("aria-checked", "false"); });
     card.classList.add("selected");
     card.setAttribute("aria-checked", "true");
+    selectedRole = card.dataset.type;
   }
+
+  // Handle signup form submission
+  document.getElementById("signupBtn").addEventListener("click", async () => {
+    const nameInput = document.getElementById("signupName");
+    const identifierInput = document.getElementById("signupIdentifier");
+    const passwordInput = document.getElementById("signupPassword");
+    const confirmInput = document.getElementById("signupConfirm");
+    const errorEl = document.getElementById("signupError");
+    const btn = document.getElementById("signupBtn");
+    const spinner = document.getElementById("signupSpinner");
+
+    const full_name = nameInput.value.trim();
+    const identifier = identifierInput.value.trim();
+    const password = passwordInput.value;
+    const confirm_password = confirmInput.value;
+
+    errorEl.hidden = true;
+
+    if (!full_name || !identifier || !password || !confirm_password) {
+      errorEl.textContent = "All fields are required.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Creating account...";
+    spinner.hidden = false;
+
+    try {
+      const res = await fetch("http://localhost:8088/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, full_name, password, confirm_password, role: selectedRole }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.error || "Registration failed. Please try again.";
+        errorEl.hidden = false;
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+        spinner.hidden = true;
+        return;
+      }
+
+      // Store token in localStorage
+      localStorage.setItem("sakayta_token", data.token);
+      localStorage.setItem("sakayta_user", JSON.stringify(data.user));
+
+      // Redirect to appropriate page based on role
+      if (data.user.role === "driver") {
+        window.location.href = "/driver.html";
+      } else {
+        window.location.href = "/passenger.html";
+      }
+    } catch (err) {
+      errorEl.textContent = "Network error. Please check your connection.";
+      errorEl.hidden = false;
+      btn.disabled = false;
+      btn.textContent = "Create Account";
+      spinner.hidden = true;
+    }
+  });
 </script>
+<script src="/js/navbar-auth.js"></script>
 </body>
 </html>

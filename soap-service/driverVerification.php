@@ -6,11 +6,14 @@
 ini_set("soap.wsdl_cache_enabled", "0");
 
 // In a real system this would be a real driver/license registry.
-// For this prototype, it's a small hardcoded list matching the driver IDs
-// seeded in the Node.js database (d1, d2).
+// For this prototype, it's a small hardcoded list matching license numbers
+// seeded in the database via the SOAP test seed script.
 $driverRegistry = [
-    'd1' => ['licenseNumber' => 'N01-23-456789', 'verified' => true],
-    'd2' => ['licenseNumber' => 'N02-98-765432', 'verified' => true],
+    'N01-23-456789' => ['verified' => true],
+    'N02-98-765432' => ['verified' => true],
+    'SAMPLE-VERIFIED-001' => ['verified' => true],
+    'SAMPLE-INVALID-999' => ['verified' => false],
+    'SAMPLE-UNKNOWN-XYZ' => ['verified' => false],
 ];
 
 class DriverVerificationService {
@@ -20,12 +23,12 @@ class DriverVerificationService {
         $this->registry = $registry;
     }
 
-    public function VerifyDriver($driverId) {
-        if (isset($this->registry[$driverId])) {
-            $record = $this->registry[$driverId];
+    public function VerifyDriver($licenseNumber) {
+        if (isset($this->registry[$licenseNumber])) {
+            $record = $this->registry[$licenseNumber];
             return [
                 'verified' => $record['verified'],
-                'licenseNumber' => $record['licenseNumber'],
+                'licenseNumber' => $licenseNumber,
             ];
         }
         return ['verified' => false, 'licenseNumber' => ''];

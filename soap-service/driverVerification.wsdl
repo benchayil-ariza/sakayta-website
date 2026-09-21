@@ -7,7 +7,7 @@
     xmlns="http://schemas.xmlsoap.org/wsdl/">
 
   <message name="VerifyDriverRequest">
-    <part name="driverId" type="xsd:string"/>
+    <part name="licenseNumber" type="xsd:string"/>
   </message>
   <message name="VerifyDriverResponse">
     <part name="verified" type="xsd:boolean"/>
@@ -38,7 +38,7 @@
 
   <service name="DriverVerificationService">
     <port name="DriverVerificationPort" binding="tns:DriverVerificationBinding">
-      <soap:address location="http://localhost:8080/driverVerification.php"/>
+      <soap:address location="http://localhost/soap-service/driverVerification.php"/>
     </port>
   </service>
 </definitions>

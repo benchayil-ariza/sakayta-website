@@ -1,0 +1,34 @@
+# SakayTa — PHP foundation .htaccess (Apache)
+# Served from the repo's php/public directory via the SakayTa vhost.
+#
+# The Apache DocumentRoot is php/public, so php/config, php/db, php/sql and
+# php/bin (which live ABOVE the docroot) are not servable by Apache by
+# default. The rules below are additional hardening for the web root itself:
+#   - block directory listing
+#   - deny the app private dotenv file outright
+#   - redirect to HTTPS once TLS is in place (SRS target) — currently off so
+#     the foundation stays reachable over plain HTTP on the dev vhost.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route API requests to api.php
+    RewriteRule ^api/(.*)$ api.php?route=$1 [QSA,L]
+
+    # Apache does not populate HTTP_AUTHORIZATION for mod_php on some Windows
+    # builds; mirror it from the raw request header so bearer tokens work.
+    <IfModule mod_setenvif.c>
+        SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+    </IfModule>
+
+    # HTTPS redirection (enable after Apache SSL is configured):
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Never serve the app's private dotenv file through the web root.
+<FilesMatch "^\.env.*$">
+    Require all denied
+</FilesMatch>

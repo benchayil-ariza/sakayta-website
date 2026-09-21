@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <meta charset="UTF-8">
 <title>SakayTa - Passenger View</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +11,19 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
   .map { height: 60vh; }
-  .map-wrap { position: relative; }
+  .map-wrap { position: relative; min-width: 0; overflow: hidden; }
+  .location-prompt-overlay.hidden { opacity: 0; pointer-events: none; }
   .ride-status-line { display:flex; align-items:center; gap: 8px; font-size: 14px; color: var(--sage-700); font-weight: 700; margin-top: 4px; }
   .ride-status-line .dot { width: 8px; height: 8px; border-radius: 50%; background: #3F9B5E; animation: pulse 1.6s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (max-width: 900px) {
+    .booking-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
+
+<div class="driver-app">
 
 <header class="driver-topbar">
   <div class="driver-topbar-left">
@@ -71,9 +78,6 @@
       <button type="button" class="sidebar-link" data-view="notifications">
         <span class="sl-ico" aria-hidden="true">🔔</span> Notifications
       </button>
-      <button type="button" class="sidebar-link" data-view="profile">
-        <span class="sl-ico" aria-hidden="true">👤</span> Profile
-      </button>
     </nav>
 
     <!-- System -->
@@ -111,14 +115,6 @@
           <div class="ride-status-line"><span class="dot"></span><span id="status">Waiting for driver location...</span></div>
           <button id="cancelBtn" class="red" style="display: none; width: 100%; margin-top: 12px;">Cancel Ride</button>
           <div id="cancelStatus" style="margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center;"></div>
-        </div>
-
-        <div class="map-wrap">
-          <div id="map" class="map" role="application" aria-label="Live map showing your driver's location"></div>
-          <div id="distanceFloatCard" class="floating-card glass" style="display:none; position:absolute; top:16px; right:16px; background: rgba(255,255,255,0.92); color: var(--ink); border-color: var(--sage-300);">
-            <span class="fc-title" style="color: var(--ink-soft);">Driver distance</span>
-            <span class="fc-value" id="distanceFloatValue" style="color: var(--sage-700);">—</span>
-          </div>
         </div>
       </section>
 
@@ -158,7 +154,9 @@
               <h3 style="margin: 0 0 8px; font-size: 17px;">Trip summary</h3>
               <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Ride type</span><span id="bookSummaryType" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Tricycle</span></div>
               <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Pickup</span><span id="bookSummaryPickup" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Destination</span><span id="bookSummaryDropoff" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
+              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Destination</span><span id="bookSummaryDropoff" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
+              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Distance</span><span id="bookSummaryDistance" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">—</span></div>
+              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Estimated Fare</span><span id="bookSummaryFare" style="font-family: var(--font-display); font-size: 18px; color: var(--amber-deep); text-align: right;">—</span></div>
             </div>
 
             <div id="bookResultCard" class="card" style="display:none; border-color: var(--amber-deep); margin-top: 20px;" role="status" aria-live="polite">
@@ -263,9 +261,6 @@
     </div>
   </main>
 </div>
-
-    </div>
-  </main>
 </div>
 
 <!-- ============================================================
@@ -285,7 +280,6 @@ const socket = io({
   auth: { token: token }
 });
 
-const statusEl = document.getElementById("status");
 const rideIdInput = document.getElementById("rideId");
 const topbarPassengerEl = document.getElementById("topbarPassenger");
 const sidebarPassengerNameEl = document.getElementById("sidebarPassengerName");
@@ -393,18 +387,6 @@ socket.on("notification:new", (notification) => {
   updateNotificationUI();
 });
 
-// ===== Map initialization =====
-const passengerLat = 8.9475;
-const passengerLng = 125.5406;
-
-const map = L.map("map").setView([passengerLat, passengerLng], 15);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "&copy; OpenStreetMap contributors",
-}).addTo(map);
-
-const passengerMarker = L.marker([passengerLat, passengerLng]).addTo(map).bindPopup("You (Passenger)").openPopup();
-let driverMarker = null;
-
 // Load REAL ride info (passenger name used for greeting, real fare) from the API
 async function loadRideInfo() {
   const rideId = rideIdInput.value.trim();
@@ -506,32 +488,6 @@ function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); loadRid
 joinRoom();
 rideIdInput.addEventListener("change", joinRoom);
 
-socket.on("ride:driverLocation", ({ lat, lng }) => {
-  if (!driverMarker) {
-    driverMarker = L.marker([lat, lng]).addTo(map).bindPopup("Your Driver").openPopup();
-  } else {
-    driverMarker.setLatLng([lat, lng]);
-  }
-  map.fitBounds([[passengerLat, passengerLng], [lat, lng]]);
-  const distanceKm = getDistanceKm(passengerLat, passengerLng, lat, lng);
-  statusEl.textContent = `Driver is on the way — ${distanceKm.toFixed(2)} km away`;
-
-  document.getElementById("distanceFloatValue").textContent = distanceKm.toFixed(2) + " km";
-  document.getElementById("distanceFloatCard").style.display = "flex";
-
-  // Rough ETA estimate assuming ~20km/h average tricycle speed - clearly labeled as an estimate
-  const etaMin = Math.max(1, Math.round((distanceKm / 20) * 60));
-  document.getElementById("rideEta").textContent = `~${etaMin} min`;
-});
-
-function getDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
 // ===== View switching (client-side application navigation) =====
 const views = document.querySelectorAll(".driver-view");
 const navLinks = document.querySelectorAll(".sidebar-link[data-view]");
@@ -541,8 +497,15 @@ function showView(name) {
   navLinks.forEach((l) => l.classList.toggle("active", l.dataset.view === name));
 
   if (name === "dashboard") { loadRideInfo(); }
-  if (name === "profile") { updateDriverLabels(); } // reuse driver labels function for passenger name
-  if (name === "notifications") { loadNotifications(); }
+  if (name === "book-ride") {
+    initBookingMap();
+    if (bookingMap) {
+      setTimeout(() => { bookingMap.invalidateSize(); }, 50);
+    }
+  }
+  if (name === "my-rides") { loadMyRides(); }
+  if (name === "notifications") { loadFullNotifications(); }
+  if (name === "profile") { loadProfile(); }
 
   closeMobileSidebar();
 }
@@ -677,10 +640,34 @@ let bookingPickupMarker = null;
 let bookingDropoffMarker = null;
 let bookingRideType = "Tricycle";
 let bookingUserLocationMarker = null;
-const bookingMap = L.map("bookingMap").setView([0, 0], 2);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "&copy; OpenStreetMap contributors",
-}).addTo(bookingMap);
+let bookingMap = null;
+
+function initBookingMap() {
+  if (bookingMap) return;
+  bookingMap = L.map("bookingMap").setView([0, 0], 2);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(bookingMap);
+
+  bookingMap.on("click", (e) => {
+    if (!bookingPickup) {
+      bookingPickup = e.latlng;
+      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
+    } else if (!bookingDropoff) {
+      bookingDropoff = e.latlng;
+      bookingDropoffMarker = L.marker(bookingDropoff, { title: "Drop-off" }).addTo(bookingMap).bindPopup("Drop-off").openPopup();
+    } else {
+      bookingMap.removeLayer(bookingPickupMarker);
+      bookingMap.removeLayer(bookingDropoffMarker);
+      bookingPickup = e.latlng;
+      bookingDropoff = null;
+      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
+      document.getElementById("bookResultCard").style.display = "none";
+      document.getElementById("bookFareFloatCard").style.display = "none";
+    }
+    updateBookingStatus();
+  });
+}
 
 function selectBookingRideType(card) {
   document.querySelectorAll(".ride-type-card").forEach((c) => {
@@ -693,30 +680,48 @@ function selectBookingRideType(card) {
   document.getElementById("bookSummaryType").textContent = bookingRideType;
 }
 
-bookingMap.on("click", (e) => {
-  if (!bookingPickup) {
-    bookingPickup = e.latlng;
-    bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
-  } else if (!bookingDropoff) {
-    bookingDropoff = e.latlng;
-    bookingDropoffMarker = L.marker(bookingDropoff, { title: "Drop-off" }).addTo(bookingMap).bindPopup("Drop-off").openPopup();
-  } else {
-    bookingMap.removeLayer(bookingPickupMarker);
-    bookingMap.removeLayer(bookingDropoffMarker);
-    bookingPickup = e.latlng;
-    bookingDropoff = null;
-    bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
-    document.getElementById("bookResultCard").style.display = "none";
-    document.getElementById("bookFareFloatCard").style.display = "none";
-  }
-  updateBookingStatus();
-});
-
 function updateBookingStatus() {
   const bookBtn = document.getElementById("bookRideBtn");
   document.getElementById("bookSummaryPickup").textContent = bookingPickup ? `${bookingPickup.lat.toFixed(4)}, ${bookingPickup.lng.toFixed(4)}` : "Not set";
   document.getElementById("bookSummaryDropoff").textContent = bookingDropoff ? `${bookingDropoff.lat.toFixed(4)}, ${bookingDropoff.lng.toFixed(4)}` : "Not set";
   bookBtn.disabled = !(bookingPickup && bookingDropoff);
+
+  if (bookingPickup && bookingDropoff) {
+    fetchBookingFareEstimate();
+  } else {
+    document.getElementById("bookSummaryDistance").textContent = "—";
+    document.getElementById("bookSummaryFare").textContent = "—";
+    document.getElementById("bookFareFloatValue").textContent = "—";
+  }
+}
+
+async function fetchBookingFareEstimate() {
+  if (!bookingPickup || !bookingDropoff) {
+    document.getElementById("bookSummaryDistance").textContent = "—";
+    document.getElementById("bookSummaryFare").textContent = "—";
+    return;
+  }
+  try {
+    const token = localStorage.getItem("sakayta_token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(
+      `http://localhost:8088/api/rides/estimate?pickupLat=${bookingPickup.lat}&pickupLng=${bookingPickup.lng}&dropoffLat=${bookingDropoff.lat}&dropoffLng=${bookingDropoff.lng}`,
+      { method: "GET", headers }
+    );
+    if (!res.ok) {
+      document.getElementById("bookSummaryDistance").textContent = "—";
+      document.getElementById("bookSummaryFare").textContent = "—";
+      return;
+    }
+    const data = await res.json();
+    document.getElementById("bookSummaryDistance").textContent = `${data.distanceKm.toFixed(2)} km`;
+    document.getElementById("bookSummaryFare").textContent = `₱${data.fareEstimate}`;
+    document.getElementById("bookFareFloatValue").textContent = `₱${data.fareEstimate}`;
+  } catch (err) {
+    document.getElementById("bookSummaryDistance").textContent = "—";
+    document.getElementById("bookSummaryFare").textContent = "—";
+  }
 }
 
 document.querySelectorAll(".ride-type-card").forEach((card) => {
@@ -814,6 +819,8 @@ function showBookingLocationSuccess(message) {
 }
 
 function initializeBookingMapAt(lat, lng, zoom) {
+  if (!bookingMap) initBookingMap();
+  if (!bookingMap) return;
   bookingMap.setView([lat, lng], zoom);
 
   // Remove any existing "you are here" marker
@@ -826,6 +833,7 @@ function initializeBookingMapAt(lat, lng, zoom) {
 
   // Hide location prompt so user can select pickup/dropoff
   document.getElementById("bookLocationPrompt").classList.add("hidden");
+  if (bookingMap) setTimeout(() => { bookingMap.invalidateSize(); }, 30);
 }
 
 function requestBookingUserLocation() {
@@ -893,6 +901,7 @@ function requestBookingUserLocation() {
 function hideBookingLocationPrompt() {
   var prompt = document.getElementById("bookLocationPrompt");
   prompt.classList.add("hidden");
+  if (bookingMap) setTimeout(() => { bookingMap.invalidateSize(); }, 30);
 }
 
 document.getElementById("bookUseMyLocationBtn").addEventListener("click", requestBookingUserLocation);
@@ -1060,33 +1069,6 @@ async function loadProfile() {
     console.warn("Could not load profile:", err.message);
   }
 }
-
-// ===== View switching updates =====
-const originalShowView = showView;
-function showView(name) {
-  originalShowView(name);
-
-  if (name === "book-ride") {
-    // Initialize booking map if not already done
-    if (bookingMap) {
-      bookingMap.invalidateSize();
-    }
-  } else if (name === "my-rides") {
-    loadMyRides();
-  } else if (name === "notifications") {
-    loadFullNotifications();
-  } else if (name === "profile") {
-    loadProfile();
-  }
-}
-
-// Update the navLinks click handler to use the new showView
-document.querySelectorAll(".sidebar-link[data-view]").forEach((link) => {
-  link.removeEventListener("click", link._clickListener || function() {});
-  const clickHandler = () => { showView(link.dataset.view); };
-  link._clickListener = clickHandler;
-  link.addEventListener("click", clickHandler);
-});
 
 // ===== Default view =====
 showView("dashboard");

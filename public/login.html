@@ -16,15 +16,9 @@
     <img src="/assets/logo-icon-nav.png" alt="" />
     <span class="brand-name">SakayTa</span>
   </a>
-  <nav aria-label="Main navigation">
-    <a href="/book.html">Book a Ride</a>
-    <a href="/rides.html">All Rides</a>
-    <a href="/driver.html">Driver View</a>
-    <a href="/passenger.html">Passenger View</a>
-  </nav>
   <div class="nav-auth-buttons">
-    <a href="/login.html" class="nav-login-btn" aria-current="page">Log In</a>
-    <a href="/signup.html" class="nav-signup-btn" onclick="event.preventDefault(); authNavigate('/signup.html','signup');">Sign Up</a>
+    <a href="/index.html" class="nav-login-btn ghost">Home</a>
+    <a href="#" id="nav-logout-btn" class="nav-login-btn" style="display:none;">Log Out</a>
   </div>
 </header>
 
@@ -52,8 +46,8 @@
       <p class="auth-sub">Sign in to continue your SakayTa journey.</p>
 
       <div class="auth-field">
-        <label for="loginEmail">Email address</label>
-        <input type="email" id="loginEmail" placeholder="Enter your email" />
+        <label for="loginIdentifier">Email or mobile number</label>
+        <input type="text" id="loginIdentifier" placeholder="Email or mobile number" />
       </div>
       <div class="auth-field">
         <label for="loginPassword">Password</label>
@@ -66,7 +60,9 @@
         </div>
       </div>
       <div class="auth-forgot"><a href="#">Forgot password?</a></div>
-      <button class="primary auth-submit" onclick="return false;">Log In</button>
+      <p id="loginError" class="field-error" role="alert" style="margin-top: 12px; margin-bottom: 12px;" hidden></p>
+      <button class="primary auth-submit" id="loginBtn">Log In</button>
+      <span id="loginSpinner" class="spinner" hidden aria-hidden="true"></span>
 
       <p class="auth-switch-link">Don't have an account? <a href="/signup.html" onclick="event.preventDefault(); authNavigate('/signup.html','signup');">Sign Up</a></p>
     </div>
@@ -82,10 +78,6 @@
     <div class="footer-col">
       <h4>Navigate</h4>
       <a href="/index.html">Home</a>
-      <a href="/book.html">Book a Ride</a>
-      <a href="/rides.html">All Rides</a>
-      <a href="/driver.html">Driver View</a>
-      <a href="/passenger.html">Passenger View</a>
     </div>
     <div class="footer-col">
       <h4>Support</h4>
@@ -109,6 +101,69 @@
     closedIcon.style.display = isPassword ? "block" : "none";
     btn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
   }
+
+  // Handle login form submission
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    const identifierInput = document.getElementById("loginIdentifier");
+    const passwordInput = document.getElementById("loginPassword");
+    const errorEl = document.getElementById("loginError");
+    const btn = document.getElementById("loginBtn");
+    const spinner = document.getElementById("loginSpinner");
+
+    const identifier = identifierInput.value.trim();
+    const password = passwordInput.value;
+
+    errorEl.hidden = true;
+
+    if (!identifier || !password) {
+      errorEl.textContent = "Email/mobile and password are required.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Logging in...";
+    spinner.hidden = false;
+
+    try {
+      const res = await fetch("http://localhost:8088/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.error || "Login failed. Please try again.";
+        errorEl.hidden = false;
+        btn.disabled = false;
+        btn.textContent = "Log In";
+        spinner.hidden = true;
+        return;
+      }
+
+      // Store token in localStorage
+      localStorage.setItem("sakayta_token", data.token);
+      localStorage.setItem("sakayta_user", JSON.stringify(data.user));
+
+      // Redirect to appropriate page based on role
+      if (data.user.role === "driver") {
+        window.location.href = "/driver.html";
+      } else if (data.user.role === "admin") {
+        window.location.href = "/admin.html";
+      } else {
+        window.location.href = "/passenger.html";
+      }
+    } catch (err) {
+      errorEl.textContent = "Network error. Please check your connection.";
+      errorEl.hidden = false;
+      btn.disabled = false;
+      btn.textContent = "Log In";
+      spinner.hidden = true;
+    }
+  });
 </script>
+<script src="/js/navbar-auth.js"></script>
 </body>
 </html>

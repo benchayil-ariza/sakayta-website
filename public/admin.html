@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SakayTa - Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css" />
+<style>
+  .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+  .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+  .admin-title { font-size: 28px; margin: 0; }
+  .admin-nav { display: flex; gap: 20px; }
+  .admin-nav a { text-decoration: none; color: var(--ink); font-weight: 600; padding: 8px 16px; border-radius: 4px; }
+  .admin-nav a:hover { background: var(--canvas-edge); }
+  .admin-nav a.active { background: var(--accent-soft); color: var(--accent); }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+  .stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 24px; text-align: center; }
+  .stat-value { font-size: 32px; font-weight: 700; margin: 8px 0; color: var(--ink); font-family: var(--font-mono); }
+  .stat-label { font-size: 14px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-icon { font-size: 40px; margin-bottom: 12px; }
+  .section { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 24px; margin-bottom: 30px; }
+  .section-title { font-size: 20px; margin: 0 0 20px 0; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .search-filter { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: end; }
+  .search-filter input, .search-filter select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); font-family: inherit; }
+  .search-filter button { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+  .search-filter button:hover { background: var(--accent-hi); }
+  .table-container { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line-strong); }
+  th { background: var(--canvas-edge); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+  tr:hover { background: var(--canvas); }
+  .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+  .status-verified { background: var(--ok-soft); color: var(--ok); }
+  .status-pending { background: var(--warn-soft); color: var(--warn); }
+  .status-rejected { background: var(--danger-soft); color: var(--danger); }
+  .status-busy { background: var(--info-soft); color: var(--info); }
+  .status-available { background: var(--ok-soft); color: var(--ok); }
+  .action-btn { padding: 6px 12px; margin-right: 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  .verify-btn { background: var(--ok); color: white; }
+  .verify-btn:hover { background: var(--ok-soft); }
+  .reject-btn { background: var(--danger); color: white; }
+  .reject-btn:hover { background: var(--danger-soft); }
+  .fare-form { background: var(--canvas-edge); padding: 20px; border-radius: 6px; }
+  .fare-form label { display: block; margin-bottom: 8px; font-weight: 600; }
+  .fare-form input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 16px; font-family: var(--font-mono); }
+  .fare-form button { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+  .fare-form button:hover { background: var(--accent-hi); }
+  .loading { text-align: center; padding: 40px; color: var(--ink-soft); }
+  .empty-state { text-align: center; padding: 40px; color: var(--ink-soft); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .feedback { padding: 12px; border-radius: 4px; margin-bottom: 20px; }
+  .feedback.success { background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok); }
+  .feedback.error { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+  .feedback.info { background: var(--info-soft); color: var(--info); border: 1px solid var(--info); }
+  .feedback.warn { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+  @media (max-width: 768px) {
+    .admin-header { flex-direction: column; gap: 20px; align-items: flex-start; }
+    .admin-nav { flex-wrap: wrap; }
+    .search-filter { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="driver-sidebar" id="adminSidebar" aria-label="Admin navigation" style="position:fixed;left:0;top:0;height:100vh;width:240px;background:var(--paper);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:100;">
+  <div style="padding:20px;">
+    <a href="/index.html" class="brand" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <img src="/assets/logo-icon-nav.png" alt="" style="height:30px;"/>
+      <span class="brand-name" style="font-weight:800;color:var(--ink);">SakayTa Admin</span>
+    </a>
+  </div>
+  <nav class="sidebar-nav" aria-label="Admin navigation" style="flex:1;padding:10px 0;">
+    <button type="button" class="sidebar-link active" id="nav-overview" data-tab="overview" onclick="showSection('overview')">
+      <span class="sl-ico" aria-hidden="true">▣</span> Overview
+    </button>
+    <button type="button" class="sidebar-link" id="nav-drivers" data-tab="drivers" onclick="showSection('drivers')">
+      <span class="sl-ico" aria-hidden="true">👨‍💼</span> Drivers
+    </button>
+    <button type="button" class="sidebar-link" id="nav-fares" data-tab="fares" onclick="showSection('fares')">
+      <span class="sl-ico" aria-hidden="true">💰</span> Fare Settings
+    </button>
+    <button type="button" class="sidebar-link" id="nav-logs" data-tab="logs" onclick="showSection('logs')">
+      <span class="sl-ico" aria-hidden="true">📋</span> Action Logs
+    </button>
+  </nav>
+  <div class="sidebar-foot" style="padding:16px;border-top:1px solid var(--line);">
+    <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out" onclick="document.getElementById('logoutModal').classList.remove('hidden')">Log Out</button>
+  </div>
+</aside>
+<div id="adminMainWrap" style="margin-left:240px;min-height:100vh;">
+
+<main class="container">
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1 class="admin-title">Admin Dashboard</h1>
+    </div>
+
+    <div id="feedback"></div>
+
+    <!-- Overview Section -->
+    <section id="overview" class="section">
+      <h2 class="section-title">📊 Overview Statistics</h2>
+      <div class="stats-grid" id="statsContainer">
+        <div class="loading">Loading statistics...</div>
+      </div>
+    </section>
+
+    <!-- Drivers Section -->
+    <section id="drivers" class="section" style="display: none;">
+      <h2 class="section-title">👨‍💼 Driver Management</h2>
+      <div class="search-filter">
+        <input type="text" id="driverSearch" placeholder="Search by name, plate, or license...">
+        <select id="licenseStatusFilter">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="verified">Verified</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select id="busyFilter">
+          <option value="">All Availability</option>
+          <option value="true">Busy</option>
+          <option value="false">Available</option>
+        </select>
+        <button id="searchDriversBtn">Search</button>
+      </div>
+      <div id="driversFeedback"></div>
+      <div class="table-container">
+        <table id="driversTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Plate Number</th>
+              <th>License Number</th>
+              <th>License Status</th>
+              <th>Verified Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="8" class="loading">Loading drivers...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Fare Settings Section -->
+    <section id="fares" class="section" style="display: none;">
+      <h2 class="section-title">💰 Fare Settings</h2>
+      <div class="fare-form">
+        <div id="fareFeedback"></div>
+        <div id="currentFare">
+          <h3>Current Fare Configuration</h3>
+          <div class="loading">Loading fare settings...</div>
+        </div>
+        <form id="fareUpdateForm">
+          <h3>Update Fare Settings</h3>
+          <label for="baseFare">Base Fare (₱)</label>
+          <input type="number" id="baseFare" min="0" step="0.01" placeholder="Enter base fare">
+
+          <label for="ratePerKm">Rate per Kilometer (₱/km)</label>
+          <input type="number" id="ratePerKm" min="0" step="0.01" placeholder="Enter rate per km">
+
+          <button type="submit">Update Fare Settings</button>
+        </form>
+        <p class="note">Note: Changing fare settings will only affect new rides. Existing rides retain their original fare estimates.</p>
+      </div>
+    </section>
+
+    <!-- Action Logs Section -->
+    <section id="logs" class="section" style="display: none;">
+      <h2 class="section-title">📋 Admin Action Logs</h2>
+      <div class="search-filter">
+        <input type="text" id="logSearch" placeholder="Search actions...">
+        <select id="actionTypeFilter">
+          <option value="">All Actions</option>
+          <option value="update_fare_settings">Fare Updates</option>
+          <option value="verify_driver">Driver Verifications</option>
+          <option value="reject_driver">Driver Rejections</option>
+        </select>
+        <button id="searchLogsBtn">Search</button>
+      </div>
+      <div id="logsFeedback"></div>
+      <div class="table-container">
+        <table id="logsTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Action Type</th>
+              <th>Description</th>
+              <th>Performed By</th>
+              <th>Timestamp</th>
+              <th>Metadata</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="6" class="loading">Loading action logs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+</div>
+</div>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/logo-footer.png" alt="SakayTa" />
+      <p class="footer-tagline">Modern rides for local communities.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navigate</h4>
+      <a href="/index.html">Home</a>
+      <a href="/book.html">Book a Ride</a>
+      <a href="/rides.html">All Rides</a>
+      <a href="/driver.html">Driver View</a>
+      <a href="/passenger.html">Passenger View</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Center</a>
+      <a href="#">Safety</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
+</footer>
+
+<script>
+  // State management
+  let currentToken = localStorage.getItem('sakayta_token');
+  let currentUser = null;
+  let activeSection = 'overview';
+
+  // DOM elements
+  const feedbackEl = document.getElementById('feedback');
+  const navLinks = {
+    overview: document.getElementById('nav-overview'),
+    drivers: document.getElementById('nav-drivers'),
+    fares: document.getElementById('nav-fares'),
+    logs: document.getElementById('nav-logs')
+  };
+  const sections = {
+    overview: document.getElementById('overview'),
+    drivers: document.getElementById('drivers'),
+    fares: document.getElementById('fares'),
+    logs: document.getElementById('logs')
+  };
+
+  // Feedback functions
+  function showFeedback(message, type = 'info') {
+    feedbackEl.innerHTML = `<div class="feedback ${type}">${message}</div>`;
+    setTimeout(() => {
+      feedbackEl.innerHTML = '';
+    }, 5000);
+  }
+
+  function showSectionFeedback(sectionId, message, type = 'info') {
+    const feedbackId = `${sectionId}Feedback`;
+    const feedbackEl = document.getElementById(feedbackId);
+    feedbackEl.innerHTML = `<div class="feedback ${type}">${message}</div>`;
+    setTimeout(() => {
+      feedbackEl.innerHTML = '';
+    }, 5000);
+  }
+
+  // Navigation
+  function showSection(sectionId) {
+    // Hide all sections
+    Object.values(sections).forEach(section => {
+      section.style.display = 'none';
+    });
+
+    // Remove active class from all nav links
+    Object.values(navLinks).forEach(link => {
+      link.classList.remove('active');
+    });
+
+    // Show selected section
+    sections[sectionId].style.display = 'block';
+    navLinks[sectionId].classList.add('active');
+    activeSection = sectionId;
+
+    // Load data for the section
+    switch(sectionId) {
+      case 'overview':
+        loadOverviewStats();
+        break;
+      case 'drivers':
+        loadDrivers();
+        break;
+      case 'fares':
+        loadFareSettings();
+        break;
+      case 'logs':
+        loadActionLogs();
+        break;
+    }
+  }
+
+  // Authentication check
+  async function checkAuth() {
+    if (!currentToken) {
+      window.location.href = '/login.html';
+      return false;
+    }
+
+    try {
+      const res = await fetch('http://localhost:8088/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+
+      if (!res.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      currentUser = await res.json();
+
+      // Check if user is admin
+      if (currentUser.role !== 'admin') {
+        showFeedback('Access denied. Admin privileges required.', 'error');
+        setTimeout(() => {
+          window.location.href = '/index.html';
+        }, 1500);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      showFeedback('Authentication failed. Please log in again.', 'error');
+      setTimeout(() => {
+        window.location.href = '/login.html';
+      }, 1500);
+      return false;
+    }
+  }
+
+  // API helper with auth
+  async function apiFetch(endpoint, options = {}) {
+    // Ensure admin API calls use the PHP backend on port 8088
+    if (endpoint.startsWith('/api/')) {
+      endpoint = 'http://localhost:8088' + endpoint;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentToken}`
+    };
+
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
+
+    const res = await fetch(endpoint, {
+      ...options,
+      headers
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  }
+
+  // Load overview statistics
+  async function loadOverviewStats() {
+    const statsContainer = document.getElementById('statsContainer');
+    statsContainer.innerHTML = '<div class="loading">Loading statistics...</div>';
+
+    try {
+      const stats = await apiFetch('/api/admin/stats');
+
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-value">${stats.totalUsers}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚗</div>
+          <div class="stat-value">${stats.totalDrivers}</div>
+          <div class="stat-label">Total Drivers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">${stats.verifiedDrivers}</div>
+          <div class="stat-label">Verified Drivers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-value">${stats.pendingDrivers}</div>
+          <div class="stat-label">Pending Drivers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">❌</div>
+          <div class="stat-value">${stats.rejectedDrivers}</div>
+          <div class="stat-label">Rejected Drivers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚕</div>
+          <div class="stat-value">${stats.totalRides}</div>
+          <div class="stat-label">Total Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔍</div>
+          <div class="stat-value">${stats.pendingRides}</div>
+          <div class="stat-label">Pending/Searching Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👨‍💼</div>
+          <div class="stat-value">${stats.assignedRides}</div>
+          <div class="stat-label">Assigned Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚦</div>
+          <div class="stat-value">${stats.enRouteRides}</div>
+          <div class="stat-label">En Route Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏁</div>
+          <div class="stat-value">${stats.completedRides}</div>
+          <div class="stat-label">Completed Rides</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚫</div>
+          <div class="stat-value">${stats.cancelledRides}</div>
+          <div class="stat-label">Cancelled Rides</div>
+        </div>
+      `;
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+      statsContainer.innerHTML = `<div class="feedback error">Failed to load statistics: ${err.message}</div>`;
+    }
+  }
+
+  // Load drivers with search/filter
+  async function loadDrivers() {
+    const driversTable = document.getElementById('driversTable').getElementsByTagName('tbody')[0];
+    const driversFeedback = document.getElementById('driversFeedback');
+
+    driversFeedback.innerHTML = '<div class="loading">Loading drivers...</div>';
+    driversTable.innerHTML = '<tr><td colspan="8" class="loading">Loading drivers...</td></tr>';
+
+    try {
+      // Get search/filter values
+      const search = document.getElementById('driverSearch').value.trim();
+      const licenseStatus = document.getElementById('licenseStatusFilter').value;
+      const busy = document.getElementById('busyFilter').value;
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (licenseStatus) params.append('licenseStatus', licenseStatus);
+      if (busy !== '') params.append('busy', busy);
+
+      const drivers = await apiFetch(`/api/admin/drivers?${params.toString()}`);
+
+      driversFeedback.innerHTML = '';
+
+      if (drivers.length === 0) {
+        driversTable.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty-state">
+              <div class="empty-state-icon">👥</div>
+              <p>No drivers found matching your criteria.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      driversTable.innerHTML = drivers.map(driver => {
+        const verifiedDate = driver.licenseVerifiedAt
+          ? new Date(driver.licenseVerifiedAt).toLocaleString()
+          : 'Never';
+
+        return `
+          <tr>
+            <td>${driver.id}</td>
+            <td>${escapeHtml(driver.name || 'N/A')}</td>
+            <td>${escapeHtml(driver.plateNumber || 'N/A')}</td>
+            <td>${escapeHtml(driver.licenseNumber || 'Not submitted')}</td>
+            <td>
+              <span class="status-badge status-${driver.licenseStatus}">
+                ${driver.licenseStatus.charAt(0).toUpperCase() + driver.licenseStatus.slice(1)}
+              </span>
+            </td>
+            <td>${verifiedDate}</td>
+            <td>
+              <span class="status-badge status-${driver.busy === 1 ? 'busy' : 'available'}">
+                ${driver.busy === 1 ? 'Busy' : 'Available'}
+              </span>
+            </td>
+            <td>
+              ${driver.licenseStatus === 'pending' ? `
+                <button class="action-btn verify-btn" onclick="verifyDriver('${driver.id}')">Verify</button>
+                <button class="action-btn reject-btn" onclick="rejectDriver('${driver.id}')">Reject</button>
+              ` : ''}
+              ${driver.licenseStatus === 'verified' || driver.licenseStatus === 'rejected' ? `
+                <button class="action-btn" onclick="viewDriverDetails('${driver.id}')">Details</button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed to load drivers:', err);
+      driversFeedback.innerHTML = `<div class="feedback error">Failed to load drivers: ${err.message}</div>`;
+      driversTable.innerHTML = `
+        <tr>
+          <td colspan="8" class="feedback error">Error loading drivers</td>
+        </tr>
+      `;
+    }
+  }
+
+  // Load fare settings
+  async function loadFareSettings() {
+    const currentFareDiv = document.getElementById('currentFare');
+    const fareFeedback = document.getElementById('fareFeedback');
+
+    currentFareDiv.innerHTML = '<div class="loading">Loading fare settings...</div>';
+    fareFeedback.innerHTML = '';
+
+    try {
+      const config = await apiFetch('/api/admin/fare');
+
+      currentFareDiv.innerHTML = `
+        <h3>Current Fare Configuration</h3>
+        <div class="stat-card" style="text-align: center; display: inline-block; margin: 16px 0; padding: 20px; min-width: 200px;">
+          <div class="stat-value">₱${config.baseFare}</div>
+          <div class="stat-label">Base Fare</div>
+        </div>
+        <div class="stat-card" style="text-align: center; display: inline-block; margin: 16px 0; padding: 20px; min-width: 200px;">
+          <div class="stat-value">₱${config.ratePerKm}/km</div>
+          <div class="stat-label">Rate per Kilometer</div>
+        </div>
+        <p style="margin-top: 16px; color: var(--ink-soft); font-size: 14px;">
+          Last updated: ${new Date(config.updatedAt).toLocaleString()} by ${escapeHtml(config.updatedBy || 'system')}
+        </p>
+      `;
+
+      // Pre-fill form
+      document.getElementById('baseFare').value = config.baseFare;
+      document.getElementById('ratePerKm').value = config.ratePerKm;
+    } catch (err) {
+      console.error('Failed to load fare settings:', err);
+      currentFareDiv.innerHTML = `<div class="feedback error">Failed to load fare settings: ${err.message}</div>`;
+    }
+  }
+
+  // Load action logs
+  async function loadActionLogs() {
+    const logsTable = document.getElementById('logsTable').getElementsByTagName('tbody')[0];
+    const logsFeedback = document.getElementById('logsFeedback');
+
+    logsFeedback.innerHTML = '<div class="loading">Loading action logs...</div>';
+    logsTable.innerHTML = '<tr><td colspan="6" class="loading">Loading action logs...</td></tr>';
+
+    try {
+      // Get search/filter values
+      const search = document.getElementById('logSearch').value.trim();
+      const actionType = document.getElementById('actionTypeFilter').value;
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (actionType) params.append('actionType', actionType);
+
+      const logs = await apiFetch(`/api/admin/logs?${params.toString()}`);
+
+      logsFeedback.innerHTML = '';
+
+      if (logs.length === 0) {
+        logsTable.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <p>No action logs found matching your criteria.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      logsTable.innerHTML = logs.map(log => {
+        const metadata = log.metadata ? JSON.parse(log.metadata) : null;
+        const metadataDisplay = metadata ?
+          `<details><summary>View Details</summary><pre>${JSON.stringify(metadata, null, 2)}</pre></details>` :
+          '-';
+
+        return `
+          <tr>
+            <td>${log.id}</td>
+            <td>${escapeHtml(log.actionType)}</td>
+            <td>${escapeHtml(log.description)}</td>
+            <td>${escapeHtml(log.performedBy)}</td>
+            <td>${new Date(log.performedAt).toLocaleString()}</td>
+            <td>${metadataDisplay}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed to load action logs:', err);
+      logsFeedback.innerHTML = `<div class="feedback error">Failed to load action logs: ${err.message}</div>`;
+      logsTable.innerHTML = `
+        <tr>
+          <td colspan="6" class="feedback error">Error loading logs</td>
+        </tr>
+      `;
+    }
+  }
+
+  // Driver verification
+  async function verifyDriver(driverId) {
+    if (!confirm(`Are you sure you want to verify driver ${driverId}? This will trigger SOAP verification.`)) {
+      return;
+    }
+
+    try {
+      const result = await apiFetch(`/api/admin/drivers/${driverId}/verify`, {
+        method: 'PUT'
+      });
+
+      showSectionFeedback('drivers', result.message, 'success');
+      loadDrivers(); // Refresh the table
+    } catch (err) {
+      console.error('Failed to verify driver:', err);
+      showSectionFeedback('drivers', `Failed to verify driver: ${err.message}`, 'error');
+    }
+  }
+
+  // Driver rejection
+  async function rejectDriver(driverId) {
+    if (!confirm(`Are you sure you want to reject driver ${driverId}?`)) {
+      return;
+    }
+
+    try {
+      const result = await apiFetch(`/api/admin/drivers/${driverId}/reject`, {
+        method: 'PUT'
+      });
+
+      showSectionFeedback('drivers', result.message, 'success');
+      loadDrivers(); // Refresh the table
+    } catch (err) {
+      console.error('Failed to reject driver:', err);
+      showSectionFeedback('drivers', `Failed to reject driver: ${err.message}`, 'error');
+    }
+  }
+
+  // View driver details (placeholder)
+  function viewDriverDetails(driverId) {
+    alert(`Driver details for ${driverId} would be shown here in a full implementation.`);
+  }
+
+  // Fare settings update
+  document.getElementById('fareUpdateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const baseFare = parseFloat(document.getElementById('baseFare').value);
+    const ratePerKm = parseFloat(document.getElementById('ratePerKm').value);
+
+    // Client-side validation
+    if (isNaN(baseFare) || isNaN(ratePerKm)) {
+      showSectionFeedback('fares', 'Please enter valid numbers for both fields.', 'error');
+      return;
+    }
+
+    if (baseFare < 0 || ratePerKm < 0) {
+      showSectionFeedback('fares', 'Fare values cannot be negative.', 'error');
+      return;
+    }
+
+    try {
+      const result = await apiFetch('/api/admin/fare', {
+        method: 'PUT',
+        body: JSON.stringify({ baseFare, ratePerKm })
+      });
+
+      showSectionFeedback('fares', result.message, 'success');
+      loadFareSettings(); // Refresh the display
+    } catch (err) {
+      console.error('Failed to update fare settings:', err);
+      showSectionFeedback('fares', `Failed to update fare settings: ${err.message}`, 'error');
+    }
+  });
+
+  // Search/filter event listeners
+  document.getElementById('searchDriversBtn').addEventListener('click', loadDrivers);
+  document.getElementById('driverSearch').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') loadDrivers();
+  });
+  document.getElementById('licenseStatusFilter').addEventListener('change', loadDrivers);
+  document.getElementById('busyFilter').addEventListener('change', loadDrivers);
+
+  document.getElementById('searchLogsBtn').addEventListener('click', loadActionLogs);
+  document.getElementById('logSearch').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') loadActionLogs();
+  });
+  document.getElementById('actionTypeFilter').addEventListener('change', loadActionLogs);
+
+  // Navigation event listeners
+  navLinks.overview.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('overview');
+  });
+
+  navLinks.drivers.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('drivers');
+  });
+
+  navLinks.fares.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('fares');
+  });
+
+  navLinks.logs.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('logs');
+  });
+
+  // Utility function to escape HTML
+  function escapeHtml(text) {
+    const map = {
+      '&': '&',
+      '<': '<',
+      '>': '>',
+      '"': '"',
+      "'": '&#039;'
+    };
+
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  }
+
+  // Initialize the dashboard
+  async function init() {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) return;
+
+    // Show overview section by default
+    showSection('overview');
+  }
+
+  // Start initialization
+  init();
+</script>
+<script src="/js/navbar-auth.js"></script>
+
+<div id="logoutModal" class="hidden" role="dialog" aria-modal="true" aria-label="Confirm logout" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--paper);padding:24px;border-radius:8px;max-width:320px;text-align:center;border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,0.1);">
+    <h3 style="margin:0 0 8px;">Log Out</h3>
+    <p style="margin:0 0 16px;color:var(--ink-soft);font-size:14px;">Are you sure you want to log out of the Admin Dashboard?</p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="document.getElementById('logoutModal').classList.add('hidden')" style="padding:8px 16px;border:1px solid var(--line);background:var(--paper);border-radius:4px;cursor:pointer;">Cancel</button>
+      <button onclick="localStorage.removeItem('sakayta_token');localStorage.removeItem('sakayta_user');window.location.href='/index.html';" style="padding:8px 16px;border:none;background:var(--danger);color:white;border-radius:4px;cursor:pointer;font-weight:600;">Confirm</button>
+    </div>
+  </div>
+</div>
+<style>
+  .hidden { display: none !important; }
+  #adminMainWrap { background: var(--canvas); }
+</style>
+<script>
+  // Sidebar click: reuse showSection (already exists in page)
+  // Just ensure sidebar links call showSection correctly (done via onclick above)
+</script>
+
+</body>
+</html>

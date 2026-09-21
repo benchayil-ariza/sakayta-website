@@ -30,10 +30,14 @@
   <div class="nav-auth-buttons">
     <a href="/login.html" class="nav-login-btn">Log In</a>
     <a href="/signup.html" class="nav-signup-btn">Sign Up</a>
+    <a href="#" id="nav-logout-btn" class="nav-login-btn" style="display:none;">Log Out</a>
   </div>
 </header>
 
 <main class="container">
+  <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
+    <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">All rides</span>
+  </nav>
   <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
     <div>
       <h2 style="font-size: 30px; margin-bottom: 4px;">All Rides</h2>
@@ -96,6 +100,16 @@
   let allRides = [];
   let currentFilter = "all";
 
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   document.querySelectorAll(".filter-pill").forEach((pill) => {
     pill.addEventListener("click", () => {
       document.querySelectorAll(".filter-pill").forEach((p) => p.classList.remove("active"));
@@ -112,7 +126,13 @@
     statusEl.textContent = "Loading...";
 
     try {
-      const res = await fetch("/api/rides");
+      const token = localStorage.getItem("sakayta_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/rides", { headers });
       if (!res.ok) throw new Error("Could not load rides.");
       allRides = await res.json();
       renderRides();
@@ -135,14 +155,14 @@
 
     body.innerHTML = filtered.map(r => `
       <div class="ride-card">
-        <div><div class="label">Passenger</div><div class="value">${r.passengerName}</div></div>
+        <div><div class="label">Passenger</div><div class="value">${escapeHtml(r.passengerName)}</div></div>
         <div class="route-line">📍 ${r.pickupLat?.toFixed(3)}, ${r.pickupLng?.toFixed(3)} → ${r.dropoffLat?.toFixed(3) ?? "—"}, ${r.dropoffLng?.toFixed(3) ?? "—"}</div>
-        <div><div class="label">Type</div><div class="value">${r.rideType || "Tricycle"}</div></div>
+        <div><div class="label">Type</div><div class="value">${escapeHtml(r.rideType || "Tricycle")}</div></div>
         <div><div class="label">Fare</div><div class="value">${r.fareEstimate ? "₱" + r.fareEstimate : "—"}</div></div>
-        <div><span class="status-badge status-${r.status}">${r.status}</span></div>
+        <div><span class="status-badge status-${r.status}">${escapeHtml(r.status)}</span></div>
         <div class="fmt-links">
-          <a href="/api/rides/${r.id}" target="_blank">JSON</a><br/>
-          <a href="/api/rides/${r.id}/xml" target="_blank">XML</a>
+          <a href="/api/rides/${encodeURIComponent(r.id)}" target="_blank">JSON</a><br/>
+          <a href="/api/rides/${encodeURIComponent(r.id)}/xml" target="_blank">XML</a>
         </div>
       </div>
     `).join("");
@@ -150,12 +170,18 @@
 
   async function testSoap() {
     const driverId = document.getElementById("driverIdInput").value;
-    const res = await fetch(`/api/rides/verify-driver/${driverId}`, { method: "POST" });
+    const token = localStorage.getItem("sakayta_token");
+    const headers = { method: "POST" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const res = await fetch(`/api/rides/verify-driver/${driverId}`, headers);
     const data = await res.json();
     document.getElementById("soapResult").textContent = JSON.stringify(data, null, 2);
   }
 
   loadRides();
 </script>
+<script src="/js/navbar-auth.js"></script>
 </body>
 </html>

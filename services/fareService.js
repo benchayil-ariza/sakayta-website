@@ -5,9 +5,20 @@
 // straight-line distance estimate so the app still works while you're testing.
 
 const axios = require("axios");
+const db = require("../db");
 
-const BASE_FARE = 15; // pesos
-const RATE_PER_KM = 8; // pesos per km
+function getFareConfig() {
+  try {
+    const row = db.prepare("SELECT baseFare, ratePerKm FROM fare_config ORDER BY updatedAt DESC LIMIT 1").get();
+    if (row) {
+      return { baseFare: row.baseFare, ratePerKm: row.ratePerKm };
+    }
+  } catch (err) {
+    // If there's an error (e.g., table doesn't exist), we'll fall back to defaults
+    console.warn("Could not read fare config, using defaults:", err.message);
+  }
+  return { baseFare: 15, ratePerKm: 8 }; // Default fallback
+}
 
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -20,6 +31,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 async function estimateFare(pickupLat, pickupLng, dropoffLat, dropoffLng) {
+  const { baseFare, ratePerKm } = getFareConfig();
   const apiKey = process.env.ORS_API_KEY;
 
   if (apiKey) {
@@ -38,7 +50,7 @@ async function estimateFare(pickupLat, pickupLng, dropoffLat, dropoffLng) {
       const distanceKm = distanceMeters / 1000;
       return {
         distanceKm,
-        fareEstimate: Math.round(BASE_FARE + distanceKm * RATE_PER_KM),
+        fareEstimate: Math.round(baseFare + distanceKm * ratePerKm),
         source: "OpenRouteService (real distance)",
       };
     } catch (err) {
@@ -49,9 +61,9 @@ async function estimateFare(pickupLat, pickupLng, dropoffLat, dropoffLng) {
   const distanceKm = haversineKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
   return {
     distanceKm,
-    fareEstimate: Math.round(BASE_FARE + distanceKm * RATE_PER_KM),
+    fareEstimate: Math.round(baseFare + distanceKm * ratePerKm),
     source: "straight-line estimate (set ORS_API_KEY in .env for real road distance)",
   };
 }
 
-module.exports = { estimateFare };
+module.exports = { estimateFare, haversineKm };
