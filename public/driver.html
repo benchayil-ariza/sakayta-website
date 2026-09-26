@@ -67,7 +67,7 @@
     <aside class="driver-sidebar" id="driverSidebar" aria-label="Driver navigation">
       <!-- Driver identity — the whole card is clickable and opens the Driver Profile view -->
       <div class="sidebar-profile" id="sidebarProfile" role="button" tabindex="0" aria-label="Open driver profile">
-        <div class="sidebar-profile-badge" aria-hidden="true">🚖</div>
+        <div class="sidebar-profile-badge" aria-hidden="true" id="sidebarProfileBadge" style="font-size:22px;">🚖</div>
         <div class="sidebar-profile-info">
           <div class="sidebar-profile-name" id="sidebarDriverName">Loading&hellip;</div>
           <div class="sidebar-profile-sub">Driver profile</div>
@@ -237,7 +237,10 @@
             <div class="dash-panel-head"><h3>Account</h3></div>
             <div class="dash-panel-body">
               <div class="profile-identity">
-                <div class="sidebar-profile-badge" aria-hidden="true">🚖</div>
+                <button id="accountAvatarBtn" class="profile-avatar-btn" aria-label="Change profile picture" style="background:none;border:none;padding:0;cursor:pointer;">
+                  <img id="accountAvatarImg" src="/assets/logo-icon-nav.png" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--sage-300);display:none;" onerror="this.style.display='none';document.getElementById('accountAvatarFallback').style.display='flex';" />
+                  <span id="accountAvatarFallback" aria-hidden="true" style="width:48px;height:48px;border-radius:50%;background:var(--ink);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:22px;border:2px solid var(--sage-300);">🚖</span>
+                </button>
                 <div>
                   <div class="profile-driver-name" id="profileDriverName">Driver</div>
                   <div class="profile-driver-sub">Profile and identity are managed in the sidebar.</div>
@@ -255,7 +258,6 @@
               <div class="trip-summary-row"><span class="k">License</span><span class="v" id="statusLicense">Unknown</span></div>
               <div class="trip-summary-row"><span class="k">Availability</span><span class="v" id="statusAvailability">Unknown</span></div>
               <div class="trip-summary-row"><span class="k">Current ride</span><span class="v" id="statusRide">None</span></div>
-              <div class="trip-summary-row"><span class="k">Notifications unread</span><span class="v" id="statusNotifications">0</span></div>
             </div>
           </div>
 
@@ -291,13 +293,6 @@
 
           
           
-          <div id="notificationsCard" class="dash-panel" style="margin-top:14px;">
-            <div class="dash-panel-head"><h3>Notifications <span id="notifUnreadBadge" style="font-size:11px; background:var(--danger); color:#fff; padding:2px 6px; border-radius:10px;">0</span></h3></div>
-            <div class="dash-panel-body" id="notificationsList" style="max-height:200px; overflow-y:auto; font-size:13px;">
-              <p class="active-ride-empty">No notifications.</p>
-            </div>
-          </div>
-
           <div id="availCard" class="dash-panel" style="margin-top:14px;">
             <div class="dash-panel-head"><h3>Availability</h3></div>
             <div class="dash-panel-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -312,7 +307,7 @@
             <div class="dash-panel-body">
               <label for="licenseNumber">License number</label>
               <input id="licenseNumber" placeholder="Enter license number" style="margin-bottom:8px;" />
-              <button id="licenseSubmitBtn" class="primary" onclick="submitLicense()">Submit License</button>
+              <button id="licenseSubmitBtn" class="primary">Submit License</button>
               <p id="licenseResult" style="margin-top:8px; font-size:13px; color: var(--ink-soft);"></p>
               <p id="licenseError" class="field-error" role="alert" hidden></p>
             </div>
@@ -343,7 +338,7 @@
   // All element lookups and initialization run only after the DOM is fully
   // parsed, so sidebar/nav elements are guaranteed to exist when listeners
   // are attached.
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
 
   // ===== Socket.io init =====
   const token = localStorage.getItem("sakayta_token");
@@ -454,29 +449,113 @@
     updateNotificationUI();
   });
 
+  // ===== Profile Picture =====
+  function setAvatarUI(path) {
+    const img = document.getElementById('accountAvatarImg');
+    const fb = document.getElementById('accountAvatarFallback');
+    const sb = document.getElementById('sidebarProfileBadge');
+    if (path && path.trim() !== '') {
+      if (img) { img.src = '/' + path; img.style.display = 'inline-block'; }
+      if (fb) fb.style.display = 'none';
+      if (sb) { sb.innerHTML = '<img src="/' + path + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" alt="" />'; }
+    } else {
+      if (img) { img.style.display = 'none'; }
+      if (fb) fb.style.display = 'inline-flex';
+      if (sb) sb.innerHTML = '🚖';
+    }
+  }
+
+  function openPicModal() {
+    const m = document.getElementById('picModal');
+    if (m) { m.style.display = 'flex'; }
+    const input = document.getElementById('picFileInput');
+    if (input) { input.value = ''; }
+    document.getElementById('picError').style.display = 'none';
+    document.getElementById('picSaveBtn').disabled = true;
+    document.getElementById('picPreviewImg').style.display = 'none';
+    document.getElementById('picPlaceholder').style.display = 'block';
+  }
+  function closePicModal() {
+    const m = document.getElementById('picModal');
+    if (m) m.style.display = 'none';
+  }
+  document.getElementById('accountAvatarBtn')?.addEventListener('click', openPicModal);
+  document.getElementById('picCancelBtn')?.addEventListener('click', closePicModal);
+  document.getElementById('picFileInput')?.addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    const err = document.getElementById('picError');
+    if (!f) { document.getElementById('picSaveBtn').disabled = true; return; }
+    const allowed = ['image/jpeg','image/png','image/webp'];
+    if (!allowed.includes(f.type)) { err.textContent = 'Invalid type. Only JPG, PNG, WEBP allowed.'; err.style.display = 'block'; document.getElementById('picSaveBtn').disabled = true; return; }
+    if (f.size > 2 * 1024 * 1024) { err.textContent = 'File too large (max 2 MB).'; err.style.display = 'block'; document.getElementById('picSaveBtn').disabled = true; return; }
+    err.style.display = 'none';
+    const r = new FileReader();
+    r.onload = (ev) => {
+      const img = document.getElementById('picPreviewImg');
+      const ph = document.getElementById('picPlaceholder');
+      if (img) { img.src = ev.target.result; img.style.display = 'inline-block'; }
+      if (ph) ph.style.display = 'none';
+      document.getElementById('picSaveBtn').disabled = false;
+    };
+    r.readAsDataURL(f);
+  });
+  document.getElementById('picSaveBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('picFileInput');
+    const file = input?.files?.[0];
+    if (!file) return;
+    const token = localStorage.getItem('sakayta_token');
+    const r = new FileReader();
+    r.onload = async (ev) => {
+      const result = ev.target.result; // data:image/xxx;base64,...
+      const comma = result.indexOf(',');
+      const base64 = comma >= 0 ? result.slice(comma + 1) : result;
+      try {
+        const res = await fetch('http://localhost:8088/api/drivers/me/picture', {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json', ...(token ? {'Authorization':'Bearer '+token}:{})},
+          body: JSON.stringify({base64: base64, size: file.size})
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Save failed'); }
+        const d = await res.json();
+        setAvatarUI(d.profilePicture || null);
+        closePicModal();
+      } catch (e) {
+        document.getElementById('picError').textContent = e.message;
+        document.getElementById('picError').style.display = 'block';
+      }
+    };
+    r.readAsDataURL(file);
+  });
+
   // ===== Driver identity helpers =====
   function getDriverId() {
-    return currentDriver ? currentDriver.id : null;
+    const cd = (typeof currentDriver !== 'undefined' && currentDriver) ? currentDriver : (window.currentDriver || null);
+    return cd ? cd.id : null;
   }
 
   // Render the authenticated driver's name everywhere (idempotent)
   function updateDriverLabels() {
-    const name = currentDriver && currentDriver.name ? currentDriver.name : "Driver";
+    const cd = (typeof currentDriver !== 'undefined' && currentDriver) ? currentDriver : (window.currentDriver || null);
+    const name = cd && cd.name ? cd.name : "Driver";
     const greet = document.getElementById("dashGreeting");
     if (greet) greet.textContent = "Good day, " + name;
     const top = document.getElementById("topbarDriver");
-    if (top) top.textContent = currentDriver ? name : "Loading…";
+    if (top) top.textContent = cd ? name : "Loading…";
     const pro = document.getElementById("profileDriverName");
     if (pro) pro.textContent = name;
     const side = document.getElementById("sidebarDriverName");
-    if (side) side.textContent = currentDriver ? name : "Loading…";
+    if (side) side.textContent = cd ? name : "Loading…";
+    if (cd && cd.profilePicture) setAvatarUI(cd.profilePicture); else setAvatarUI(null);
   }
 
   // Reflect whether the authenticated driver has a linked driver profile
   function setDriverProfileState(hasProfile) {
+    const cd = (typeof currentDriver !== 'undefined' && currentDriver) ? currentDriver : (window.currentDriver || null);
+    // Resolve from actual profile data when available; only true when no profile exists AND no driver data loaded
+    const hasRealProfile = cd && cd.id ? true : (hasProfile === true);
     const notice = document.getElementById("driverProfileNotice");
-    if (notice) notice.style.display = hasProfile ? "none" : "block";
-    if (!hasProfile) {
+    if (notice) notice.style.display = hasRealProfile ? "none" : "block";
+    if (!hasRealProfile) {
       const infoEl = document.getElementById("licenseInfo");
       if (infoEl) {
         infoEl.innerHTML = `<p style="color: var(--ink-soft); margin: 0;">Driver profile not set up yet. Your account needs a driver profile before you can receive ride requests.</p>`;
@@ -513,7 +592,8 @@
 
   // ===== License Info =====
   async function loadLicenseInfo() {
-    const driverId = getDriverId();
+    const cd = (typeof currentDriver !== 'undefined' && currentDriver) ? currentDriver : (window.currentDriver || null);
+    const driverId = cd ? cd.id : (getDriverId());
     const infoEl = document.getElementById("licenseInfo");
     const dashLic = document.getElementById("dashboardLicenseStatus");
     if (!driverId) {
@@ -526,7 +606,7 @@
       const headers = {};
       if (licToken) headers["Authorization"] = `Bearer ${licToken}`;
 
-      const res = await fetch(`/api/drivers/${driverId}`, { headers });
+      const res = await fetch("/api/drivers/me", { headers });
       if (!res.ok) {
         infoEl.innerHTML = `<p style="color: var(--ink-soft);">Could not load driver information.</p>`;
         if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">License status unavailable.</p>`;
@@ -583,41 +663,52 @@
   }
 
   async function submitLicense() {
-    const driverId = getDriverId();
-    const licenseNumber = document.getElementById("licenseNumberInput").value.trim();
+    const inputEl =
+      document.getElementById("licenseNumberInput") ||
+      document.getElementById("licenseNumber");
+
+    const licenseNumber = inputEl ? inputEl.value.trim() : "";
     const errorEl = document.getElementById("licenseError");
     const successEl = document.getElementById("licenseSuccess");
-    const submitBtn = document.getElementById("submitLicenseBtn");
+    const submitBtn =
+      document.getElementById("submitLicenseBtn") ||
+      document.getElementById("licenseSubmitBtn");
 
-    errorEl.style.display = "none";
-    successEl.style.display = "none";
-
-    if (!driverId) {
-      errorEl.textContent = "Driver profile not set up yet. Set up your driver profile before submitting a license.";
-      errorEl.style.display = "block";
-      return;
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
+    if (successEl) {
+      successEl.style.display = "none";
     }
 
     if (!licenseNumber) {
-      errorEl.textContent = "License number is required.";
-      errorEl.style.display = "block";
+      if (errorEl) {
+        errorEl.textContent = "License number is required.";
+        errorEl.style.display = "block";
+      }
       return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Verifying...";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying...";
+    }
 
     try {
       const licToken = localStorage.getItem("sakayta_token");
       if (!licToken) {
-        errorEl.textContent = "You must be logged in to submit a license.";
-        errorEl.style.display = "block";
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit License";
+        if (errorEl) {
+          errorEl.textContent = "You must be logged in to submit a license.";
+          errorEl.style.display = "block";
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit License";
+        }
         return;
       }
 
-      const res = await fetch(`/api/drivers/${driverId}/submit-license`, {
+      const res = await fetch('http://localhost:8088/api/drivers/me/submit-license', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -629,26 +720,43 @@
       const data = await res.json();
 
       if (!res.ok) {
-        errorEl.textContent = data.error || "License submission failed.";
-        errorEl.style.display = "block";
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit License";
+        if (errorEl) {
+          errorEl.textContent = data.error || "License submission failed.";
+          errorEl.style.display = "block";
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit License";
+        }
         return;
       }
 
-      successEl.textContent = data.message;
-      successEl.style.display = "block";
-      document.getElementById("licenseNumberInput").value = "";
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit License";
+      if (successEl) {
+        successEl.textContent = data.message;
+        successEl.style.display = "block";
+      }
+      if (inputEl) {
+        inputEl.value = "";
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit License";
+      }
       setTimeout(loadLicenseInfo, 1000);
     } catch (err) {
-      errorEl.textContent = "Network error: " + err.message;
-      errorEl.style.display = "block";
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit License";
+      if (errorEl) {
+        errorEl.textContent = "Network error: " + err.message;
+        errorEl.style.display = "block";
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit License";
+      }
     }
   }
+
+  // Bind the dashboard Submit License button to the correct handler
+  document.getElementById("licenseSubmitBtn")?.addEventListener("click", submitLicense);
 
   // There is no manual driver selection. Authenticated identity is loaded
 // asynchronously via loadAuthenticatedDriver() at the bottom of this script.
@@ -1039,6 +1147,17 @@
       map.panTo([lat, lng]);
     }
     socket.emit("driver:location", { rideId: rideIdInput.value.trim(), lat, lng });
+    // Also push to MariaDB via PHP endpoint for nearest-driver matching
+    try {
+      const token = localStorage.getItem("sakayta_token");
+      if (token) {
+        fetch("http://localhost:8088/api/drivers/me/location", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ latitude: lat, longitude: lng })
+        }).catch(() => {});
+      }
+    } catch (e) {}
     statusEl.textContent = `Status: sharing location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
   }
 
@@ -1295,13 +1414,29 @@
     }
   }
 
+  window.loadDriverProfile = loadDriverProfile;
   // ===== Default view =====
+  await Promise.all([loadAuthenticatedDriver(), window.loadDriverProfile()]);
   showView("dashboard");
-  loadAuthenticatedDriver();
-  loadDriverProfile();
 
   }); // end DOMContentLoaded
 </script>
+<!-- Profile Picture Modal -->
+<div id="picModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Change profile picture" style="display:none;">
+  <div class="modal-card" style="max-width:420px;width:92%;">
+    <h3>Profile Picture</h3>
+    <div id="picPreviewBox" style="text-align:center;margin:10px 0;min-height:180px;display:flex;align-items:center;justify-content:center;background:var(--sage-100);border-radius:12px;overflow:hidden;">
+      <img id="picPreviewImg" src="" alt="Preview" style="max-width:100%;max-height:160px;border-radius:8px;display:none;" />
+      <p id="picPlaceholder" style="color:var(--ink-soft);font-size:13px;">Select an image (JPG, PNG, WEBP, max 2 MB)</p>
+    </div>
+    <input type="file" id="picFileInput" accept="image/jpeg,image/png,image/webp" style="margin-bottom:6px;width:100%;font-size:13px;" />
+    <p id="picError" style="color:var(--danger);font-size:12px;margin-top:4px;display:none;"></p>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
+      <button id="picCancelBtn" class="ghost">Cancel</button>
+      <button id="picSaveBtn" class="primary" disabled>Save</button>
+    </div>
+  </div>
+</div>
 <!-- Logout confirmation modal -->
 <div id="logoutModal" class="modal-overlay hidden">
   <div class="modal-card">
@@ -1346,6 +1481,7 @@
       // Handle 200 with missing profile (no drivers row)
       if (res.ok && (!d || !d.id)) {
         currentDriver = null;
+        window.currentDriver = null;
         document.getElementById('statusProfile').textContent = 'Not set — profile needed';
         document.getElementById('statusLicense').textContent = 'Not set';
         document.getElementById('statusAvailability').textContent = 'Not set';
@@ -1356,9 +1492,11 @@
         return;
       }
       currentDriver = d;
+      window.currentDriver = d; // expose to main script scope
       document.getElementById('statusProfile').textContent = d ? (d.name || 'Set') : 'Not set';
       document.getElementById('statusLicense').textContent = d ? (d.licenseStatus || 'Unknown') : 'Unknown';
       document.getElementById('statusAvailability').textContent = d ? (d.availability || 'Unknown') : 'Unknown';
+      if (d && d.profilePicture) setAvatarUI(d.profilePicture); else setAvatarUI(null);
       // Profile setup
       document.getElementById('profileSetupCard').style.display = (d && d.id) ? 'none' : 'block';
       // License submit
@@ -1396,26 +1534,6 @@
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
       document.getElementById('profileSetupCard').style.display = 'none';
-      loadDriverProfile();
-    } catch (e) { err.textContent = e.message; err.hidden = false; }
-  }
-  async function submitLicense() {
-    const num = document.getElementById('licenseNumber').value.trim();
-    const resEl = document.getElementById('licenseResult');
-    const err = document.getElementById('licenseError');
-    if (!num) { resEl.textContent = ''; err.textContent = 'License number required.'; err.hidden = false; return; }
-    err.hidden = true;
-    try {
-      const token = localStorage.getItem('sakayta_token');
-      const driverId = currentDriver && currentDriver.id ? currentDriver.id : (currentDriver && currentDriver.driver_id ? currentDriver.driver_id : '');
-      const res = await fetch('http://localhost:8088/api/drivers/'+driverId+'/submit-license', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? {'Authorization':'Bearer '+token} : {}) },
-        body: JSON.stringify({ licenseNumber: num })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
-      resEl.textContent = 'Result: '+(data.driver ? (data.driver.licenseStatus || 'submitted') : 'submitted') + ' | Verified: '+(data.driver && data.driver.verified ? 'Yes' : 'No');
       loadDriverProfile();
     } catch (e) { err.textContent = e.message; err.hidden = false; }
   }
@@ -1463,21 +1581,22 @@
       const res = await fetch('http://localhost:8088/api/notifications', { headers: token ? {'Authorization':'Bearer '+token} : {} });
       if (!res.ok) return;
       const list = await res.json();
-      const unread = (Array.isArray(list)?list:[]).filter(n => !n.read).length;
-      document.getElementById('statusNotifications').textContent = unread;
-      document.getElementById('notifUnreadBadge').textContent = unread;
-      const container = document.getElementById('notificationsList');
-      if (!Array.isArray(list) || list.length===0) { container.innerHTML='<p class="active-ride-empty">No notifications.</p>'; return; }
-      container.innerHTML = list.map(n => '<div style="padding:6px 0; border-bottom:1px dashed var(--sage-300);"><strong>'+ (n.title||'') +'</strong> <span style="font-size:11px;color:var(--ink-soft)">('+ (n.createdAt||'') +')</span><br/><span>'+ (n.message||'') +'</span></div>').join('');
+      // Sidebar notifications page uses updateNotificationUI(); dashboard cards removed
+      const sidebarBadge = document.getElementById('unreadCount');
+      if (sidebarBadge) sidebarBadge.textContent = (Array.isArray(list)?list:[]).filter(n => !n.read).length;
+      const sidebarList = document.getElementById('notificationList');
+      if (sidebarList && Array.isArray(list)) {
+        sidebarList.innerHTML = list.length === 0 ? '<p class="active-ride-empty">No notifications.</p>' : list.map(n => '<div style="padding:6px 0; border-bottom:1px dashed var(--sage-300);"><strong>' + (n.title||'') + '</strong> <span style="font-size:11px;color:var(--ink-soft)">(' + (n.createdAt||'') + ')</span><br/><span>' + (n.message||'') + '</span></div>').join('');
+      }
     } catch(e){ console.warn('Notifications load error', e); }
   }
   async function pollRideState() {
     try {
       const token = localStorage.getItem('sakayta_token');
       const res = await fetch('http://localhost:8088/api/drivers/me/ride', { headers: token ? {'Authorization':'Bearer '+token} : {} });
-      // If endpoint missing, try /api/rides (list own) and look for assigned/pending
       if (!res.ok) return;
-      const ride = await res.json();
+      const payload = await res.json();
+      const ride = payload && payload.id ? payload : (payload && payload.ride ? payload.ride : null);
       if (ride && ride.id) {
         document.getElementById('rideRequestCard').style.display = 'block';
         document.getElementById('reqRideId').textContent = ride.id;
