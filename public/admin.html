@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/admin-ui.css" />
+<link rel="icon" href="/assets/logo-icon.png" type="image/png" />
 <style>
   .admin-container { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
   .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -63,179 +65,209 @@
   }
 </style>
 </head>
-<body>
+<body class="fb-dash admin-ui">
 
-<aside class="driver-sidebar" id="adminSidebar" aria-label="Admin navigation" style="position:fixed;left:0;top:0;height:100vh;width:240px;background:var(--paper);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:100;">
-  <div style="padding:20px;">
-    <a href="/index.html" class="brand" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-      <img src="/assets/logo-icon-nav.png" alt="" style="height:30px;"/>
-      <span class="brand-name" style="font-weight:800;color:var(--ink);">SakayTa Admin</span>
-    </a>
-  </div>
-  <nav class="sidebar-nav" aria-label="Admin navigation" style="flex:1;padding:10px 0;">
-    <button type="button" class="sidebar-link active" id="nav-overview" data-tab="overview" onclick="showSection('overview')">
-      <span class="sl-ico" aria-hidden="true">▣</span> Overview
-    </button>
-    <button type="button" class="sidebar-link" id="nav-drivers" data-tab="drivers" onclick="showSection('drivers')">
-      <span class="sl-ico" aria-hidden="true">👨‍💼</span> Drivers
-    </button>
-    <button type="button" class="sidebar-link" id="nav-fares" data-tab="fares" onclick="showSection('fares')">
-      <span class="sl-ico" aria-hidden="true">💰</span> Fare Settings
-    </button>
-    <button type="button" class="sidebar-link" id="nav-logs" data-tab="logs" onclick="showSection('logs')">
-      <span class="sl-ico" aria-hidden="true">📋</span> Action Logs
-    </button>
-  </nav>
-  <div class="sidebar-foot" style="padding:16px;border-top:1px solid var(--line);">
-    <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out" onclick="document.getElementById('logoutModal').classList.remove('hidden')">Log Out</button>
-  </div>
-</aside>
-<div id="adminMainWrap" style="margin-left:240px;min-height:100vh;">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+  <symbol id="i-id" viewBox="0 0 24 24"><path d="M16 10h2"/><path d="M16 14h2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><circle cx="9" cy="11" r="2"/><rect x="2" y="5" width="20" height="14" rx="2"/></symbol>
+  <symbol id="i-banknote" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></symbol>
+  <symbol id="i-navigation" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+</svg>
 
-<main class="container">
-  <div class="admin-container">
-    <div class="admin-header">
-      <h1 class="admin-title">Admin Dashboard</h1>
+<div class="driver-app">
+
+  <header class="driver-topbar">
+    <div class="driver-topbar-left">
+      <button id="sidebarToggle" class="driver-menu-btn" aria-label="Toggle navigation menu" aria-controls="adminSidebar" aria-expanded="false">☰</button>
+      <a href="/index.html" class="driver-topbar-brand">
+        <img src="/assets/logo-icon.png" alt="" />
+        <span class="brand-name">SakayTa</span>
+      </a>
     </div>
+    <span class="driver-topbar-title">Admin Dashboard</span>
+    <div class="driver-topbar-right">
+      <span id="topbarAdmin" aria-hidden="true">Loading&hellip;</span>
+    </div>
+  </header>
 
-    <div id="feedback"></div>
+  <div class="driver-app-body">
 
-    <!-- Overview Section -->
-    <section id="overview" class="section">
-      <h2 class="section-title">📊 Overview Statistics</h2>
-      <div class="stats-grid" id="statsContainer">
-        <div class="loading">Loading statistics...</div>
-      </div>
-    </section>
-
-    <!-- Drivers Section -->
-    <section id="drivers" class="section" style="display: none;">
-      <h2 class="section-title">👨‍💼 Driver Management</h2>
-      <div class="search-filter">
-        <input type="text" id="driverSearch" placeholder="Search by name, plate, or license...">
-        <select id="licenseStatusFilter">
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="verified">Verified</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <select id="busyFilter">
-          <option value="">All Availability</option>
-          <option value="true">Busy</option>
-          <option value="false">Available</option>
-        </select>
-        <button id="searchDriversBtn">Search</button>
-      </div>
-      <div id="driversFeedback"></div>
-      <div class="table-container">
-        <table id="driversTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Plate Number</th>
-              <th>License Number</th>
-              <th>License Status</th>
-              <th>Verified Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="8" class="loading">Loading drivers...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Fare Settings Section -->
-    <section id="fares" class="section" style="display: none;">
-      <h2 class="section-title">💰 Fare Settings</h2>
-      <div class="fare-form">
-        <div id="fareFeedback"></div>
-        <div id="currentFare">
-          <h3>Current Fare Configuration</h3>
-          <div class="loading">Loading fare settings...</div>
+    <aside class="driver-sidebar" id="adminSidebar" aria-label="Admin navigation">
+      <div class="sidebar-profile">
+        <div class="sidebar-profile-badge" aria-hidden="true"><svg class="ic"><use href="#i-shield"/></svg></div>
+        <div class="sidebar-profile-info">
+          <div class="sidebar-profile-name" id="sidebarAdminName">Loading&hellip;</div>
+          <div class="sidebar-profile-sub">Administrator</div>
         </div>
-        <form id="fareUpdateForm">
-          <h3>Update Fare Settings</h3>
-          <label for="baseFare">Base Fare (₱)</label>
-          <input type="number" id="baseFare" min="0" step="0.01" placeholder="Enter base fare">
-
-          <label for="ratePerKm">Rate per Kilometer (₱/km)</label>
-          <input type="number" id="ratePerKm" min="0" step="0.01" placeholder="Enter rate per km">
-
-          <button type="submit">Update Fare Settings</button>
-        </form>
-        <p class="note">Note: Changing fare settings will only affect new rides. Existing rides retain their original fare estimates.</p>
       </div>
-    </section>
 
-    <!-- Action Logs Section -->
-    <section id="logs" class="section" style="display: none;">
-      <h2 class="section-title">📋 Admin Action Logs</h2>
-      <div class="search-filter">
-        <input type="text" id="logSearch" placeholder="Search actions...">
-        <select id="actionTypeFilter">
-          <option value="">All Actions</option>
-          <option value="update_fare_settings">Fare Updates</option>
-          <option value="verify_driver">Driver Verifications</option>
-          <option value="reject_driver">Driver Rejections</option>
-        </select>
-        <button id="searchLogsBtn">Search</button>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <button type="button" class="sidebar-link active" id="nav-overview" data-tab="overview">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-dashboard"/></svg></span> Overview
+        </button>
+        <button type="button" class="sidebar-link" id="nav-drivers" data-tab="drivers">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-id"/></svg></span> Drivers
+          <span id="navPendingBadge" class="nav-badge" hidden></span>
+        </button>
+        <button type="button" class="sidebar-link" id="nav-fares" data-tab="fares">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-banknote"/></svg></span> Fare Settings
+        </button>
+        <button type="button" class="sidebar-link" id="nav-logs" data-tab="logs">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-list"/></svg></span> Action Logs
+        </button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out"><svg class="ic"><use href="#i-logout"/></svg> Log Out</button>
       </div>
-      <div id="logsFeedback"></div>
-      <div class="table-container">
-        <table id="logsTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Action Type</th>
-              <th>Description</th>
-              <th>Performed By</th>
-              <th>Timestamp</th>
-              <th>Metadata</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="6" class="loading">Loading action logs...</td>
-            </tr>
-          </tbody>
-        </table>
+    </aside>
+
+    <div id="sidebarBackdrop" class="driver-sidebar-backdrop" aria-hidden="true"></div>
+
+    <main class="driver-main">
+      <div class="driver-main-inner">
+
+        <div id="feedback"></div>
+
+        <!-- Overview -->
+        <section id="overview" class="ad-view">
+          <h2 class="ad-title" id="adminGreeting">Admin Dashboard</h2>
+          <p class="ad-sub">A quick look at your drivers and rides.</p>
+          <div id="needsAttention"></div>
+          <div id="statsContainer"><div class="loading">Loading statistics...</div></div>
+        </section>
+
+        <!-- Drivers -->
+        <section id="drivers" class="ad-view" style="display: none;">
+          <h2 class="ad-title">Drivers</h2>
+          <p class="ad-sub">Check licenses and see who is available.</p>
+          <div class="ad-card">
+            <div class="ad-filters">
+              <input type="text" id="driverSearch" placeholder="Search by name, plate, or license...">
+              <select id="licenseStatusFilter">
+                <option value="">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="verified">Verified</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <select id="busyFilter">
+                <option value="">All availability</option>
+                <option value="true">Busy</option>
+                <option value="false">Available</option>
+              </select>
+              <button id="searchDriversBtn" class="ad-btn">Search</button>
+            </div>
+            <div id="driversFeedback"></div>
+            <div class="table-container">
+              <table id="driversTable" class="ad-table">
+                <thead>
+                  <tr>
+                    <th>Driver</th>
+                    <th>Plate</th>
+                    <th>License</th>
+                    <th>License status</th>
+                    <th>Verified on</th>
+                    <th>Availability</th>
+                    <th class="r">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="7" class="loading">Loading drivers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Fare settings -->
+        <section id="fares" class="ad-view" style="display: none;">
+          <h2 class="ad-title">Fare settings</h2>
+          <p class="ad-sub">These numbers decide what passengers pay for new rides.</p>
+          <div id="fareFeedback"></div>
+          <div class="ad-two">
+            <div class="ad-card">
+              <h3 class="ad-card-title">Current fares</h3>
+              <div id="currentFare"><div class="loading">Loading fare settings...</div></div>
+              <h3 class="ad-card-title ad-prev-title">Example trips</h3>
+              <div id="farePreview"></div>
+            </div>
+            <div class="ad-card">
+              <h3 class="ad-card-title">Update fares</h3>
+              <form id="fareUpdateForm">
+                <label for="baseFare">Base fare (₱)</label>
+                <input type="number" id="baseFare" min="0" step="0.01" placeholder="Enter base fare">
+                <label for="ratePerKm">Rate per kilometer (₱/km)</label>
+                <input type="number" id="ratePerKm" min="0" step="0.01" placeholder="Enter rate per km">
+                <button type="submit" class="ad-btn wide">Save fare settings</button>
+              </form>
+              <p class="ad-note">Changes only affect new rides. Rides that are already booked keep their original fare.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Action logs -->
+        <section id="logs" class="ad-view" style="display: none;">
+          <h2 class="ad-title">Action logs</h2>
+          <p class="ad-sub">A record of what admins did.</p>
+          <div class="ad-card">
+            <div class="ad-filters">
+              <input type="text" id="logSearch" placeholder="Search actions...">
+              <select id="actionTypeFilter">
+                <option value="">All actions</option>
+                <option value="update_fare_settings">Fare updates</option>
+                <option value="verify_driver">Driver verifications</option>
+                <option value="reject_driver">Driver rejections</option>
+              </select>
+              <button id="searchLogsBtn" class="ad-btn">Search</button>
+            </div>
+            <div id="logsFeedback"></div>
+            <div class="table-container">
+              <table id="logsTable" class="ad-table">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                    <th>By</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="5" class="loading">Loading action logs...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
-    </section>
+    </main>
   </div>
-</main>
+</div>
 
-</div>
-</div>
-<footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <img src="/assets/logo-footer.png" alt="SakayTa" />
-      <p class="footer-tagline">Modern rides for local communities.</p>
-    </div>
-    <div class="footer-col">
-      <h4>Navigate</h4>
-      <a href="/index.html">Home</a>
-      <a href="/book.html">Book a Ride</a>
-      <a href="/rides.html">All Rides</a>
-      <a href="/driver.html">Driver View</a>
-      <a href="/passenger.html">Passenger View</a>
-    </div>
-    <div class="footer-col">
-      <h4>Support</h4>
-      <a href="#">Help Center</a>
-      <a href="#">Safety</a>
-      <a href="#">Contact</a>
+<div id="confirmModal" class="sk-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="sk-modal-card">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <div id="confirmMessage" class="sk-msg"></div>
+    <div class="sk-modal-actions">
+      <button type="button" id="confirmCancelBtn" class="sk-btn-grey">Cancel</button>
+      <button type="button" id="confirmOkBtn" class="sk-btn-green">Confirm</button>
     </div>
   </div>
-  <div class="footer-bottom">© 2026 SakayTa — a proof-of-concept system for IPT2.</div>
-</footer>
-
+</div>
 <script>
   // State management
   let currentToken = localStorage.getItem('sakayta_token');
@@ -259,7 +291,7 @@
 
   // Feedback functions
   function showFeedback(message, type = 'info') {
-    feedbackEl.innerHTML = `<div class="feedback ${type}">${message}</div>`;
+    feedbackEl.innerHTML = `<div class="feedback ${type}">${escapeHtml(message)}</div>`;
     setTimeout(() => {
       feedbackEl.innerHTML = '';
     }, 5000);
@@ -268,7 +300,7 @@
   function showSectionFeedback(sectionId, message, type = 'info') {
     const feedbackId = `${sectionId}Feedback`;
     const feedbackEl = document.getElementById(feedbackId);
-    feedbackEl.innerHTML = `<div class="feedback ${type}">${message}</div>`;
+    feedbackEl.innerHTML = `<div class="feedback ${type}">${escapeHtml(message)}</div>`;
     setTimeout(() => {
       feedbackEl.innerHTML = '';
     }, 5000);
@@ -375,297 +407,372 @@
     return await res.json();
   }
 
-  // Load overview statistics
+    // ===== Small helpers =====
+  function fmtDate(v) {
+    if (!v) return '—';
+    const d = new Date(v);
+    return isNaN(d) ? '—' : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  }
+   function timeAgo(v) {
+    const t = new Date(v).getTime();
+    if (!t) return '—';
+    const s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return 'Just now';
+    if (s < 3600) return Math.floor(s / 60) + ' min ago';
+    if (s < 86400) return Math.floor(s / 3600) + ' hr ago';
+    if (s < 604800) { const d = Math.floor(s / 86400); return d + (d === 1 ? ' day ago' : ' days ago'); }
+    return new Date(t).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  }
+  function fmtDay(v) {
+    if (!v) return '—';
+    const d = new Date(v);
+    return isNaN(d) ? '—' : d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+  }
+  function whoName(id) {
+    if (!id || id === 'system') return 'System';
+    const me = currentUser && (currentUser.id || currentUser.uid || currentUser.userId);
+    if (me && String(me) === String(id)) return 'You';
+    return me ? 'Another admin' : 'Admin';
+  }
+
+  function peso(n) {
+    const x = Number(n);
+    return isNaN(x) ? '—' : '₱' + x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function pct(a, b) { return b > 0 ? Math.round((a / b) * 100) + '%' : '—'; }
+  function icon(id) { return '<svg class="ic"><use href="#i-' + id + '"/></svg>'; }
+  function askConfirm(opts) {
+    if (window.skConfirm) return window.skConfirm(opts);
+    return Promise.resolve(window.confirm((opts.title || 'Are you sure?') + '\n\n' + (opts.message || '')));
+  }
+  function findDriver(id) {
+    return (window.__drivers || []).find(function (d) { return String(d.id) === String(id); });
+  }
+  function statCard(iconId, tone, value, label) {
+    return '<div class="ad-stat"><span class="ad-stat-ico ' + tone + '">' + icon(iconId) + '</span><div><div class="ad-stat-value">' +
+      escapeHtml(value) + '</div><div class="ad-stat-label">' + escapeHtml(label) + '</div></div></div>';
+  }
+
+  // ===== Overview =====
+  function reviewPendingDrivers() {
+    const f = document.getElementById('licenseStatusFilter');
+    if (f) f.value = 'pending';
+    showSection('drivers');
+  }
+
   async function loadOverviewStats() {
     const statsContainer = document.getElementById('statsContainer');
+    const attn = document.getElementById('needsAttention');
     statsContainer.innerHTML = '<div class="loading">Loading statistics...</div>';
+    if (attn) attn.innerHTML = '';
 
     try {
-      const stats = await apiFetch('/api/admin/stats');
+      const s = await apiFetch('/api/admin/stats');
+      const n = (v) => Number(v) || 0;
+      const total = n(s.totalRides);
+      const pd = n(s.pendingDrivers);
+      const pr = n(s.pendingRides);
+
+            // Only drivers who sent a license can be verified
+      let waiting = pd, noLicense = 0;
+      try {
+        const pend = await apiFetch('/api/admin/drivers?licenseStatus=pending');
+        if (Array.isArray(pend)) {
+          waiting = pend.filter(d => d.licenseNumber).length;
+          noLicense = pend.length - waiting;
+        }
+      } catch (e) { /* keep the simple numbers */ }
+
+      const badge = document.getElementById('navPendingBadge');
+      if (badge) { badge.textContent = waiting; badge.hidden = waiting === 0; }
+
+      const items = [];
+      if (waiting > 0) items.push(
+        '<div class="ad-attn-item"><span class="ad-attn-ico">' + icon('clock') + '</span>' +
+        '<div class="ad-attn-text"><b>' + waiting + ' driver' + (waiting === 1 ? '' : 's') + '</b> sent a license and ' + (waiting === 1 ? 'is' : 'are') + ' waiting for verification</div>' +
+        '<button type="button" class="ad-btn small" onclick="reviewPendingDrivers()">Review</button></div>');
+      if (pr > 0) items.push(
+        '<div class="ad-attn-item"><span class="ad-attn-ico">' + icon('search') + '</span>' +
+        '<div class="ad-attn-text"><b>' + pr + ' ride request' + (pr === 1 ? '' : 's') + '</b> still looking for a driver</div></div>');
+
+      const noLic = noLicense > 0
+        ? `<div class="ad-note">${noLicense} driver${noLicense === 1 ? ' has' : 's have'} not submitted a license yet. They cannot get ride requests until they do.</div>`
+        : '';
+
+      if (attn) {
+        attn.innerHTML = items.length
+          ? '<div class="ad-attn"><h3 class="ad-card-title">' + icon('alert') + ' Needs attention</h3>' + items.join('') + noLic + '</div>'
+          : '<div class="ad-attn ok"><span class="ad-attn-ico ok">' + icon('check-circle') + '</span><div class="ad-attn-text"><b>All caught up.</b> Nothing needs your attention right now.' + noLic + '</div></div>';
+      }
 
       statsContainer.innerHTML = `
-        <div class="stat-card">
-          <div class="stat-icon">👥</div>
-          <div class="stat-value">${stats.totalUsers}</div>
-          <div class="stat-label">Total Users</div>
+        <div class="ad-rates">
+          <div class="ad-rate">
+            <div class="ad-rate-label">Completion rate</div>
+            <div class="ad-rate-value">${pct(n(s.completedRides), total)}</div>
+            <div class="ad-rate-sub">${n(s.completedRides)} of ${total} rides completed</div>
+          </div>
+          <div class="ad-rate">
+            <div class="ad-rate-label">Cancel rate</div>
+            <div class="ad-rate-value">${pct(n(s.cancelledRides), total)}</div>
+            <div class="ad-rate-sub">${n(s.cancelledRides)} of ${total} rides cancelled</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚗</div>
-          <div class="stat-value">${stats.totalDrivers}</div>
-          <div class="stat-label">Total Drivers</div>
+
+        <h3 class="ad-group">People</h3>
+        <div class="ad-stat-grid">
+          ${statCard('users', '', n(s.totalUsers), 'Total users')}
+          ${statCard('car', '', n(s.totalDrivers), 'Drivers')}
+          ${statCard('shield', 'green', n(s.verifiedDrivers), 'Verified drivers')}
+          ${statCard('clock', 'amber', pd, 'Pending drivers')}
+          ${statCard('x-circle', 'red', n(s.rejectedDrivers), 'Rejected drivers')}
         </div>
-        <div class="stat-card">
-          <div class="stat-icon">✅</div>
-          <div class="stat-value">${stats.verifiedDrivers}</div>
-          <div class="stat-label">Verified Drivers</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">⏳</div>
-          <div class="stat-value">${stats.pendingDrivers}</div>
-          <div class="stat-label">Pending Drivers</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">❌</div>
-          <div class="stat-value">${stats.rejectedDrivers}</div>
-          <div class="stat-label">Rejected Drivers</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚕</div>
-          <div class="stat-value">${stats.totalRides}</div>
-          <div class="stat-label">Total Rides</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🔍</div>
-          <div class="stat-value">${stats.pendingRides}</div>
-          <div class="stat-label">Pending/Searching Rides</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">👨‍💼</div>
-          <div class="stat-value">${stats.assignedRides}</div>
-          <div class="stat-label">Assigned Rides</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚦</div>
-          <div class="stat-value">${stats.enRouteRides}</div>
-          <div class="stat-label">En Route Rides</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🏁</div>
-          <div class="stat-value">${stats.completedRides}</div>
-          <div class="stat-label">Completed Rides</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚫</div>
-          <div class="stat-value">${stats.cancelledRides}</div>
-          <div class="stat-label">Cancelled Rides</div>
-        </div>
-      `;
+
+        <h3 class="ad-group">Rides</h3>
+        <div class="ad-stat-grid">
+          ${statCard('list', '', total, 'Total rides')}
+          ${statCard('search', 'amber', pr, 'Searching for a driver')}
+          ${statCard('user-check', 'blue', n(s.assignedRides), 'Assigned')}
+          ${statCard('navigation', 'blue', n(s.enRouteRides), 'On the way')}
+          ${statCard('flag', 'green', n(s.completedRides), 'Completed')}
+          ${statCard('ban', 'red', n(s.cancelledRides), 'Cancelled')}
+        </div>`;
     } catch (err) {
       console.error('Failed to load stats:', err);
-      statsContainer.innerHTML = `<div class="feedback error">Failed to load statistics: ${err.message}</div>`;
+      statsContainer.innerHTML = '<div class="feedback error">Failed to load statistics: ' + escapeHtml(err.message) + '</div>';
     }
   }
 
-  // Load drivers with search/filter
+  // ===== Drivers =====
   async function loadDrivers() {
     const driversTable = document.getElementById('driversTable').getElementsByTagName('tbody')[0];
     const driversFeedback = document.getElementById('driversFeedback');
 
-    driversFeedback.innerHTML = '<div class="loading">Loading drivers...</div>';
-    driversTable.innerHTML = '<tr><td colspan="8" class="loading">Loading drivers...</td></tr>';
+    driversFeedback.innerHTML = '';
+    driversTable.innerHTML = '<tr><td colspan="7" class="loading">Loading drivers...</td></tr>';
 
     try {
-      // Get search/filter values
       const search = document.getElementById('driverSearch').value.trim();
       const licenseStatus = document.getElementById('licenseStatusFilter').value;
       const busy = document.getElementById('busyFilter').value;
 
-      // Build query parameters
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (licenseStatus) params.append('licenseStatus', licenseStatus);
       if (busy !== '') params.append('busy', busy);
 
       const drivers = await apiFetch(`/api/admin/drivers?${params.toString()}`);
+      window.__drivers = drivers;
 
-      driversFeedback.innerHTML = '';
-
-      if (drivers.length === 0) {
-        driversTable.innerHTML = `
-          <tr>
-            <td colspan="8" class="empty-state">
-              <div class="empty-state-icon">👥</div>
-              <p>No drivers found matching your criteria.</p>
-            </td>
-          </tr>
-        `;
+      if (!drivers.length) {
+        driversTable.innerHTML = '<tr><td colspan="7" class="empty-state">No drivers found. Try another search or filter.</td></tr>';
         return;
       }
 
+      const tones = { verified: 'green', pending: 'amber', rejected: 'red' };
       driversTable.innerHTML = drivers.map(driver => {
-        const verifiedDate = driver.licenseVerifiedAt
-          ? new Date(driver.licenseVerifiedAt).toLocaleString()
-          : 'Never';
-
+        const ls = String(driver.licenseStatus || 'pending');
+        const lsLabel = ls.charAt(0).toUpperCase() + ls.slice(1);
+        const initial = String(driver.name || '?').trim().charAt(0).toUpperCase() || '?';
+        const id = escapeHtml(driver.id);
+        const busy = Number(driver.busy) === 1;
         return `
           <tr>
-            <td>${driver.id}</td>
-            <td>${escapeHtml(driver.name || 'N/A')}</td>
-            <td>${escapeHtml(driver.plateNumber || 'N/A')}</td>
+            <td><div class="ad-person"><span class="ad-avatar">${escapeHtml(initial)}</span><span class="ad-person-name">${escapeHtml(driver.name || 'No name')}</span></div></td>
+            <td>${escapeHtml(driver.plateNumber || '—')}</td>
             <td>${escapeHtml(driver.licenseNumber || 'Not submitted')}</td>
-            <td>
-              <span class="status-badge status-${driver.licenseStatus}">
-                ${driver.licenseStatus.charAt(0).toUpperCase() + driver.licenseStatus.slice(1)}
-              </span>
-            </td>
-            <td>${verifiedDate}</td>
-            <td>
-              <span class="status-badge status-${driver.busy === 1 ? 'busy' : 'available'}">
-                ${driver.busy === 1 ? 'Busy' : 'Available'}
-              </span>
-            </td>
-            <td>
-              ${driver.licenseStatus === 'pending' ? `
-                <button class="action-btn verify-btn" onclick="verifyDriver('${driver.id}')">Verify</button>
-                <button class="action-btn reject-btn" onclick="rejectDriver('${driver.id}')">Reject</button>
+            <td><span class="pill ${tones[ls] || ''}">${escapeHtml(lsLabel)}</span></td>
+            <td>${escapeHtml(fmtDay(driver.licenseVerifiedAt))}</td>
+            <td class="r">
+              ${ls === 'pending' && driver.licenseNumber ? `
+                <button type="button" class="ad-btn small" data-act="verify" data-id="${id}">Verify</button>
+                <button type="button" class="ad-btn small danger" data-act="reject" data-id="${id}">Reject</button>
               ` : ''}
-              ${driver.licenseStatus === 'verified' || driver.licenseStatus === 'rejected' ? `
-                <button class="action-btn" onclick="viewDriverDetails('${driver.id}')">Details</button>
-              ` : ''}
+              ${ls === 'pending' && !driver.licenseNumber ? '<span class="ad-wait">Waiting for license</span>' : ''}
+              <button type="button" class="ad-btn small grey" data-act="details" data-id="${id}">Details</button>
             </td>
-          </tr>
-        `;
+          </tr>`;
       }).join('');
     } catch (err) {
       console.error('Failed to load drivers:', err);
-      driversFeedback.innerHTML = `<div class="feedback error">Failed to load drivers: ${err.message}</div>`;
-      driversTable.innerHTML = `
-        <tr>
-          <td colspan="8" class="feedback error">Error loading drivers</td>
-        </tr>
-      `;
+      driversFeedback.innerHTML = '<div class="feedback error">Failed to load drivers: ' + escapeHtml(err.message) + '</div>';
+      driversTable.innerHTML = '<tr><td colspan="7" class="empty-state">Could not load drivers.</td></tr>';
     }
   }
 
-  // Load fare settings
-  async function loadFareSettings() {
-    const currentFareDiv = document.getElementById('currentFare');
-    const fareFeedback = document.getElementById('fareFeedback');
+  document.getElementById('driversTable').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const id = b.dataset.id;
+    if (b.dataset.act === 'verify') verifyDriver(id);
+    else if (b.dataset.act === 'reject') rejectDriver(id);
+    else if (b.dataset.act === 'details') viewDriverDetails(id);
+  });
 
-    currentFareDiv.innerHTML = '<div class="loading">Loading fare settings...</div>';
-    fareFeedback.innerHTML = '';
-
-    try {
-      const config = await apiFetch('/api/admin/fare');
-
-      currentFareDiv.innerHTML = `
-        <h3>Current Fare Configuration</h3>
-        <div class="stat-card" style="text-align: center; display: inline-block; margin: 16px 0; padding: 20px; min-width: 200px;">
-          <div class="stat-value">₱${config.baseFare}</div>
-          <div class="stat-label">Base Fare</div>
-        </div>
-        <div class="stat-card" style="text-align: center; display: inline-block; margin: 16px 0; padding: 20px; min-width: 200px;">
-          <div class="stat-value">₱${config.ratePerKm}/km</div>
-          <div class="stat-label">Rate per Kilometer</div>
-        </div>
-        <p style="margin-top: 16px; color: var(--ink-soft); font-size: 14px;">
-          Last updated: ${new Date(config.updatedAt).toLocaleString()} by ${escapeHtml(config.updatedBy || 'system')}
-        </p>
-      `;
-
-      // Pre-fill form
-      document.getElementById('baseFare').value = config.baseFare;
-      document.getElementById('ratePerKm').value = config.ratePerKm;
-    } catch (err) {
-      console.error('Failed to load fare settings:', err);
-      currentFareDiv.innerHTML = `<div class="feedback error">Failed to load fare settings: ${err.message}</div>`;
-    }
-  }
-
-  // Load action logs
-  async function loadActionLogs() {
-    const logsTable = document.getElementById('logsTable').getElementsByTagName('tbody')[0];
-    const logsFeedback = document.getElementById('logsFeedback');
-
-    logsFeedback.innerHTML = '<div class="loading">Loading action logs...</div>';
-    logsTable.innerHTML = '<tr><td colspan="6" class="loading">Loading action logs...</td></tr>';
-
-    try {
-      // Get search/filter values
-      const search = document.getElementById('logSearch').value.trim();
-      const actionType = document.getElementById('actionTypeFilter').value;
-
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (actionType) params.append('actionType', actionType);
-
-      const logs = await apiFetch(`/api/admin/logs?${params.toString()}`);
-
-      logsFeedback.innerHTML = '';
-
-      if (logs.length === 0) {
-        logsTable.innerHTML = `
-          <tr>
-            <td colspan="6" class="empty-state">
-              <div class="empty-state-icon">📋</div>
-              <p>No action logs found matching your criteria.</p>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      logsTable.innerHTML = logs.map(log => {
-        const metadata = log.metadata ? JSON.parse(log.metadata) : null;
-        const metadataDisplay = metadata ?
-          `<details><summary>View Details</summary><pre>${JSON.stringify(metadata, null, 2)}</pre></details>` :
-          '-';
-
-        return `
-          <tr>
-            <td>${log.id}</td>
-            <td>${escapeHtml(log.actionType)}</td>
-            <td>${escapeHtml(log.description)}</td>
-            <td>${escapeHtml(log.performedBy)}</td>
-            <td>${new Date(log.performedAt).toLocaleString()}</td>
-            <td>${metadataDisplay}</td>
-          </tr>
-        `;
-      }).join('');
-    } catch (err) {
-      console.error('Failed to load action logs:', err);
-      logsFeedback.innerHTML = `<div class="feedback error">Failed to load action logs: ${err.message}</div>`;
-      logsTable.innerHTML = `
-        <tr>
-          <td colspan="6" class="feedback error">Error loading logs</td>
-        </tr>
-      `;
-    }
-  }
-
-  // Driver verification
   async function verifyDriver(driverId) {
-    if (!confirm(`Are you sure you want to verify driver ${driverId}? This will trigger SOAP verification.`)) {
-      return;
-    }
+    const d = findDriver(driverId);
+    const who = d && d.name ? d.name : 'this driver';
+    const ok = await askConfirm({
+      title: 'Verify this driver?',
+      message: `We will check the license of ${who} with the license verification service. If it passes, they can start receiving ride requests.`,
+      confirmText: 'Verify driver',
+      cancelText: 'Not yet'
+    });
+    if (!ok) return;
 
     try {
-      const result = await apiFetch(`/api/admin/drivers/${driverId}/verify`, {
-        method: 'PUT'
-      });
-
+      const result = await apiFetch(`/api/admin/drivers/${driverId}/verify`, { method: 'PUT' });
       showSectionFeedback('drivers', result.message, 'success');
-      loadDrivers(); // Refresh the table
+      loadDrivers();
     } catch (err) {
       console.error('Failed to verify driver:', err);
       showSectionFeedback('drivers', `Failed to verify driver: ${err.message}`, 'error');
     }
   }
 
-  // Driver rejection
   async function rejectDriver(driverId) {
-    if (!confirm(`Are you sure you want to reject driver ${driverId}?`)) {
-      return;
-    }
+    const d = findDriver(driverId);
+    const who = d && d.name ? d.name : 'this driver';
+    const ok = await askConfirm({
+      title: 'Reject this driver?',
+      message: `${who} will not get ride requests unless they submit a new license that gets verified.`,
+      confirmText: 'Reject driver',
+      cancelText: 'Cancel',
+      tone: 'red'
+    });
+    if (!ok) return;
 
     try {
-      const result = await apiFetch(`/api/admin/drivers/${driverId}/reject`, {
-        method: 'PUT'
-      });
-
+      const result = await apiFetch(`/api/admin/drivers/${driverId}/reject`, { method: 'PUT' });
       showSectionFeedback('drivers', result.message, 'success');
-      loadDrivers(); // Refresh the table
+      loadDrivers();
     } catch (err) {
       console.error('Failed to reject driver:', err);
       showSectionFeedback('drivers', `Failed to reject driver: ${err.message}`, 'error');
     }
   }
 
-  // View driver details (placeholder)
   function viewDriverDetails(driverId) {
-    alert(`Driver details for ${driverId} would be shown here in a full implementation.`);
+    const d = findDriver(driverId);
+    if (!d) return;
+    const row = (k, v) => '<dt>' + k + '</dt><dd>' + escapeHtml(v) + '</dd>';
+    askConfirm({
+      title: d.name || 'Driver details',
+      html: '<dl class="sk-dl">' +
+        row('Plate number', d.plateNumber || '—') +
+        row('License number', d.licenseNumber || 'Not submitted') +
+        row('License status', String(d.licenseStatus || 'pending')) +
+        row('Verified on', d.licenseVerifiedAt ? fmtDate(d.licenseVerifiedAt) : '—') +
+        row('Availability', Number(d.busy) === 1 ? 'Busy' : 'Available') +
+        row('Driver ID', d.id) +
+        '</dl>',
+      confirmText: 'Close',
+      hideCancel: true
+    });
   }
+
+  // ===== Fare settings =====
+  async function loadFareSettings() {
+    const currentFareDiv = document.getElementById('currentFare');
+    document.getElementById('fareFeedback').innerHTML = '';
+    currentFareDiv.innerHTML = '<div class="loading">Loading fare settings...</div>';
+
+    try {
+      const config = await apiFetch('/api/admin/fare');
+      window.__fareCfg = config;
+
+      currentFareDiv.innerHTML = `
+        <div class="ad-fare-cur">
+          <div class="ad-fare-box"><div class="ad-fare-val">${peso(config.baseFare)}</div><div class="ad-fare-lab">Base fare</div></div>
+          <div class="ad-fare-box"><div class="ad-fare-val">${peso(config.ratePerKm)}<small>/km</small></div><div class="ad-fare-lab">Rate per kilometer</div></div>
+        </div>
+        <p class="ad-note">Last updated ${escapeHtml(fmtDate(config.updatedAt))} by ${escapeHtml(whoName(config.updatedBy))}</p>`;
+
+      document.getElementById('baseFare').value = config.baseFare;
+      document.getElementById('ratePerKm').value = config.ratePerKm;
+      updateFarePreview();
+    } catch (err) {
+      console.error('Failed to load fare settings:', err);
+      currentFareDiv.innerHTML = '<div class="feedback error">Failed to load fare settings: ' + escapeHtml(err.message) + '</div>';
+    }
+  }
+
+  // ===== Action logs =====
+  const LOG_LABELS = {
+    update_fare_settings: ['Fare updated', 'blue'],
+    verify_driver: ['Driver verified', 'green'],
+    reject_driver: ['Driver rejected', 'red']
+  };
+  function logLabel(t) {
+    const k = String(t || '');
+    if (LOG_LABELS[k]) return LOG_LABELS[k];
+    const p = k.replace(/_/g, ' ');
+    return [p.charAt(0).toUpperCase() + p.slice(1), ''];
+  }
+
+  async function loadActionLogs() {
+    const logsTable = document.getElementById('logsTable').getElementsByTagName('tbody')[0];
+    const logsFeedback = document.getElementById('logsFeedback');
+
+    logsFeedback.innerHTML = '';
+    logsTable.innerHTML = '<tr><td colspan="5" class="loading">Loading action logs...</td></tr>';
+
+    try {
+      const search = document.getElementById('logSearch').value.trim();
+      const actionType = document.getElementById('actionTypeFilter').value;
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (actionType) params.append('actionType', actionType);
+
+      const logs = await apiFetch(`/api/admin/logs?${params.toString()}`);
+
+      if (!logs.length) {
+        logsTable.innerHTML = '<tr><td colspan="5" class="empty-state">No action logs found. Try another search or filter.</td></tr>';
+        return;
+      }
+
+      logsTable.innerHTML = logs.map(log => {
+        const [label, tone] = logLabel(log.actionType);
+        let details = '—';
+        if (log.metadata) {
+          let text;
+          if (typeof log.metadata === 'string') {
+            text = log.metadata;
+            try { text = JSON.stringify(JSON.parse(log.metadata), null, 2); } catch (e) {}
+          } else {
+            text = JSON.stringify(log.metadata, null, 2);
+          }
+          details = '<details class="ad-details"><summary>View</summary><pre>' + escapeHtml(text) + '</pre></details>';
+        }
+        return `
+          <tr>
+            <td title="${escapeHtml(fmtDate(log.performedAt))}">${escapeHtml(timeAgo(log.performedAt))}</td>
+            <td><span class="pill ${tone}">${escapeHtml(label)}</span></td>
+            <td>${escapeHtml(log.description)}</td>
+            <td title="${escapeHtml(log.performedBy)}">${escapeHtml(whoName(log.performedBy))}</td>
+            <td>${details}</td>
+          </tr>`;
+      }).join('');
+    } catch (err) {
+      console.error('Failed to load action logs:', err);
+      logsFeedback.innerHTML = '<div class="feedback error">Failed to load action logs: ' + escapeHtml(err.message) + '</div>';
+      logsTable.innerHTML = '<tr><td colspan="5" class="empty-state">Could not load the logs.</td></tr>';
+    }
+  }
+
+    function updateFarePreview() {
+    const el = document.getElementById('farePreview');
+    if (!el) return;
+    const base = parseFloat(document.getElementById('baseFare').value);
+    const rate = parseFloat(document.getElementById('ratePerKm').value);
+    if (isNaN(base) || isNaN(rate)) { el.innerHTML = ''; return; }
+    el.innerHTML = [1, 3, 5, 10].map(km =>
+      '<div class="ad-prev-row"><span>' + km + ' km trip</span><b>' + peso(base + rate * km) + '</b></div>').join('') +
+      '<p class="ad-note">Uses the numbers in the form. The real fare is worked out by the server and may be rounded.</p>';
+  }
+  document.getElementById('baseFare').addEventListener('input', updateFarePreview);
+  document.getElementById('ratePerKm').addEventListener('input', updateFarePreview);
 
   // Fare settings update
   document.getElementById('fareUpdateForm').addEventListener('submit', async (e) => {
@@ -684,6 +791,19 @@
       showSectionFeedback('fares', 'Fare values cannot be negative.', 'error');
       return;
     }
+
+        const cfg = window.__fareCfg || {};
+    if (Number(cfg.baseFare) === baseFare && Number(cfg.ratePerKm) === ratePerKm) {
+      showSectionFeedback('fares', 'Nothing changed. These are already the current fares.', 'info');
+      return;
+    }
+    const sure = await askConfirm({
+      title: 'Change the fares?',
+      message: `Base fare: ${peso(cfg.baseFare)} → ${peso(baseFare)}\nRate per km: ${peso(cfg.ratePerKm)} → ${peso(ratePerKm)}\n\nThis only affects new rides. Rides already booked keep their fare.`,
+      confirmText: 'Save fares',
+      cancelText: 'Cancel'
+    });
+    if (!sure) return;
 
     try {
       const result = await apiFetch('/api/admin/fare', {
@@ -736,15 +856,12 @@
 
   // Utility function to escape HTML
   function escapeHtml(text) {
-    const map = {
-      '&': '&',
-      '<': '<',
-      '>': '>',
-      '"': '"',
-      "'": '&#039;'
-    };
-
-    return String(text).replace(/[&<>"']/g, m => map[m]);
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   // Initialize the dashboard
@@ -752,7 +869,14 @@
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) return;
 
-    // Show overview section by default
+    const name = (currentUser && (currentUser.full_name || currentUser.name)) || 'Admin';
+    ['topbarAdmin', 'sidebarAdminName'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = name;
+    });
+    const g = document.getElementById('adminGreeting');
+    if (g) g.textContent = 'Good day, ' + name;
+
     showSection('overview');
   }
 
@@ -761,24 +885,75 @@
 </script>
 <script src="/js/navbar-auth.js"></script>
 
-<div id="logoutModal" class="hidden" role="dialog" aria-modal="true" aria-label="Confirm logout" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;">
-  <div style="background:var(--paper);padding:24px;border-radius:8px;max-width:320px;text-align:center;border:1px solid var(--line);box-shadow:0 4px 16px rgba(0,0,0,0.1);">
-    <h3 style="margin:0 0 8px;">Log Out</h3>
-    <p style="margin:0 0 16px;color:var(--ink-soft);font-size:14px;">Are you sure you want to log out of the Admin Dashboard?</p>
-    <div style="display:flex;gap:10px;justify-content:center;">
-      <button onclick="document.getElementById('logoutModal').classList.add('hidden')" style="padding:8px 16px;border:1px solid var(--line);background:var(--paper);border-radius:4px;cursor:pointer;">Cancel</button>
-      <button onclick="localStorage.removeItem('sakayta_token');localStorage.removeItem('sakayta_user');window.location.href='/index.html';" style="padding:8px 16px;border:none;background:var(--danger);color:white;border-radius:4px;cursor:pointer;font-weight:600;">Confirm</button>
-    </div>
-  </div>
-</div>
-<style>
-  .hidden { display: none !important; }
-  #adminMainWrap { background: var(--canvas); }
-</style>
 <script>
-  // Sidebar click: reuse showSection (already exists in page)
-  // Just ensure sidebar links call showSection correctly (done via onclick above)
-</script>
+// Admin helpers: confirm popup, mobile menu, logout. No admin logic lives here.
+(function () {
+  window.skConfirm = function (opts) {
+    return new Promise(function (resolve) {
+      var overlay = document.getElementById("confirmModal");
+      var okBtn = document.getElementById("confirmOkBtn");
+      var noBtn = document.getElementById("confirmCancelBtn");
+      var msg = document.getElementById("confirmMessage");
+      if (!overlay || !okBtn || !noBtn || !msg) {
+        resolve(window.confirm((opts.title || "Are you sure?") + "\n\n" + (opts.message || "")));
+        return;
+      }
+      document.getElementById("confirmTitle").textContent = opts.title || "Are you sure?";
+      if (opts.html) msg.innerHTML = opts.html; else msg.textContent = opts.message || "";
+      okBtn.textContent = opts.confirmText || "Confirm";
+      noBtn.textContent = opts.cancelText || "Cancel";
+      noBtn.style.display = opts.hideCancel ? "none" : "";
+      okBtn.className = opts.tone === "red" ? "sk-btn-red" : "sk-btn-green";
+      overlay.classList.remove("hidden");
+      (opts.hideCancel ? okBtn : noBtn).focus();
 
-</body>
+      function done(result) {
+        overlay.classList.add("hidden");
+        okBtn.removeEventListener("click", onOk);
+        noBtn.removeEventListener("click", onNo);
+        overlay.removeEventListener("click", onBackdrop);
+        document.removeEventListener("keydown", onKey);
+        resolve(result);
+      }
+      function onOk() { done(true); }
+      function onNo() { done(false); }
+      function onBackdrop(e) { if (e.target === overlay) done(false); }
+      function onKey(e) { if (e.key === "Escape") done(false); }
+      okBtn.addEventListener("click", onOk);
+      noBtn.addEventListener("click", onNo);
+      overlay.addEventListener("click", onBackdrop);
+      document.addEventListener("keydown", onKey);
+    });
+  };
+
+  // Mobile menu
+  var toggle = document.getElementById("sidebarToggle");
+  var backdrop = document.getElementById("sidebarBackdrop");
+  function openDrawer() { document.body.classList.add("drawer-open"); if (toggle) toggle.setAttribute("aria-expanded", "true"); }
+  function closeDrawer() { document.body.classList.remove("drawer-open"); if (toggle) toggle.setAttribute("aria-expanded", "false"); }
+  if (toggle) toggle.addEventListener("click", function () {
+    if (document.body.classList.contains("drawer-open")) closeDrawer(); else openDrawer();
+  });
+  if (backdrop) backdrop.addEventListener("click", closeDrawer);
+  window.addEventListener("resize", function () { if (window.innerWidth >= 901) closeDrawer(); });
+  document.querySelectorAll(".sidebar-link").forEach(function (l) { l.addEventListener("click", closeDrawer); });
+
+  // Log out (with a question first)
+  var out = document.getElementById("sidebarLogoutBtn");
+  if (out) out.addEventListener("click", function () {
+    window.skConfirm({
+      title: "Log out?",
+      message: "You will need to log in again to open the admin dashboard.",
+      confirmText: "Log out",
+      cancelText: "Stay",
+      tone: "red"
+    }).then(function (ok) {
+      if (!ok) return;
+      localStorage.removeItem("sakayta_token");
+      localStorage.removeItem("sakayta_user");
+      window.location.href = "/index.html";
+    });
+  });
+})();
+</script>
 </html>

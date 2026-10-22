@@ -1,0 +1,369 @@
+/* ===== Driver UI (Facebook style). Loads after style.css ===== */
+
+/* Name in the top bar was white on white */
+.fb-dash #topbarDriver { color: #14201A !important; font-weight: 600; }
+
+/* --- Page titles --- */
+.fb-dash .view-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fb-dash .view-title { margin: 0; font-size: 32px; font-weight: 800; color: #14201A; }
+.fb-dash .view-subtitle { color: #606770; margin: 4px 0 20px; }
+
+/* --- Online chip --- */
+.fb-dash .status-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: none; border-radius: 999px;
+  background: rgba(47, 125, 85, 0.12); color: var(--accent);
+  font-size: 13.5px; font-weight: 700;
+}
+.fb-dash .status-chip[data-on="0"] { background: #e4e6eb; color: #606770; }
+
+/* --- Banner --- */
+.fb-dash .driver-alert {
+  background: #fff4d6; color: #6b4a00; border: none;
+  border-left: 5px solid #e8b23d; border-radius: 12px;
+  padding: 14px 18px; margin-bottom: 16px; line-height: 1.5;
+}
+
+/* --- Stat cards --- */
+.fb-dash .driver-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.fb-dash .driver-kpi {
+  background: #fff; border: none; border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding: 18px 20px; display: flex; flex-direction: column; gap: 6px;
+}
+.fb-dash .driver-kpi-label { font-size: 13px; font-weight: 600; color: #606770; text-transform: uppercase; letter-spacing: 0.04em; }
+.fb-dash .driver-kpi-value { font-family: inherit; font-size: 32px; font-weight: 800; color: #14201A; line-height: 1.1; }
+
+/* --- Panels --- */
+.fb-dash .dash-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fb-dash .dash-panel {
+  background: #fff; border: none; border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); overflow: hidden;
+}
+.fb-dash .dash-panel-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 22px 12px; background: transparent; border-bottom: 1px solid #eef0f2;
+}
+.fb-dash .dash-panel-head h3 { margin: 0; font-size: 18px; font-weight: 800; color: #14201A; }
+.fb-dash .dash-panel-body { padding: 18px 22px; }
+.fb-dash .active-ride-empty { font-style: normal; color: #606770; margin: 0; }
+.fb-dash .dash-msg-center, .fb-dash .dash-msg-center-soft { text-align: center; color: #606770; margin-top: 10px; }
+
+/* --- Buttons --- */
+.fb-dash button.green, .fb-dash button.red {
+  border: none !important; border-radius: 999px !important;
+  padding: 12px 22px; font-weight: 700; color: #fff !important; cursor: pointer;
+}
+.fb-dash button.green { background: var(--accent) !important; }
+.fb-dash button.green:hover:not(:disabled) { background: var(--accent-hi) !important; }
+.fb-dash button.red { background: #b3392b !important; }
+.fb-dash button.red:hover:not(:disabled) { background: #9a3024 !important; }
+.fb-dash button.green:disabled, .fb-dash button.red:disabled {
+  background: #e4e6eb !important; color: #9aa3a0 !important; cursor: not-allowed;
+}
+
+/* --- Incoming ride request --- */
+.fb-dash .driver-ride-request-card {
+  background: #fff; border: 2px solid var(--accent) !important; border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(47, 125, 85, 0.18) !important;
+  padding: 22px; margin-bottom: 16px;
+}
+.fb-dash .driver-ride-request-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.fb-dash .driver-ride-request-header h3 { margin: 0; font-size: 20px; font-weight: 800; color: #14201A; }
+.fb-dash .driver-ride-request-timer {
+  background: rgba(47, 125, 85, 0.12); padding: 6px 14px;
+  border-radius: 999px; font-size: 16px; font-weight: 800;
+}
+.fb-dash .driver-ride-request-actions { display: flex; gap: 12px; margin-top: 18px; }
+.fb-dash .driver-ride-request-actions button { flex: 1; padding: 15px; font-size: 16px; }
+
+/* --- Active ride buttons (display is still controlled by your script) --- */
+.fb-dash .driver-active-ride-actions button { width: 100%; padding: 15px; font-size: 16px; margin-top: 12px; }
+#reqFare, #bookSummaryFare { color: var(--accent) !important; font-weight: 800; }
+
+/* --- Location page --- */
+.fb-dash .dash-map-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.fb-dash .dash-map-controls input { flex: 1; min-width: 180px; }
+.fb-dash .dash-map-controls button:not(.green):not(.red) {
+  background: #e4e6eb; color: #14201A; border: none; border-radius: 999px;
+  padding: 12px 22px; font-weight: 700; cursor: pointer;
+}
+.fb-dash .driver-map-view { border-radius: 14px; overflow: hidden; }
+
+/* --- Location permission popup --- */
+.fb-dash .location-request-card {
+  background: #fff !important; border: none !important; border-radius: 18px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2) !important;
+}
+.fb-dash .loc-btn { width: 100%; }
+.fb-dash .loc-skip-btn { background: transparent; border: none; color: #606770; font-weight: 600; cursor: pointer; margin-top: 6px; }
+.fb-dash .loc-skip-btn:hover { text-decoration: underline; }
+
+/* --- Notifications page --- */
+.fb-dash .driver-notif-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); padding: 8px; max-width: 720px; }
+.fb-dash .driver-notif-badge { background: #e8604e; color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; }
+
+/* --- Profile page --- */
+.fb-dash .profile-identity { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.fb-dash .profile-driver-name { font-size: 20px; font-weight: 800; color: #14201A; }
+.fb-dash .profile-driver-sub { color: #606770; font-size: 14px; }
+
+/* --- Inputs without a type attribute --- */
+.fb-dash .driver-main input:not([type]) {
+  border: 1px solid #dddfe2; border-radius: 12px; padding: 12px 14px; background: #fff;
+}
+
+@media (max-width: 800px) {
+  .fb-dash .driver-kpis, .fb-dash .dash-overview-grid { grid-template-columns: 1fr; }
+  .fb-dash .driver-ride-request-actions { flex-direction: column; }
+}
+
+.fb-dash #view-location #rideId { display: none; }
+
+/* ===== Active Ride page ===== */
+
+/* no card inside a card */
+.fb-dash #view-active-ride > .dash-panel { background: transparent; box-shadow: none; overflow: visible; }
+.fb-dash #view-active-ride > .dash-panel > .dash-panel-body { padding: 0; }
+
+/* --- Request card --- */
+.fb-dash .driver-ride-request-header h3 { display: flex; align-items: center; gap: 10px; }
+.fb-dash .driver-ride-request-header h3 .ic { width: 24px; height: 24px; color: var(--accent); }
+
+.fb-dash .req-bar { height: 6px; background: #e4e6eb; border-radius: 999px; overflow: hidden; margin: 2px 0 18px; }
+.fb-dash .req-bar-fill { height: 100%; width: 100%; background: var(--accent); border-radius: 999px; transition: width 0.15s linear, background 0.3s; }
+.fb-dash .driver-ride-request-card.urgent .req-bar-fill { background: #e8604e; }
+.fb-dash .driver-ride-request-card.urgent .driver-ride-request-timer { background: #fde8e6; }
+
+.fb-dash .req-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.fb-dash .req-passenger { display: flex; align-items: center; gap: 12px; }
+.fb-dash .req-avatar { width: 46px; height: 46px; border-radius: 50%; background: #e4e6eb; color: #606770; display: flex; align-items: center; justify-content: center; }
+.fb-dash .req-avatar .ic { width: 24px; height: 24px; }
+.fb-dash .req-small { font-size: 12.5px; font-weight: 600; color: #606770; text-transform: uppercase; letter-spacing: 0.04em; }
+.fb-dash .req-name { font-size: 18px; font-weight: 800; color: #14201A; }
+.fb-dash .req-fare-box { text-align: right; }
+.fb-dash .req-fare { font-family: inherit; font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+
+.fb-dash .req-route { background: #f7f8fa; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; }
+.fb-dash .req-stop { display: flex; gap: 14px; align-items: flex-start; position: relative; padding-bottom: 16px; }
+.fb-dash .req-stop:last-child { padding-bottom: 0; }
+.fb-dash .req-stop:not(:last-child)::before { content: ""; position: absolute; left: 6px; top: 20px; bottom: -3px; width: 2px; background: #d3d6db; }
+.fb-dash .req-dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; box-sizing: border-box; }
+.fb-dash .req-dot.pickup { background: var(--accent); }
+.fb-dash .req-dot.drop { background: #fff; border: 3px solid #14201A; }
+.fb-dash .req-coords { font-size: 15.5px; font-weight: 600; color: #14201A; }
+
+/* Accept is bigger, Decline is calm grey (less chance of a wrong tap) */
+.fb-dash .driver-ride-request-actions { margin-top: 20px; }
+.fb-dash #acceptBtn { flex: 1.4; }
+.fb-dash #declineBtn { background: #e4e6eb !important; color: #14201A !important; }
+.fb-dash #declineBtn:hover:not(:disabled) { background: #d8dadf !important; }
+.fb-dash #declineBtn:disabled { background: #f0f2f5 !important; color: #9aa3a0 !important; }
+
+/* --- Active ride card + empty state --- */
+.fb-dash #activeRideInfo {
+  background: #fff; border-radius: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding: 22px; margin-top: 16px;
+}
+.fb-dash #activeRideInfo .active-ride-empty { text-align: center; padding: 30px 12px; font-size: 16px; font-weight: 600; color: #606770; }
+.fb-dash #activeRideInfo .active-ride-empty::before {
+  content: ""; display: block; width: 56px; height: 56px; margin: 0 auto 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9b1ad' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2'/%3E%3Ccircle cx='7' cy='17' r='2'/%3E%3Cpath d='M9 17h6'/%3E%3Ccircle cx='17' cy='17' r='2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+/* when a request is showing, hide the "No active ride" card */
+.fb-dash .dash-panel-body:has(#rideRequestCard[style*="display: block"]) #activeRideInfo:has(.active-ride-empty) { display: none; }
+
+/* fare row inside the active ride card */
+.fb-dash #activeRideInfo .trip-summary-row:nth-child(3) span:last-child { color: var(--accent) !important; font-weight: 800; }
+
+.fb-dash #view-active-ride .driver-active-ride-actions { margin-top: 16px; }
+
+/* --- Assigned / en route ride card --- */
+.fb-dash .ar-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+
+.fb-dash .ar-steps { display: flex; gap: 8px; margin-bottom: 18px; }
+.fb-dash .ar-step { flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 700; color: #9aa3a0; }
+.fb-dash .ar-step::before { content: ""; height: 6px; border-radius: 999px; background: #e4e6eb; }
+.fb-dash .ar-step.done { color: var(--accent); }
+.fb-dash .ar-step.done::before { background: var(--accent); }
+.fb-dash .ar-step.now { color: #14201A; }
+.fb-dash .ar-step.now::before { background: linear-gradient(90deg, var(--accent) 50%, #e4e6eb 50%); }
+
+/* --- Message under the card (ride completed, errors) --- */
+.fb-dash #rideActionStatus:not(:empty) {
+  background: #fff; color: #14201A; font-weight: 600;
+  border-radius: 12px; padding: 13px 16px; margin-top: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Confirm popup --- */
+.sk-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.sk-modal.hidden { display: none; }
+.sk-modal-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 24px 22px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+.sk-modal-card h3 { margin: 0 0 8px; font-size: 20px; font-weight: 800; color: #14201A; }
+.sk-modal-card p { margin: 0 0 22px; color: #606770; line-height: 1.5; font-size: 15px; }
+.sk-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.sk-modal-actions button {
+  border: none;
+  border-radius: 999px;
+  padding: 11px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sk-btn-grey { background: #e4e6eb !important; color: #14201A !important; }
+.sk-btn-grey:hover { background: #d8dadf !important; }
+.sk-btn-green { background: var(--accent) !important; color: #fff !important; }
+.sk-btn-green:hover { background: var(--accent-hi) !important; }
+.sk-btn-red { background: #b3392b !important; color: #fff !important; }
+.sk-btn-red:hover { background: #9a3024 !important; }
+.sk-modal-actions button:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 2px; }
+
+/* --- Online / Offline chip --- */
+.fb-dash #dashStatusChip { cursor: pointer; user-select: none; transition: background 0.2s, color 0.2s; }
+.fb-dash #dashStatusChip:hover { filter: brightness(0.96); }
+.fb-dash #dashStatusChip:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 2px; }
+.fb-dash #dashStatusChip.is-loading { opacity: 0.6; pointer-events: none; }
+.fb-dash .status-chip[data-on="2"] { background: #e7f0ff; color: #2a5bd7; }
+.fb-dash #dashStatusChip[data-on="2"] { cursor: default; }
+
+/* --- Dashboard: current ride line --- */
+.fb-dash .dash-ride-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: #14201A; font-size: 15px; }
+.fb-dash .dash-ride-pill { background: rgba(47, 125, 85, 0.14); color: var(--accent); padding: 5px 12px; border-radius: 999px; font-weight: 700; font-size: 13px; }
+.fb-dash .dash-ride-pill.new { background: #fff4d6; color: #8a5a00; }
+.fb-dash .dash-ride-link {
+  margin-left: auto; background: var(--accent); color: #fff; border: none;
+  border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.fb-dash .dash-ride-link:hover { background: var(--accent-hi); }
+
+/* ===== Driver profile ===== */
+.fb-dash #view-profile .dash-panel { margin-bottom: 16px; }
+.fb-dash #view-profile .dp-grid .dash-panel { margin-bottom: 0; }
+
+.fb-dash .dp-hero { background: #fff; border-radius: 16px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); overflow: hidden; margin-bottom: 16px; }
+.fb-dash .dp-cover { height: 150px; background: linear-gradient(135deg, #1F3A2C 0%, #2F7D55 60%, #4aa374 100%); }
+.fb-dash .dp-head { display: flex; align-items: flex-start; gap: 20px; padding: 0 28px 24px; flex-wrap: wrap; }
+
+.fb-dash .dp-avatar-btn {
+  position: relative; width: 120px; height: 120px; margin-top: -60px; flex-shrink: 0;
+  background: none !important; border: none !important; box-shadow: none !important;
+  padding: 0 !important; border-radius: 50%; cursor: pointer;
+}
+.fb-dash #accountAvatarImg, .fb-dash #accountAvatarFallback {
+  width: 120px; height: 120px; border-radius: 50%; border: 5px solid #fff; box-sizing: border-box;
+}
+.fb-dash #accountAvatarImg { object-fit: cover; }
+.fb-dash #accountAvatarFallback { display: inline-flex; align-items: center; justify-content: center; background: #e4e6eb; color: #606770; }
+.fb-dash #accountAvatarFallback .ic { width: 52px; height: 52px; stroke-width: 1.6; }
+.fb-dash .dp-cam {
+  position: absolute; right: 2px; bottom: 6px; width: 34px; height: 34px; border-radius: 50%;
+  background: #fff; color: #14201A; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.fb-dash .dp-cam .ic { width: 18px; height: 18px; }
+.fb-dash .dp-avatar-btn:hover .dp-cam { background: #e4e6eb; }
+.fb-dash .dp-avatar-btn:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 3px; }
+
+.fb-dash .dp-id { padding-top: 14px; min-width: 0; }
+.fb-dash .dp-id h2 { margin: 0; font-size: 28px; font-weight: 800; color: #14201A; }
+.fb-dash .dp-id p { margin: 2px 0 10px; color: #606770; }
+.fb-dash .dp-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.fb-dash .dp-badge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; background: #e4e6eb; color: #14201A; font-size: 13px; font-weight: 700; }
+.fb-dash .dp-badge.ok { background: rgba(47, 125, 85, 0.14); color: var(--accent); }
+.fb-dash .dp-badge.warn { background: #fff4d6; color: #8a5a00; }
+.fb-dash .dp-badge.bad { background: #fde8e6; color: #b3392b; }
+.fb-dash .dp-badge.off { background: #e4e6eb; color: #606770; }
+
+.fb-dash .dp-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; align-items: start; margin-bottom: 16px; }
+.fb-dash #view-profile .trip-summary-row .v { text-transform: capitalize; font-weight: 700; }
+
+.fb-dash .dp-avail-now { font-size: 22px; font-weight: 800; color: #14201A; margin-bottom: 14px; }
+.fb-dash .dp-seg-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.fb-dash #view-profile .dp-seg {
+  background: #fff; color: #14201A; border: 2px solid #dddfe2; border-radius: 999px;
+  padding: 11px 24px; min-width: 120px; font-size: 15px; font-weight: 700; cursor: pointer; opacity: 1 !important;
+}
+.fb-dash #view-profile .dp-seg:hover { border-color: var(--accent); }
+.fb-dash #view-profile .dp-seg.is-current { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fb-dash #view-profile .dp-seg.off.is-current { background: #606770; border-color: #606770; }
+.fb-dash .dp-note { color: #606770; font-size: 14px; line-height: 1.5; margin: 14px 0 0; }
+
+/* old duplicate license form (the lower one works) */
+.fb-dash #licenseSubmitCard { display: none !important; }
+
+@media (max-width: 800px) {
+  .fb-dash .dp-grid { grid-template-columns: 1fr; }
+  .fb-dash .dp-head { padding: 0 18px 20px; }
+}
+
+  /* ===== Location page ===== */
+.fb-dash #view-location #rideId { display: none; }
+
+.fb-dash .loc-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 999px;
+  background: #e4e6eb; color: #606770; font-size: 13.5px; font-weight: 700;
+}
+.fb-dash .loc-dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa3a0; }
+.fb-dash .loc-pill[data-state="on"] { background: rgba(47, 125, 85, 0.14); color: var(--accent); }
+.fb-dash .loc-pill[data-state="on"] .loc-dot { background: var(--accent); animation: locPulse 1.6s ease-in-out infinite; }
+.fb-dash .loc-pill[data-state="error"] { background: #fde8e6; color: #b3392b; }
+.fb-dash .loc-pill[data-state="error"] .loc-dot { background: #b3392b; }
+@keyframes locPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.fb-dash .loc-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.fb-dash .loc-status { font-weight: 700; color: #14201A; font-size: 15px; }
+.fb-dash .loc-hint { color: #606770; font-size: 13.5px; margin-top: 2px; }
+.fb-dash .loc-bar .dash-map-controls { margin-bottom: 0; }
+
+/* Stop is quiet, not a big red button */
+.fb-dash #stopBtn { background: #fff !important; color: #b3392b !important; border: 2px solid #f0c9c4 !important; }
+.fb-dash #stopBtn:hover:not(:disabled) { background: #fde8e6 !important; }
+
+/* taller map */
+.fb-dash #map { height: calc(100vh - 340px); min-height: 380px; }
+
+/* permission popup icon */
+.fb-dash .location-request-icon { color: var(--accent); display: inline-flex; margin-bottom: 6px; }
+.fb-dash .location-request-icon .ic { width: 44px; height: 44px; }
+
+
+/* ===== Location popup: invisible unless the driver really needs to see it ===== */
+html:not(.loc-show) .driver-location-overlay:not(.hidden) {
+  opacity: 0;
+  pointer-events: none;
+  animation: locFailsafe 0s linear 15s forwards; /* safety: shows itself after 15s if something goes wrong */
+}
+@keyframes locFailsafe { to { opacity: 1; pointer-events: auto; } }
+
+/* ===== Location page: automatic, no manual GPS buttons ===== */
+html:not(.dev) #view-location #realBtn,
+html:not(.dev) #view-location #simBtn,
+html:not(.dev) #view-location #stopBtn,
+.fb-dash #view-location #status { display: none; }  /* hidden, still in the page; the script reads #status */
+
+#locRetryBtn[hidden] { display: none !important; }
+
+.fb-dash .loc-msg { display: none; color: #606770; font-size: 14.5px; line-height: 1.5; max-width: 560px; }
+.fb-dash .loc-msg.m-off { display: block; }
+#view-location:has(.loc-pill[data-state="on"]) .loc-msg.m-off { display: none; }
+#view-location:has(.loc-pill[data-state="on"]) .loc-msg.m-on { display: block; }
+#view-location:has(.loc-pill[data-state="error"]) .loc-msg.m-off { display: none; }
+#view-location:has(.loc-pill[data-state="error"]) .loc-msg.m-error { display: block; color: #b3392b; }

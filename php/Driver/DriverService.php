@@ -103,7 +103,7 @@ final class DriverService
         if (array_key_exists('user_id', $fields) && (string) $fields['user_id'] !== $userId) {
             throw new DriverException('You cannot reassign a driver record to another user.', 403);
         }
-        // FR-10: location is only updated via the authenticated socket handler.
+        // Location fields are updated only through the authenticated location endpoint.
         foreach (['latitude', 'longitude', 'locationUpdatedAt'] as $locked) {
             if (array_key_exists($locked, $fields)) {
                 unset($fields[$locked]);
@@ -171,20 +171,42 @@ final class DriverService
         ];
     }
 
+    /** Persist coordinates for the authenticated driver's own profile. */
+    public function updateLocation(string $userId, float $latitude, float $longitude): array
+    {
+        $this->findByUserIdOrFail($userId);
+        $updatedAt = date('Y-m-d H:i:s');
+
+        Database::connection()->prepare(
+            'UPDATE drivers
+                SET latitude = :latitude,
+                    longitude = :longitude,
+                    locationUpdatedAt = :locationUpdatedAt
+              WHERE user_id = :user_id'
+        )->execute([
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'locationUpdatedAt' => $updatedAt,
+            'user_id' => $userId,
+        ]);
+
+        return [
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'locationUpdatedAt' => $updatedAt,
+            'driver' => $this->findByUserIdOrFail($userId),
+        ];
+    }
+
     // ------------------------------------------------------------ License
 
     /**
-     * Submit the authenticated driver's own license information.
-     * Persists the number and resets verification to 'pending'; then
-     * attempts SOAP verification. On success, updates licenseStatus and
-     * verified fields accordingly.
+     * Submit or replace the authenticated driver's license for manual review.
      * @return array{message:string, licenseStatus:string, verified:int, driver:array<string,mixed>}
-     * @throws DriverException on SOAP failure (keeps pending status)
+     * @throws DriverException when validation fails or the driver is already verified
      */
     public function submitLicense(string $userId, string $licenseNumber): array
     {
-        $this->findByUserIdOrFail($userId);
-
         $licenseNumber = trim($licenseNumber);
         if ($licenseNumber === '') {
             throw new DriverException('License number is required.', 400);
@@ -194,61 +216,65 @@ final class DriverService
         }
 
         $pdo = Database::connection();
-
-        // Persist license number and reset verification to pending
-        $stmt = $pdo->prepare(
-            'UPDATE drivers
-                SET licenseNumber = :licenseNumber,
-                    licenseStatus = :licenseStatus,
-                    licenseVerifiedAt = NULL,
-                    verified = 0
-              WHERE user_id = :user_id'
-        );
-        $stmt->execute([
-            'licenseNumber' => $licenseNumber,
-            'licenseStatus' => 'pending',
-            'user_id'       => $userId,
-        ]);
-
-        // Attempt SOAP verification
         try {
-            $verification = $this->verifyLicenseViaSoap($userId, $licenseNumber);
+            $pdo->beginTransaction();
+
+            $profileStmt = $pdo->prepare(
+                'SELECT id, licenseStatus, verified
+                   FROM drivers
+                  WHERE user_id = :user_id
+                  LIMIT 1 FOR UPDATE'
+            );
+            $profileStmt->execute(['user_id' => $userId]);
+            $profile = $profileStmt->fetch();
+            if (!$profile) {
+                throw new DriverException('Driver profile not found.', 404);
+            }
+            if ($profile['licenseStatus'] === 'verified' || (int) $profile['verified'] === 1) {
+                throw new DriverException('A verified driver cannot replace a license through this workflow.', 409);
+            }
+            if (!in_array($profile['licenseStatus'], ['pending', 'rejected'], true)) {
+                throw new DriverException('Driver license is not available for submission.', 409);
+            }
+
+            // Submission is a manual-review request; the prototype SOAP registry
+            // is not authoritative and must not decide the driver's status.
+            $stmt = $pdo->prepare(
+                "UPDATE drivers
+                    SET licenseNumber = :licenseNumber,
+                        licenseStatus = 'pending',
+                        licenseVerifiedAt = NULL,
+                        verified = 0
+                  WHERE user_id = :user_id
+                    AND licenseStatus IN ('pending', 'rejected')
+                    AND verified = 0"
+            );
+            $stmt->execute([
+                'licenseNumber' => $licenseNumber,
+                'user_id'       => $userId,
+            ]);
+
+            $driver = $this->findByUserIdOrFail($userId);
+            if ($driver['licenseStatus'] !== 'pending'
+                || (int) $driver['verified'] !== 0
+                || $driver['licenseNumber'] !== $licenseNumber
+                || $driver['licenseVerifiedAt'] !== null) {
+                throw new DriverException('License submission could not be saved for review.', 409);
+            }
+
+            $pdo->commit();
         } catch (\Throwable $e) {
-            // SOAP verification failed; keep pending status and rethrow as service exception
-            throw new DriverException('License verification service unavailable: ' . $e->getMessage(), 502);
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
-
-        // Update verification result
-        $now = date('Y-m-d H:i:s');
-        // A driver is verified only if the SOAP service confirms it AND the submitted
-        // license number matches the one on record in the SOAP registry.
-        if ($verification['verified'] && $verification['licenseNumber'] === $licenseNumber) {
-            $status = 'verified';
-            $verified = 1;
-        } else {
-            $status = 'rejected';
-            $verified = 0;
-        }
-
-        $stmt = $pdo->prepare(
-            'UPDATE drivers
-                SET licenseStatus = :licenseStatus,
-                    verified = :verified,
-                    licenseVerifiedAt = :licenseVerifiedAt
-              WHERE user_id = :user_id'
-        );
-        $stmt->execute([
-            'licenseStatus' => $status,
-            'verified'      => $verified,
-            'licenseVerifiedAt' => $now,
-            'user_id'       => $userId,
-        ]);
 
         return [
-            'message'       => 'License verification completed.',
-            'licenseStatus' => $status,
-            'verified'      => $verified,
-            'driver'        => $this->findByUserIdOrFail($userId),
+            'message'       => 'License submitted and is awaiting administrator review.',
+            'licenseStatus' => 'pending',
+            'verified'      => 0,
+            'driver'        => $driver,
         ];
     }
 

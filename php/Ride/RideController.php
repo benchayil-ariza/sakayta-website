@@ -29,16 +29,17 @@ final class RideController
 
         $body = $this->jsonBody();
 
-        $required = ['passengerName', 'pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'];
+        $required = ['pickupLat', 'pickupLng', 'dropoffLat', 'dropoffLng'];
         foreach ($required as $field) {
             if (!isset($body[$field]) || $body[$field] === '' || $body[$field] === null) {
                 throw new RideException('All required fields are required.', 400);
             }
         }
 
-        $passengerName = trim((string) $body['passengerName']);
+        // Passenger name comes from the authenticated account, never from client input.
+        $passengerName = (new \Sakayta\Auth\AuthService())->displayNameForUser($claims['uid']);
         if ($passengerName === '' || strlen($passengerName) > 255) {
-            throw new RideException('Passenger name must be 1-255 characters.', 400);
+            throw new RideException('Authenticated account name is missing or invalid.', 400);
         }
         $rideType = $body['rideType'] ?? 'Tricycle';
         if (!in_array($rideType, ['Tricycle', 'Bicycle', 'Car', 'Motorcycle', 'Habal-Habal'], true)) {
@@ -119,15 +120,57 @@ final class RideController
     }
 
     /** POST /api/rides/:id/accept -> 200 | 401 | 403 | 404 | 409 */
+    /** GET /api/drivers/me/ride — current pending ride request for this driver */
+    public function driverPendingRide(): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers.', 403);
+        }
+        $ride = $this->service->getDriverPendingRide($claims['uid']);
+        Response::json(200, $ride ?: ['message' => 'No pending ride request.', 'ride' => null]);
+    }
+
+    /** GET /api/drivers/me/active-ride — driver's currently assigned/active ride */
+    public function driverActiveRide(): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers.', 403);
+        }
+        $ride = $this->service->getDriverActiveRide($claims['uid']);
+        Response::json(200, $ride ?: ['message' => 'No active ride.', 'ride' => null]);
+    }
+
     public function accept(string $id): void
     {
         $claims = CurrentUser::required();
         if (($claims['role'] ?? '') !== 'driver') {
             throw new RideException('Only drivers can accept rides.', 403);
         }
-        $driver = $this->service->getDriverProfile($claims['uid']);
-        $ride = $this->service->getRideForDriver($id, $claims['uid']);
-        $result = $this->service->acceptRide($claims['uid'], $id, $driver['id'] ?? $driver['user_id']);
+        $result = $this->service->acceptRide($claims['uid'], $id);
+        Response::json(200, $result);
+    }
+
+    /** POST /api/rides/:id/start -> 200 | 401 | 403 | 404 | 409 */
+    public function start(string $id): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers can start rides.', 403);
+        }
+        $result = $this->service->startRide($claims['uid'], $id);
+        Response::json(200, $result);
+    }
+
+    /** POST /api/rides/:id/complete -> 200 | 401 | 403 | 404 | 409 */
+    public function complete(string $id): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers can complete rides.', 403);
+        }
+        $result = $this->service->completeRide($claims['uid'], $id);
         Response::json(200, $result);
     }
 

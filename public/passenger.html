@@ -21,7 +21,19 @@
   }
 </style>
 </head>
-<body>
+<body class="fb-dash">
+
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
 
 <div class="driver-app">
 
@@ -29,7 +41,7 @@
   <div class="driver-topbar-left">
     <button id="sidebarToggle" class="driver-menu-btn" aria-label="Toggle navigation menu" aria-controls="driverSidebar" aria-expanded="false">☰</button>
     <a href="/index.html" class="driver-topbar-brand">
-      <img src="/assets/logo-icon-nav.png" alt="" />
+      <img src="/assets/logo-icon.png" alt="" />
       <span class="brand-name">SakayTa</span>
     </a>
   </div>
@@ -37,7 +49,7 @@
   <div class="driver-topbar-right">
     <span id="topbarPassenger" aria-hidden="true">Loading&hellip;</span>
     <!-- Notification bell -->
-    <button id="notificationBell" class="notification-bell" title="Notifications" style="position: relative; background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px 8px;">🔔 <span id="unreadCount" class="unread-badge" style="position: absolute; top: 0; right: 0; background: #E8604E; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 700;">0</span></button>
+    <button id="notificationBell" class="notification-bell" title="Notifications" style="position: relative; background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px 8px;"><svg class="ic"><use href="#i-bell"/></svg> <span id="unreadCount" class="unread-badge" style="position: absolute; top: 0; right: 0; background: #E8604E; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 700;">0</span></button>
     <div id="notificationPanel" class="notification-panel" style="display:none; position: absolute; top: 50px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid var(--sage-300); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto;">
       <div style="padding: 12px; border-bottom: 1px solid var(--sage-300); font-weight: 700; font-size: 14px;">Notifications</div>
       <div id="notificationList" style="padding: 8px; font-size: 13px;"></div>
@@ -57,7 +69,7 @@
   <aside class="driver-sidebar" id="driverSidebar" aria-label="Passenger navigation">
     <!-- Passenger identity -->
     <div class="sidebar-profile" id="sidebarProfile" role="button" tabindex="0" aria-label="Open passenger profile">
-      <div class="sidebar-profile-badge" aria-hidden="true">👤</div>
+      <div class="sidebar-profile-badge" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></div>
       <div class="sidebar-profile-info">
         <div class="sidebar-profile-name" id="sidebarPassengerName">Loading&hellip;</div>
         <div class="sidebar-profile-sub">Passenger profile</div>
@@ -67,22 +79,22 @@
     <!-- Application navigation -->
     <nav class="sidebar-nav" aria-label="Main navigation">
       <button type="button" class="sidebar-link active" data-view="dashboard">
-        <span class="sl-ico" aria-hidden="true">▣</span> Overview
+        <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-dashboard"/></svg></span> Overview
       </button>
       <button type="button" class="sidebar-link" data-view="book-ride">
-        <span class="sl-ico" aria-hidden="true">🚕</span> Book a Ride
+        <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-car"/></svg></span> Book a Ride
       </button>
       <button type="button" class="sidebar-link" data-view="my-rides">
-        <span class="sl-ico" aria-hidden="true">📋</span> My Rides
+        <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-list"/></svg></span> My Rides
       </button>
       <button type="button" class="sidebar-link" data-view="notifications">
-        <span class="sl-ico" aria-hidden="true">🔔</span> Notifications
+        <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-bell"/></svg></span> Notifications
       </button>
     </nav>
 
     <!-- System -->
     <div class="sidebar-foot">
-      <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out">Log Out</button>
+      <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out"><svg class="ic"><use href="#i-logout"/></svg> Log Out</button>
     </div>
   </aside>
 
@@ -93,30 +105,56 @@
   <main class="driver-main">
     <div class="driver-main-inner">
 
-      <!-- ==================== DASHBOARD VIEW ==================== -->
       <section id="view-dashboard" class="driver-view active">
-        <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
-          <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">Overview</span>
-        </nav>
-        <h2 id="greeting" style="font-size: 28px; margin-bottom: 4px;">Good day, passenger.</h2>
-        <p style="color: var(--ink-soft); margin-top: 0 0 20px;">Here's where your ride is right now.</p>
+  <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
+    <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">Overview</span>
+  </nav>
+  <h2 id="greeting" style="font-size: 28px; margin-bottom: 4px;">Good day, passenger.</h2>
+  <p style="color: var(--ink-soft); margin: 0 0 4px;">Here's a quick look at your rides.</p>
 
-        <label for="rideId">Ride ID</label>
-        <input id="rideId" value="demo-ride-1" style="max-width: 220px; margin-bottom: 20px;" />
+  <!-- keep this hidden input, the script uses it -->
+  <input id="rideId" type="hidden" value="" />
 
-        <div class="card">
-          <h3 style="margin: 0 0 12px; font-size: 17px;">Current ride</h3>
-          <div id="currentRideInfo">
-            <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Driver</span><span id="riderDriverName">Verified driver</span></div>
-            <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Tricycle</span></div>
-            <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span id="rideFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 17px;">—</span></div>
-            <div class="trip-summary-row" style="padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">ETA (estimated)</span><span id="rideEta">—</span></div>
-          </div>
-          <div class="ride-status-line"><span class="dot"></span><span id="status">Waiting for driver location...</span></div>
-          <button id="cancelBtn" class="red" style="display: none; width: 100%; margin-top: 12px;">Cancel Ride</button>
-          <div id="cancelStatus" style="margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center;"></div>
-        </div>
-      </section>
+  <div class="stat-grid">
+    <div class="stat-card"><span class="stat-label">Total rides</span><span class="stat-value" id="statTotal">0</span></div>
+    <div class="stat-card"><span class="stat-label">Active</span><span class="stat-value accent" id="statActive">0</span></div>
+    <div class="stat-card"><span class="stat-label">Completed</span><span class="stat-value" id="statCompleted">0</span></div>
+    <div class="stat-card"><span class="stat-label">Cancelled</span><span class="stat-value" id="statCancelled">0</span></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin: 0 0 12px; font-size: 17px;">Current ride</h3>
+
+    <!-- shown when there is no active ride -->
+    <div id="noRideState" class="empty-state">
+      <div class="empty-icon" aria-hidden="true">🛺</div>
+      <h4>No active ride</h4>
+      <p>Book a ride and it will show up here.</p>
+      <button class="primary" onclick="document.querySelector('.sidebar-link[data-view=book-ride]').click()">Book a Ride</button>
+    </div>
+
+    <!-- shown when there is an active ride -->
+    <div id="activeRideState" style="display:none;">
+      <div id="currentRideInfo">
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Driver</span><span id="riderDriverName">Verified driver</span></div>
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Tricycle</span></div>
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span id="rideFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 17px;">—</span></div>
+        <div class="trip-summary-row" style="padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">ETA (estimated)</span><span id="rideEta">—</span></div>
+      </div>
+      <div class="ride-status-line"><span class="dot"></span><span id="status">Waiting for driver location...</span></div>
+      <button id="cancelBtn" class="red" style="display: none; width: 100%; margin-top: 12px;">Cancel Ride</button>
+      <div id="cancelStatus" style="margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center;"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 16px;">
+    <div class="card-head">
+      <h3 style="margin: 0; font-size: 17px;">Recent rides</h3>
+      <a href="#" onclick="event.preventDefault(); document.querySelector('.sidebar-link[data-view=my-rides]').click()">View all</a>
+    </div>
+    <div id="recentRides"></div>
+  </div>
+</section>
 
       <!-- ==================== BOOK A RIDE VIEW ==================== -->
       <section id="view-book-ride" class="driver-view">
@@ -129,9 +167,7 @@
         <div class="booking-grid" style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 24px; align-items: start;">
           <div>
             <div class="card">
-              <label for="bookPassengerName">Your name</label>
-              <input id="bookPassengerName" placeholder="e.g. Juan Dela Cruz" style="margin-bottom: 4px;" required />
-              <p id="bookNameError" class="field-error" role="alert" hidden style="font-size:12px; color:var(--danger);">Please enter your name.</p>
+              <p id="bookIdentityLine" class="status-text" style="font-size:13px; color:var(--ink-soft); margin-bottom: 4px;">Booking as <strong id="bookPassengerNameLabel">…</strong></p>
 
               <label style="margin-top: 16px;">Ride type</label>
               <div class="ride-type-grid" role="radiogroup" aria-label="Ride type" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
@@ -171,7 +207,7 @@
             <div id="bookingMap" class="map" role="application" aria-label="Map for selecting pickup and drop-off points"></div>
             <div id="bookLocationPrompt" class="location-prompt-overlay" role="dialog" aria-label="Location access required" aria-modal="false" style="position: absolute; inset: 0; z-index: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(244, 240, 230, 0.92); backdrop-filter: blur(4px); border-radius: inherit; transition: opacity 0.35s ease;">
               <div class="location-prompt-card" style="background: var(--paper); border: 1px solid var(--line-strong); border-radius: 12px; padding: 28px 24px; max-width: 340px; text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
-                <div class="lp-icon" style="font-size: 40px; margin-bottom: 12px;">📍</div>
+                <div class="lp-icon" style="font-size: 40px; margin-bottom: 12px;"><svg class="ic" style="width:40px;height:40px;color:var(--accent);"><use href="#i-pin"/></svg></div>
                 <h3 style="margin: 0 0 8px; font-size: 18px; color: var(--ink);">Find your location</h3>
                 <p style="margin: 0 0 20px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.5;">To set the map to your current location, SakayTa needs access to your location. Your pickup point will default to where you are.</p>
                 <div class="lp-actions" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
@@ -231,33 +267,42 @@
         </div>
       </section>
 
-      <!-- ==================== PROFILE VIEW ==================== -->
-      <section id="view-profile" class="driver-view">
-        <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
-          <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">Profile</span>
-        </nav>
-        <h2 style="font-size: 28px; margin-bottom: 4px;">My Profile</h2>
-        <p style="color: var(--ink-soft); margin-bottom: 24px;">Your account details and preferences.</p>
-        <div class="card" style="max-width: 500px;">
-          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
-            <div style="width: 64px; height: 64px; background: var(--sage-200); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px;">👤</div>
-            <div>
-              <h3 id="profileName" style="margin: 0; font-size: 20px;">Loading...</h3>
-              <p id="profileEmail" style="margin: 0; color: var(--ink-soft);">Loading...</p>
-            </div>
-          </div>
-          <div style="display: grid; gap: 12px;">
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--sage-200);">
-              <span style="color: var(--ink-soft); font-weight: 600;">Role</span>
-              <span id="profileRole">Passenger</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--sage-200);">
-              <span style="color: var(--ink-soft); font-weight: 600;">Account Status</span>
-              <span style="color: var(--ok); font-weight: 700;">Verified</span>
-            </div>
+     <section id="view-profile" class="driver-view">
+  <nav aria-label="Breadcrumb" style="font-size: 12px; color: var(--ink-soft); margin-bottom: 8px;">
+    <span>Workspace</span> / <span style="color: var(--ink); font-weight: 600;">Profile</span>
+  </nav>
+
+  <div class="pf-wrap">
+    <div class="pf-hero">
+      <div class="pf-cover"></div>
+      <div class="pf-head">
+        <div class="pf-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></div>
+        <div class="pf-id">
+          <h2 id="profileName">Loading...</h2>
+          <p id="profileEmail">Loading...</p>
+          <div class="pf-badges">
+            <span class="pf-badge">Passenger</span>
+            <span class="pf-badge ok"><svg class="ic"><use href="#i-shield"/></svg> Verified</span>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+
+    <div class="pf-grid">
+      <div class="card">
+        <h3 class="pf-title">Account details</h3>
+        <div class="pf-row">
+          <span class="pf-label"><svg class="ic"><use href="#i-user"/></svg> Role</span>
+          <span class="pf-value" id="profileRole">Passenger</span>
+        </div>
+        <div class="pf-row">
+          <span class="pf-label"><svg class="ic"><use href="#i-shield"/></svg> Account status</span>
+          <span class="pf-value ok">Verified</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
     </div>
   </main>
 </div>
@@ -301,7 +346,7 @@ function escapeHtml(str) {
 async function loadNotifications() {
   if (!token) return;
   try {
-    const res = await fetch("/api/notifications", {
+    const res = await fetch("http://localhost:8088/api/notifications", {
       headers: { "Authorization": `Bearer ${token}` }
     });
     if (!res.ok) return;
@@ -311,6 +356,31 @@ async function loadNotifications() {
   } catch (err) {
     console.warn("Could not load notifications:", err.message);
   }
+}
+function timeAgo(d) {
+  const t = new Date(d).getTime();
+  if (!t) return "";
+  const s = Math.floor((Date.now() - t) / 1000);
+  if (s < 60) return "Just now";
+  if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " hr ago";
+  return new Date(t).toLocaleDateString();
+}
+
+function notifHtml(n) {
+  return `
+    <div class="notif-item ${n.read ? "" : "unread"}">
+      <div class="notif-dot"></div>
+      <div class="notif-body">
+        <div class="notif-title">${escapeHtml(n.title)}</div>
+        <div class="notif-msg">${escapeHtml(n.message)}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+        <div class="notif-actions">
+          ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}">Mark read</button>` : ""}
+          <button class="delete-notif-btn" data-id="${n.id}">Delete</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 // FR-16: Update notification UI
@@ -325,26 +395,16 @@ function updateNotificationUI() {
   } else {
     badge.style.display = "none";
   }
-
   list.innerHTML = notifications.length === 0
-    ? "<div style='padding: 12px; color: var(--ink-soft); text-align: center;'>No notifications</div>"
-    : notifications.map(n => `
-      <div style="padding: 10px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100);"}">
-        <div style="font-weight: 600; color: var(--ink); font-size: 13px;">${escapeHtml(n.title)}</div>
-        <div style="color: var(--ink-soft); font-size: 12px; margin-top: 2px;">${escapeHtml(n.message)}</div>
-        <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
-          ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
-          <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
-        </div>
-      </div>
-    `).join("");
+  ? `<div class="notif-empty">No notifications yet</div>`
+  : notifications.map(notifHtml).join("");
 
   // Add event listeners for mark read / delete
-  document.querySelectorAll(".mark-read-btn").forEach(btn => {
+  document.querySelectorAll("#notificationList .mark-read-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
       try {
-        const res = await fetch(`/api/notifications/${id}/read`, {
+        const res = await fetch(`http://localhost:8088/api/notifications/${id}/read`, {
           method: "PUT",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -357,11 +417,11 @@ function updateNotificationUI() {
     });
   });
 
-  document.querySelectorAll(".delete-notif-btn").forEach(btn => {
+  document.querySelectorAll("#notificationList .delete-notif-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
       try {
-        const res = await fetch(`/api/notifications/${id}`, {
+        const res = await fetch(`http://localhost:8088/api/notifications/${id}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -390,16 +450,17 @@ socket.on("notification:new", (notification) => {
 // Load REAL ride info (passenger name used for greeting, real fare) from the API
 async function loadRideInfo() {
   const rideId = rideIdInput.value.trim();
+  if (!rideId) return;
   try {
     const headers = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`/api/rides/${rideId}`, { headers });
+    const res = await fetch(`http://localhost:8088/api/rides/${rideId}`, { headers });
     if (!res.ok) return;
     const ride = await res.json();
-    document.getElementById("greeting").textContent = `Good day, ${ride.passengerName}.`;
+    document.getElementById("greeting").textContent = `Good day, ${ride.passengerName}`;
     document.getElementById("rideFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
     document.getElementById("rideVehicleType").textContent = escapeHtml(ride.rideType || "Tricycle");
     topbarPassengerEl.textContent = ride.passengerName || "Passenger";
@@ -422,6 +483,8 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
   const rideId = rideIdInput.value.trim();
   if (!rideId) return;
 
+  const fareText = document.getElementById("rideFare").textContent;
+  if (!confirm(`Cancel this ride (${fareText})? This cannot be undone.`)) return;
   const btn = document.getElementById("cancelBtn");
   const statusEl = document.getElementById("cancelStatus");
   btn.disabled = true;
@@ -436,7 +499,7 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
       return;
     }
 
-    const res = await fetch(`/api/rides/${rideId}/cancel`, {
+    const res = await fetch(`http://localhost:8088/api/rides/${rideId}/cancel`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -453,11 +516,9 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
       return;
     }
 
-    statusEl.textContent = "✅ Ride cancelled. You can book a new one.";
-    btn.style.display = "none";
     btn.disabled = false;
     btn.textContent = "Cancel Ride";
-    document.getElementById("status").textContent = "Ride cancelled";
+    await loadOverview();   // refreshes the numbers and the recent rides list
   } catch (err) {
     statusEl.textContent = "❌ Network error: " + err.message;
     btn.disabled = false;
@@ -468,25 +529,28 @@ document.getElementById("cancelBtn").addEventListener("click", async () => {
 // Listen for ride status updates via Socket.io
 socket.on("ride:en_route", (data) => {
   if (rideIdInput.value.trim() === data.rideId) {
-    loadRideInfo();
+    loadOverview();
   }
 });
 
 socket.on("ride:completed", (data) => {
   if (rideIdInput.value.trim() === data.rideId) {
-    loadRideInfo();
+    loadOverview();
   }
 });
 
 socket.on("ride:cancelled", (data) => {
   if (rideIdInput.value.trim() === data.rideId) {
-    loadRideInfo();
+    loadOverview();
   }
 });
 
-function joinRoom() { socket.emit("joinRide", rideIdInput.value.trim()); loadRideInfo(); loadNotifications(); }
-joinRoom();
-rideIdInput.addEventListener("change", joinRoom);
+function joinRoom() {
+  const id = rideIdInput.value.trim();
+  if (id) socket.emit("joinRide", id);
+  loadRideInfo();
+  loadNotifications();
+}
 
 // ===== View switching (client-side application navigation) =====
 const views = document.querySelectorAll(".driver-view");
@@ -496,8 +560,15 @@ function showView(name) {
   views.forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
   navLinks.forEach((l) => l.classList.toggle("active", l.dataset.view === name));
 
-  if (name === "dashboard") { loadRideInfo(); }
+  if (name === "dashboard") { loadOverview(); }
   if (name === "book-ride") {
+    // Auto-request real device location once per page load (manual retry/skip unchanged).
+    try {
+      if (!window.__sakaytaAutoLocAttempted && !bookingUserLocationMarker && !bookingPickup && !bookingDropoff) {
+        window.__sakaytaAutoLocAttempted = true;
+        requestBookingUserLocation();
+      }
+    } catch (e) { console.warn('Auto location unavailable', e); }
     initBookingMap();
     if (bookingMap) {
       setTimeout(() => { bookingMap.invalidateSize(); }, 50);
@@ -597,22 +668,23 @@ async function loadAuthenticatedPassenger() {
   }
 
   try {
-    // Confirm the authenticated identity from the JWT
-    const meRes = await fetch("/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
+    // Confirm the authenticated identity from the JWT.
+    // /api/auth/me returns {id, email, full_name, role, ...} — reuse it
+    // directly as the passenger identity (no separate passengers table).
+    const meRes = await fetch("http://localhost:8088/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
     if (!meRes.ok) {
       updatePassengerLabels(false);
       return;
     }
 
-    // Fetch the logged-in passenger's own profile (backend resolves passengers.user_id from the JWT user id)
-    const res = await fetch("/api/passengers/me", { headers: { "Authorization": `Bearer ${token}` } });
-    if (res.status === 404 || !res.ok) {
+    const user = await meRes.json();
+    // Normalize to the {name} shape used by updatePassengerLabels.
+    const passenger = { name: user.full_name || user.name || "", email: user.email || "" };
+    if (!passenger.name) {
       updatePassengerLabels(false);
       return;
     }
-
-    const passenger = await res.json();
-    // For simplicity, we treat passenger object similar to driver
+    try { localStorage.setItem("sakayta_user", JSON.stringify(user)); } catch (e) {}
     updatePassengerLabels(true, passenger);
     // Refresh passenger-scoped views now that the real identity is known
     loadRideInfo();
@@ -625,6 +697,17 @@ async function loadAuthenticatedPassenger() {
 
 function updatePassengerLabels(hasPassenger, passengerData) {
   const name = hasPassenger && passengerData ? passengerData.name : "Passenger";
+  try {
+    const label = document.getElementById("bookPassengerNameLabel");
+    if (label) label.textContent = hasPassenger ? name : "…";
+  } catch (e) {}
+  try {
+    const stored = JSON.parse(localStorage.getItem("sakayta_user") || "null");
+    if (hasPassenger && passengerData && stored && !stored.full_name) {
+      stored.full_name = passengerData.name;
+      localStorage.setItem("sakayta_user", JSON.stringify(stored));
+    }
+  } catch (e) {}
   const greet = document.getElementById("greeting");
   if (greet) greet.textContent = "Good day, " + name;
   const top = document.getElementById("topbarPassenger");
@@ -730,19 +813,18 @@ document.querySelectorAll(".ride-type-card").forEach((card) => {
 });
 
 document.getElementById("bookRideBtn").addEventListener("click", async () => {
-  const nameInput = document.getElementById("bookPassengerName");
-  const nameError = document.getElementById("bookNameError");
   const bookingError = document.getElementById("bookBookingError");
   const bookBtn = document.getElementById("bookRideBtn");
   const spinner = document.getElementById("bookRideSpinner");
 
-  const passengerName = nameInput.value.trim();
+  // Passenger name comes from the authenticated account (see loadAuthenticatedPassenger),
+  // never from a manual form input.
+  const passengerName = currentPassengerName();
   if (!passengerName) {
-    nameError.hidden = false;
-    nameInput.focus();
+    bookingError.hidden = false;
+    bookingError.textContent = "Could not determine your account name. Please log in again.";
     return;
   }
-  nameError.hidden = true;
 
   if (!bookingPickup || !bookingDropoff) {
     bookingError.hidden = false;
@@ -924,7 +1006,7 @@ async function loadMyRides() {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch("/api/rides", { headers });
+    const res = await fetch("http://localhost:8088/api/rides", { headers });
     if (!res.ok) throw new Error("Could not load rides.");
     myRides = await res.json();
     renderMyRides();
@@ -948,23 +1030,43 @@ function escapeHtml(str) {
 
 function renderMyRides() {
   const body = document.getElementById("myRidesBody");
-  const filtered = currentMyRidesFilter === "all" ? myRides : myRides.filter(r => r.status === currentMyRidesFilter);
+
+  // newest first
+  const time = (r) => new Date(r.createdAt || r.created_at || 0).getTime();
+  const hasTime = myRides.some(r => r.createdAt || r.created_at);
+  const ordered = hasTime ? [...myRides].sort((a, b) => time(b) - time(a)) : [...myRides].reverse();
+
+  const filtered = currentMyRidesFilter === "all" ? ordered : ordered.filter(r => r.status === currentMyRidesFilter);
 
   if (filtered.length === 0) {
     body.innerHTML = `<div class="card" style="text-align:center; color: var(--ink-soft);">No rides here yet${currentMyRidesFilter !== "all" ? " with this status" : ""}.</div>`;
     return;
   }
 
+  const pt = (lat, lng) => `${Number(lat).toFixed(3)}, ${Number(lng).toFixed(3)}`;
+
   body.innerHTML = filtered.map(r => `
     <div class="ride-card">
-      <div><div class="label">Passenger</div><div class="value">${escapeHtml(r.passengerName)}</div></div>
-      <div class="route-line">📍 ${r.pickupLat?.toFixed(3)}, ${r.pickupLng?.toFixed(3)} → ${r.dropoffLat?.toFixed(3) ?? "—"}, ${r.dropoffLng?.toFixed(3) ?? "—"}</div>
-      <div><div class="label">Type</div><div class="value">${escapeHtml(r.rideType || "Tricycle")}</div></div>
-      <div><div class="label">Fare</div><div class="value">${r.fareEstimate ? "₱" + r.fareEstimate : "—"}</div></div>
-      <div><span class="status-badge status-${r.status}">${escapeHtml(r.status)}</span></div>
-      <div class="fmt-links">
-        <a href="/api/rides/${encodeURIComponent(r.id)}" target="_blank">JSON</a><br/>
-        <a href="/api/rides/${encodeURIComponent(r.id)}/xml" target="_blank">XML</a>
+      <div class="rc-main">
+        <div class="rc-top">
+          <span class="rc-type">${escapeHtml(r.rideType || "Tricycle")}</span>
+          <span class="rc-fare">${r.fareEstimate ? "₱" + escapeHtml(r.fareEstimate) : "—"}</span>
+        </div>
+        <div class="rc-route">
+          <span>From ${pt(r.pickupLat, r.pickupLng)}</span>
+          <span class="rc-arrow">→</span>
+          <span>To ${pt(r.dropoffLat, r.dropoffLng)}</span>
+        </div>
+      </div>
+      <div class="rc-side">
+        <span class="status-badge status-${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+        ${["pending", "assigned"].includes(r.status)
+          ? `<button class="cancel-ride-btn" data-id="${escapeHtml(r.id)}">Cancel</button>`
+          : ""}
+        <div class="rc-links">
+          <a href="/api/rides/${encodeURIComponent(r.id)}" target="_blank">JSON</a>
+          <a href="/api/rides/${encodeURIComponent(r.id)}/xml" target="_blank">XML</a>
+        </div>
       </div>
     </div>
   `).join("");
@@ -979,11 +1081,33 @@ document.querySelectorAll(".filter-pill").forEach((pill) => {
   });
 });
 
+document.getElementById("myRidesBody").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".cancel-ride-btn");
+  if (!btn) return;
+  if (!confirm("Cancel this ride? This cannot be undone.")) return;
+
+  btn.disabled = true;
+  btn.textContent = "Cancelling...";
+  try {
+    const res = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(btn.dataset.id)}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error || "Could not cancel this ride.");
+    }
+  } catch (err) {
+    alert("Network error: " + err.message);
+  }
+  loadMyRides();
+});
+
 // ===== Full Notifications view =====
 async function loadFullNotifications() {
   if (!token) return;
   try {
-    const res = await fetch("/api/notifications", {
+    const res = await fetch("http://localhost:8088/api/notifications", {
       headers: { "Authorization": `Bearer ${token}` }
     });
     if (!res.ok) return;
@@ -997,31 +1121,17 @@ async function loadFullNotifications() {
 
 function renderFullNotifications() {
   const list = document.getElementById("fullNotificationList");
-  if (notifications.length === 0) {
-    list.innerHTML = "<div style='padding: 20px; color: var(--ink-soft); text-align: center;'>No notifications</div>";
-    return;
-  }
 
-  list.innerHTML = notifications.map(n => `
-    <div style="padding: 15px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100); margin-bottom: 10px;"}">
-      <div style="font-weight: 600; color: var(--ink); font-size: 14px;">${escapeHtml(n.title)}</div>
-      <div style="color: var(--ink-soft); font-size: 12px; margin-top: 4px;">${escapeHtml(n.message)}</div>
-      <div style="margin-top: 8px; font-size: 11px; color: var(--ink-soft);">
-        ${new Date(n.created_at).toLocaleString()}
-      </div>
-      <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
-        ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
-        <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
-      </div>
-    </div>
-  `).join("");
+    list.innerHTML = notifications.length === 0
+    ? `<div class="notif-empty">No notifications yet</div>`
+    : notifications.map(notifHtml).join("");
 
   // Add event listeners for mark read / delete
-  document.querySelectorAll(".mark-read-btn").forEach(btn => {
+  document.querySelectorAll("#fullNotificationList .mark-read-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
       try {
-        const res = await fetch(`/api/notifications/${id}/read`, {
+        const res = await fetch(`http://localhost:8088/api/notifications/${id}/read`, {
           method: "PUT",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -1035,11 +1145,11 @@ function renderFullNotifications() {
     });
   });
 
-  document.querySelectorAll(".delete-notif-btn").forEach(btn => {
+  document.querySelectorAll("#fullNotificationList .delete-notif-btn").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
       try {
-        const res = await fetch(`/api/notifications/${id}`, {
+        const res = await fetch(`http://localhost:8088/api/notifications/${id}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -1054,19 +1164,104 @@ function renderFullNotifications() {
   });
 }
 
+// Authenticated account name, single source of truth for labels + booking.
+// Priority: live-identified passenger label, then stored /api/auth/me user.
+function currentPassengerName() {
+  try {
+    const side = document.getElementById("sidebarPassengerName");
+    if (side && side.textContent && side.textContent !== "Loading…" && side.textContent !== "Loading...") {
+      return side.textContent.trim();
+    }
+  } catch (e) {}
+  try {
+    const stored = JSON.parse(localStorage.getItem("sakayta_user") || "null");
+    if (stored) return (stored.full_name || stored.name || "").trim();
+  } catch (e) {}
+  return "";
+}
+
 // ===== Profile view =====
 async function loadProfile() {
   if (!token) return;
   try {
-    const meRes = await fetch("/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
+    const meRes = await fetch("http://localhost:8088/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
     if (!meRes.ok) return;
     const user = await meRes.json();
 
-    document.getElementById("profileName").textContent = user.name || "Not available";
+    document.getElementById("profileName").textContent = user.full_name || user.name || "Not available";
     document.getElementById("profileEmail").textContent = user.email || "Not available";
-    document.getElementById("profileRole").textContent = user.role || "Passenger";
+    document.getElementById("profileRole").textContent =
+  user.role === "commuter" ? "Passenger" : (user.role || "Passenger");
   } catch (err) {
     console.warn("Could not load profile:", err.message);
+  }
+}
+// ===== Overview dashboard =====
+async function loadOverview() {
+  try {
+    const headers = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch("http://localhost:8088/api/rides", { headers });
+    if (!res.ok) return;
+    const rides = await res.json();
+
+    // newest first (if the rides have a created time)
+    const time = (r) => new Date(r.createdAt || r.created_at || 0).getTime();
+    const sorted = [...rides].sort((a, b) => time(b) - time(a));
+
+    const isActive = (r) => !["completed", "cancelled"].includes(r.status);
+    const activeRide = sorted.find(isActive);
+
+    // stat cards
+    document.getElementById("statTotal").textContent = rides.length;
+    document.getElementById("statActive").textContent = rides.filter(isActive).length;
+    document.getElementById("statCompleted").textContent = rides.filter(r => r.status === "completed").length;
+    document.getElementById("statCancelled").textContent = rides.filter(r => r.status === "cancelled").length;
+
+    // current ride card
+    const noRide = document.getElementById("noRideState");
+    const activeState = document.getElementById("activeRideState");
+   if (activeRide) {
+  rideIdInput.value = activeRide.id;
+  socket.emit("joinRide", activeRide.id);
+  noRide.style.display = "none";
+  activeState.style.display = "block";
+
+  const statusText = {
+    pending: "Looking for a driver...",
+    assigned: "Driver assigned",
+    en_route: "Driver is on the way"
+  };
+  document.getElementById("rideVehicleType").textContent = activeRide.rideType || "Tricycle";
+  document.getElementById("rideFare").textContent = activeRide.fareEstimate ? "₱" + activeRide.fareEstimate : "—";
+  document.getElementById("riderDriverName").textContent =
+    activeRide.driverName || (activeRide.status === "pending" ? "Not assigned yet" : "Verified driver");
+  document.getElementById("status").textContent = statusText[activeRide.status] || activeRide.status;
+  document.getElementById("cancelBtn").style.display =
+    ["pending", "assigned"].includes(activeRide.status) ? "block" : "none";
+  document.getElementById("cancelStatus").textContent = "";
+    } else {
+      noRide.style.display = "block";
+      activeState.style.display = "none";
+    }
+
+    // recent rides (last 3)
+    const recent = document.getElementById("recentRides");
+    if (sorted.length === 0) {
+      recent.innerHTML = `<div class="recent-empty">No rides yet.</div>`;
+    } else {
+      recent.innerHTML = sorted.slice(0, 3).map(r => `
+        <div class="recent-row">
+          <div>
+            <div class="recent-type">${escapeHtml(r.rideType || "Tricycle")}</div>
+            <div class="recent-sub">${r.fareEstimate ? "₱" + escapeHtml(r.fareEstimate) : "—"}</div>
+          </div>
+          <span class="status-badge status-${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.warn("Could not load overview:", err.message);
   }
 }
 

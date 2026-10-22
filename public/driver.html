@@ -9,8 +9,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/driver-ui.css" />
 </head>
-<body>
+<body class="fb-dash">
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+  <symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+</svg>
 
 <!-- ============================================================
      LOCATION PERMISSION OVERLAY
@@ -44,7 +54,7 @@
     <div class="driver-topbar-left">
       <button id="sidebarToggle" class="driver-menu-btn" aria-label="Toggle navigation menu" aria-controls="driverSidebar" aria-expanded="false">☰</button>
       <a href="/index.html" class="driver-topbar-brand">
-        <img src="/assets/logo-icon-nav.png" alt="" />
+        <img src="/assets/logo-icon.png" alt="" />
         <span class="brand-name">SakayTa</span>
       </a>
     </div>
@@ -77,22 +87,22 @@
       <!-- Application navigation: switches the visible view -->
       <nav class="sidebar-nav" aria-label="Main navigation">
         <button type="button" class="sidebar-link active" data-view="dashboard">
-          <span class="sl-ico" aria-hidden="true">▣</span> Dashboard
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-dashboard"/></svg></span> Dashboard
         </button>
         <button type="button" class="sidebar-link" data-view="active-ride">
-          <span class="sl-ico" aria-hidden="true">🚕</span> Active Ride
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-car"/></svg></span> Active Ride
         </button>
         <button type="button" class="sidebar-link" data-view="location">
-          <span class="sl-ico" aria-hidden="true">📍</span> Location
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-pin"/></svg></span> Location
         </button>
         <button type="button" class="sidebar-link" data-view="notifications">
-          <span class="sl-ico" aria-hidden="true">🔔</span> Notifications
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-bell"/></svg></span> Notifications
         </button>
       </nav>
 
       <!-- System -->
       <div class="sidebar-foot">
-        <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out">Log Out</button>
+        <button id="sidebarLogoutBtn" class="sidebar-logout" aria-label="Log out"><svg class="ic"><use href="#i-logout"/></svg> Log Out</button>
       </div>
     </aside>
 
@@ -107,7 +117,7 @@
         <section id="view-dashboard" class="driver-view active">
           <div class="view-head">
             <h2 class="view-title" id="dashGreeting">Good day, Driver</h2>
-            <span id="dashStatusChip" class="status-chip" data-on="1">● Online</span>
+            <span id="dashStatusChip" class="status-chip" data-on="0" role="button" tabindex="0" title="Click to go online or offline">● …</span>
           </div>
           <p class="view-subtitle">Here&rsquo;s how your day is going so far.</p>
 
@@ -159,15 +169,43 @@
               <!-- Ride request (hidden by default; JS toggles display) -->
               <div class="card driver-ride-request-card" id="rideRequestCard">
                 <div class="driver-ride-request-header">
-                  <h3>🚖 New Ride Request</h3>
-                  <div id="requestTimer" class="driver-ride-request-timer">15s</div>
+                  <h3><svg class="ic"><use href="#i-car"/></svg> New Ride Request</h3>
+                  <div id="requestTimer" class="driver-ride-request-timer">30s</div>
                 </div>
-                <div id="requestDetails">
-                  <div class="trip-summary-row"><span class="k">Passenger</span><span id="reqPassenger">&mdash;</span></div>
-                  <div class="trip-summary-row"><span class="k">Pickup</span><span id="reqPickup" style="font-family: var(--font-mono); font-size: 12px;">&mdash;</span></div>
-                  <div class="trip-summary-row"><span class="k">Drop-off</span><span id="reqDropoff" style="font-family: var(--font-mono); font-size: 12px;">&mdash;</span></div>
-                  <div class="trip-summary-row"><span class="k">Fare</span><span id="reqFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 16px;">&mdash;</span></div>
-                </div>
+             <div id="requestDetails">
+  <div class="req-bar" aria-hidden="true"><div id="reqBarFill" class="req-bar-fill"></div></div>
+
+  <div class="req-top">
+    <div class="req-passenger">
+      <span class="req-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></span>
+      <div>
+        <div class="req-small">Passenger</div>
+        <div class="req-name" id="reqPassenger">&mdash;</div>
+      </div>
+    </div>
+    <div class="req-fare-box">
+      <div class="req-small">Estimated fare</div>
+      <div class="req-fare" id="reqFare">&mdash;</div>
+    </div>
+  </div>
+
+  <div class="req-route">
+    <div class="req-stop">
+      <span class="req-dot pickup"></span>
+      <div>
+        <div class="req-small">Pickup</div>
+        <div class="req-coords" id="reqPickup">&mdash;</div>
+      </div>
+    </div>
+    <div class="req-stop">
+      <span class="req-dot drop"></span>
+      <div>
+        <div class="req-small">Drop-off</div>
+        <div class="req-coords" id="reqDropoff">&mdash;</div>
+      </div>
+    </div>
+  </div>
+</div>
                 <div class="driver-ride-request-actions">
                   <button id="acceptBtn" class="green">ACCEPT RIDE</button>
                   <button id="declineBtn" class="red">DECLINE</button>
@@ -188,25 +226,35 @@
         </section>
 
         <!-- ==================== LOCATION VIEW ==================== -->
-        <section id="view-location" class="driver-view">
-          <div class="view-head">
-            <h2 class="view-title">Location</h2>
-            <span id="status" class="dash-panel-sub" role="status" aria-live="polite">Status: not sharing location yet</span>
-          </div>
-          <p class="view-subtitle">Your location is matched with nearby ride requests while you are online.</p>
+      <section id="view-location" class="driver-view">
+  <div class="view-head">
+    <h2 class="view-title">Location</h2>
+    <span id="locPill" class="loc-pill" data-state="off"><span class="loc-dot"></span><span id="locPillText">Not sharing</span></span>
+  </div>
+  <p class="view-subtitle">Passengers see you coming, and nearby requests find you, while you are Online.</p>
 
-          <div class="dash-panel">
-            <div class="dash-panel-body">
-              <div class="dash-map-controls">
-                <input id="rideId" type="text" value="demo-ride-1" aria-label="Ride ID" placeholder="Ride ID (optional)" />
-                <button class="green" id="realBtn">Share Real GPS</button>
-                <button id="simBtn">Simulate</button>
-                <button class="red" id="stopBtn">Stop</button>
-              </div>
-              <div id="map" class="map driver-map-view" role="application" aria-label="Live map showing your current location"></div>
-            </div>
-          </div>
-        </section>
+  <div class="dash-panel">
+    <div class="dash-panel-body">
+      <div class="loc-bar">
+        <div class="loc-info">
+          <!-- hidden by CSS; the script reads this text -->
+          <div id="status" class="loc-status" role="status" aria-live="polite">Status: not sharing location yet</div>
+          <div class="loc-msg m-off">Your location is not being shared. Go Online and it starts by itself.</div>
+          <div class="loc-msg m-on">Your location is being shared with passengers and nearby requests.</div>
+          <div class="loc-msg m-error">We can't get your location. Allow location for this site in your browser (click the lock icon next to the address), then press Turn on location.</div>
+        </div>
+        <div class="dash-map-controls">
+          <input id="rideId" type="text" value="" data-demo-removed="1" aria-label="Ride ID" placeholder="Ride ID (optional)" />
+          <button class="green" id="realBtn">Share my location</button>
+          <button id="simBtn">Simulate</button>
+          <button class="red" id="stopBtn">Stop</button>
+          <button class="green" id="locRetryBtn" hidden>Turn on location</button>
+        </div>
+      </div>
+      <div id="map" class="map driver-map-view" role="application" aria-label="Live map showing your current location"></div>
+    </div>
+  </div>
+</section>
 
         <!-- ==================== NOTIFICATIONS VIEW ==================== -->
         <section id="view-notifications" class="driver-view">
@@ -227,101 +275,106 @@
 
         <!-- ==================== DRIVER PROFILE VIEW ==================== -->
         <section id="view-profile" class="driver-view">
-          <div class="view-head">
-            <h2 class="view-title">Driver Profile</h2>
-            <span id="profileStatusChip" class="status-chip" data-on="1">● Online</span>
-          </div>
-          <p class="view-subtitle">Your identity, availability, and license verification.</p>
+  <div class="view-head">
+    <h2 class="view-title">Driver Profile</h2>
+    <span id="profileStatusChip" class="status-chip" data-on="1">● Online</span>
+  </div>
+  <p class="view-subtitle">Your identity, availability, and license verification.</p>
 
-          <div class="dash-panel" style="margin-bottom: 14px;">
-            <div class="dash-panel-head"><h3>Account</h3></div>
-            <div class="dash-panel-body">
-              <div class="profile-identity">
-                <button id="accountAvatarBtn" class="profile-avatar-btn" aria-label="Change profile picture" style="background:none;border:none;padding:0;cursor:pointer;">
-                  <img id="accountAvatarImg" src="/assets/logo-icon-nav.png" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--sage-300);display:none;" onerror="this.style.display='none';document.getElementById('accountAvatarFallback').style.display='flex';" />
-                  <span id="accountAvatarFallback" aria-hidden="true" style="width:48px;height:48px;border-radius:50%;background:var(--ink);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:22px;border:2px solid var(--sage-300);">🚖</span>
-                </button>
-                <div>
-                  <div class="profile-driver-name" id="profileDriverName">Driver</div>
-                  <div class="profile-driver-sub">Profile and identity are managed in the sidebar.</div>
-                </div>
-              </div>
-              <p class="dash-panel-note" style="margin: 0;">This is your authenticated driver account. Your session is shown as online while you are signed in.</p>
-            </div>
-          </div>
+  <div class="dp-hero">
+    <div class="dp-cover"></div>
+    <div class="dp-head">
+      <button id="accountAvatarBtn" class="dp-avatar-btn" aria-label="Change profile picture">
+        <img id="accountAvatarImg" src="/assets/logo-icon-nav.png" alt="Profile" style="display:none;" onerror="this.style.display='none';document.getElementById('accountAvatarFallback').style.display='flex';" />
+        <span id="accountAvatarFallback" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></span>
+        <span class="dp-cam" aria-hidden="true"><svg class="ic"><use href="#i-camera"/></svg></span>
+      </button>
+      <div class="dp-id">
+        <h2 id="profileDriverName">Driver</h2>
+        <p>Driver account</p>
+        <div class="dp-badges">
+          <span class="dp-badge">Driver</span>
+          <span id="dpLicenseBadge" class="dp-badge">License …</span>
+          <span id="dpAvailBadge" class="dp-badge">…</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          
-          <div class="dash-panel" style="margin-bottom:14px;">
-            <div class="dash-panel-head"><h3>Status</h3></div>
-            <div class="dash-panel-body">
-              <div class="trip-summary-row"><span class="k">Profile</span><span class="v" id="statusProfile">Unknown</span></div>
-              <div class="trip-summary-row"><span class="k">License</span><span class="v" id="statusLicense">Unknown</span></div>
-              <div class="trip-summary-row"><span class="k">Availability</span><span class="v" id="statusAvailability">Unknown</span></div>
-              <div class="trip-summary-row"><span class="k">Current ride</span><span class="v" id="statusRide">None</span></div>
-            </div>
-          </div>
+  <div id="profileSetupCard" class="dash-panel" style="border-color: var(--amber-deep); display:none;">
+    <div class="dash-panel-head"><h3>Driver Profile Setup</h3></div>
+    <div class="dash-panel-body">
+      <p class="active-ride-empty" style="margin-bottom:8px;">Profile not set up yet. Create it to receive ride requests.</p>
+      <label for="setupName">Driver name</label>
+      <input id="setupName" placeholder="e.g. Juan Dela Cruz" style="margin-bottom:6px;" />
+      <label for="setupPlate">Plate number (optional)</label>
+      <input id="setupPlate" placeholder="e.g. ABC-123" style="margin-bottom:8px;" />
+      <button id="setupBtn" class="primary" onclick="submitProfileSetup()">Create Profile</button>
+      <p id="setupError" class="field-error" role="alert" hidden></p>
+    </div>
+  </div>
 
-          
-          <div id="rideRequestCard" class="dash-panel" style="display:none; border-color: var(--amber-deep); margin-top:14px;">
-            <div class="dash-panel-head"><h3>Ride Request</h3></div>
-            <div class="dash-panel-body">
-              <div class="trip-summary-row"><span class="k">Ride ID</span><span class="v" id="reqRideId">—</span></div>
-              <div class="trip-summary-row"><span class="k">Ride type</span><span class="v" id="reqRideType">—</span></div>
-              <div class="trip-summary-row"><span class="k">Pickup</span><span class="v" id="reqPickup">—</span></div>
-              <div class="trip-summary-row"><span class="k">Drop-off</span><span class="v" id="reqDropoff">—</span></div>
-              <div class="trip-summary-row"><span class="k">Fare estimate</span><span class="v" id="reqFare">—</span></div>
-              <div class="trip-summary-row"><span class="k">Status</span><span class="v" id="reqStatus">—</span></div>
-              <div style="margin-top:10px; display:flex; gap:10px;">
-                <button class="primary" onclick="acceptRide()">Accept</button>
-                <button onclick="declineRide()" style="background:var(--ink-soft);">Decline</button>
-              </div>
-            </div>
-          </div>
+  <div class="dp-grid">
+    <div class="dash-panel">
+      <div class="dash-panel-head"><h3>Status</h3></div>
+      <div class="dash-panel-body">
+        <div class="trip-summary-row"><span class="k">Profile</span><span class="v" id="statusProfile">Unknown</span></div>
+        <div class="trip-summary-row"><span class="k">License</span><span class="v" id="statusLicense">Unknown</span></div>
+        <div class="trip-summary-row"><span class="k">Availability</span><span class="v" id="statusAvailability">Unknown</span></div>
+        <div class="trip-summary-row"><span class="k">Current ride</span><span class="v" id="statusRide">None</span></div>
+      </div>
+    </div>
 
-          <div id="profileSetupCard" class="dash-panel" style="border-color: var(--amber-deep); display:none;">
-            <div class="dash-panel-head"><h3>Driver Profile Setup</h3></div>
-            <div class="dash-panel-body">
-              <p class="active-ride-empty" style="margin-bottom:8px;">Profile not set up yet. Create it to receive ride requests.</p>
-              <label for="setupName">Driver name</label>
-              <input id="setupName" placeholder="e.g. Juan Dela Cruz" style="margin-bottom:6px;" />
-              <label for="setupPlate">Plate number (optional)</label>
-              <input id="setupPlate" placeholder="e.g. ABC-123" style="margin-bottom:8px;" />
-              <button id="setupBtn" class="primary" onclick="submitProfileSetup()">Create Profile</button>
-              <p id="setupError" class="field-error" role="alert" hidden></p>
-            </div>
-          </div>
+    <div id="availCard" class="dash-panel">
+      <div class="dash-panel-head"><h3>Availability</h3></div>
+      <div class="dash-panel-body">
+        <div class="dp-avail-now" id="availStatusText">—</div>
+        <div class="dp-seg-row">
+          <button id="availOnBtn" class="dp-seg" onclick="setAvailability(true)">Available</button>
+          <button id="availOffBtn" class="dp-seg off" onclick="setAvailability(false)">Unavailable</button>
+        </div>
+        <p class="dp-note">You only get ride requests while you are Available. You can also switch from the status chip on the Dashboard.</p>
+      </div>
+    </div>
+  </div>
 
-          
-          
-          <div id="availCard" class="dash-panel" style="margin-top:14px;">
-            <div class="dash-panel-head"><h3>Availability</h3></div>
-            <div class="dash-panel-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-              <span id="availStatusText" style="font-weight:600;">—</span>
-              <button id="availOnBtn" class="primary" onclick="setAvailability(true)" style="min-width:100px;">Available</button>
-              <button id="availOffBtn" class="primary" onclick="setAvailability(false)" style="min-width:100px; background: var(--ink-soft);">Unavailable</button>
-            </div>
-          </div>
+  <div id="legacyRideRequestCard" class="dash-panel" style="display:none; border-color: var(--amber-deep); margin-top:14px;">
+    <div class="dash-panel-head"><h3>Ride Request</h3></div>
+    <div class="dash-panel-body">
+      <div class="trip-summary-row"><span class="k">Ride ID</span><span class="v" id="reqRideId">—</span></div>
+      <div class="trip-summary-row"><span class="k">Ride type</span><span class="v" id="reqRideType">—</span></div>
+      <div class="trip-summary-row"><span class="k">Pickup</span><span class="v" id="legacyReqPickup">—</span></div>
+      <div class="trip-summary-row"><span class="k">Drop-off</span><span class="v" id="legacyReqDropoff">—</span></div>
+      <div class="trip-summary-row"><span class="k">Fare estimate</span><span class="v" id="legacyReqFare">—</span></div>
+      <div class="trip-summary-row"><span class="k">Status</span><span class="v" id="reqStatus">—</span></div>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button class="primary" onclick="acceptRide()">Accept</button>
+        <button onclick="declineRide()" style="background:var(--ink-soft);">Decline</button>
+      </div>
+    </div>
+  </div>
 
-          <div id="licenseSubmitCard" class="dash-panel" style="display:none; margin-top:14px;">
-            <div class="dash-panel-head"><h3>Submit License</h3></div>
-            <div class="dash-panel-body">
-              <label for="licenseNumber">License number</label>
-              <input id="licenseNumber" placeholder="Enter license number" style="margin-bottom:8px;" />
-              <button id="licenseSubmitBtn" class="primary">Submit License</button>
-              <p id="licenseResult" style="margin-top:8px; font-size:13px; color: var(--ink-soft);"></p>
-              <p id="licenseError" class="field-error" role="alert" hidden></p>
-            </div>
-          </div>
+  <!-- Old duplicate license form. Kept so the script's ids still exist, but hidden by CSS. -->
+  <div id="licenseSubmitCard" class="dash-panel" style="display:none; margin-top:14px;">
+    <div class="dash-panel-head"><h3>Submit License</h3></div>
+    <div class="dash-panel-body">
+      <label for="licenseNumber">License number</label>
+      <input id="licenseNumber" placeholder="Enter license number" style="margin-bottom:8px;" />
+      <button id="licenseSubmitBtn" class="primary">Submit License</button>
+      <p id="licenseResult" style="margin-top:8px; font-size:13px; color: var(--ink-soft);"></p>
+      <p id="licenseErrorTop" class="field-error" role="alert" hidden></p>
+    </div>
+  </div>
 
-          <div class="dash-panel">
-            <div class="dash-panel-head"><h3>License Verification</h3></div>
-            <div class="dash-panel-body">
-              <div id="licenseInfo">
-                <p class="active-ride-empty">Loading license information...</p>
-              </div>
-            </div>
-          </div>
-        </section>
+  <div class="dash-panel">
+    <div class="dash-panel-head"><h3>License Verification</h3></div>
+    <div class="dash-panel-body">
+      <div id="licenseInfo">
+        <p class="active-ride-empty">Loading license information...</p>
+      </div>
+    </div>
+  </div>
+</section>
 
       </div>
     </main>
@@ -465,7 +518,10 @@
     }
   }
 
-  function openPicModal() {
+
+    window.setAvatarUI = setAvatarUI;
+
+    function openPicModal() {
     const m = document.getElementById('picModal');
     if (m) { m.style.display = 'flex'; }
     const input = document.getElementById('picFileInput');
@@ -576,15 +632,16 @@
       const headers = {};
       if (statsToken) headers["Authorization"] = `Bearer ${statsToken}`;
 
-      const res = await fetch("/api/rides", { headers });
+      const res = await fetch("http://localhost:8088/api/rides", { headers });
       const rides = await res.json();
       const mine = rides.filter(r => r.driverId === driverId);
       const completed = mine.filter(r => r.status === "completed");
-      const earnings = mine.reduce((sum, r) => sum + (r.fareEstimate || 0), 0);
+      const earnings = completed.reduce((sum, r) => sum + Number(r.fareEstimate || 0), 0);
 
       document.getElementById("statRides").textContent = mine.length;
       document.getElementById("statCompleted").textContent = completed.length;
-      document.getElementById("statEarnings").textContent = "₱" + earnings;
+      document.getElementById("statEarnings").textContent =
+  "₱" + earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } catch (err) {
       console.warn("Could not load driver stats:", err.message);
     }
@@ -606,7 +663,7 @@
       const headers = {};
       if (licToken) headers["Authorization"] = `Bearer ${licToken}`;
 
-      const res = await fetch("/api/drivers/me", { headers });
+      const res = await fetch("http://localhost:8088/api/drivers/me", { headers });
       if (!res.ok) {
         infoEl.innerHTML = `<p style="color: var(--ink-soft);">Could not load driver information.</p>`;
         if (dashLic) dashLic.innerHTML = `<p class="active-ride-empty">License status unavailable.</p>`;
@@ -768,75 +825,170 @@
       el.innerHTML = `<p class="active-ride-empty">Driver profile not set up yet — you cannot receive ride requests.</p>`;
       return;
     }
-    const rideId = rideIdInput.value.trim();
+    const authToken = localStorage.getItem("sakayta_token");
+    const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
+    const pick = (p) => (p && p.id) ? p : (p && p.ride ? p.ride : null);
     try {
-      const res = await fetch(`/api/rides/${rideId}`);
-      if (!res.ok) {
-        el.innerHTML = `<p class="active-ride-empty">No active ride.</p>`;
-        return;
+      const [pendingRes, activeRes] = await Promise.all([
+        fetch("http://localhost:8088/api/drivers/me/ride", { headers }),
+        fetch("http://localhost:8088/api/drivers/me/active-ride", { headers })
+      ]);
+      const pending = pendingRes.ok ? pick(await pendingRes.json()) : null;
+      const active = activeRes.ok ? pick(await activeRes.json()) : null;
+
+      let html = `<p class="active-ride-empty">No active ride.</p>`;
+      if (active && (active.status === "assigned" || active.status === "en_route")) {
+        const label = active.status === "en_route" ? "On the way" : "Accepted";
+        html = `
+          <div class="dash-ride-line">
+            <span class="dash-ride-pill">${label}</span>
+            <span>Passenger <b>${escapeHtml(active.passengerName)}</b></span>
+            <button type="button" class="dash-ride-link" onclick="document.querySelector('.sidebar-link[data-view=active-ride]').click()">View ride</button>
+          </div>`;
+      } else if (pending && pending.status === "pending" && pending.requestStatus === "pending") {
+        html = `
+          <div class="dash-ride-line">
+            <span class="dash-ride-pill new">New request</span>
+            <span>from <b>${escapeHtml(pending.passengerName)}</b> is waiting</span>
+            <button type="button" class="dash-ride-link" onclick="document.querySelector('.sidebar-link[data-view=active-ride]').click()">Respond</button>
+          </div>`;
       }
-      const ride = await res.json();
-      let html;
-      if (ride.requestStatus === "pending" && ride.requestedDriver === getDriverId()) {
-        const who = ride.passengerName ? ` from <b>${escapeHtml(ride.passengerName)}</b>` : "";
-        html = `A new ride request${who} is waiting for your response.`;
-      } else if (ride.status === "assigned" || ride.status === "en_route") {
-        html = `Ride <b>${escapeHtml(ride.id)}</b> is ${escapeHtml(ride.status.replace(/_/g, " "))}${ride.passengerName ? ` for <b>${escapeHtml(ride.passengerName)}</b>` : ""}.`;
-      } else {
-        html = "No active ride.";
-      }
-      el.innerHTML = `<p style="margin: 0; font-size: 13.5px; color: var(--ink);">${html}</p>`;
+      el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<p class="active-ride-empty">No active ride.</p>`;
     }
   }
+  window.loadDashboardSummary = loadDashboardSummary;
 
   // ===== Ride Request Handling =====
   let currentRequestId = null;
   let requestTimerInterval = null;
   let requestExpiresAt = null;
+  let requestActionId = null;
+  let requestExpiredLocally = false;
+  let pendingStateRevision = 0;
+
+  function parseRequestExpiration(value) {
+    if (typeof value !== "string" || !value.trim()) return null;
+    const input = value.trim();
+    if (!/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/i.test(input)) return null;
+    const normalized = input.includes("T") ? input : input.replace(" ", "T");
+    const timestamp = Date.parse(normalized);
+    if (!Number.isFinite(timestamp)) return null;
+
+    if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized)) {
+      const [datePart, timePart] = normalized.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour, minute, second] = timePart.split(":");
+      const localDate = new Date(timestamp);
+      if (localDate.getFullYear() !== year || localDate.getMonth() !== month - 1 || localDate.getDate() !== day || localDate.getHours() !== Number(hour) || localDate.getMinutes() !== Number(minute) || localDate.getSeconds() !== Number(second)) return null;
+    }
+    return timestamp;
+  }
+  window.parseRequestExpiration = parseRequestExpiration;
+
+  function syncRequestButtons(now = Date.now()) {
+    const remaining = requestExpiresAt === null ? 0 : Math.ceil((requestExpiresAt - now) / 1000);
+    const actionInProgress = requestActionId !== null && requestActionId === currentRequestId;
+    const unavailable = !currentRequestId || requestExpiresAt === null;
+    const expired = !unavailable && remaining <= 0;
+
+    const acceptBtn = document.getElementById("acceptBtn");
+    const declineBtn = document.getElementById("declineBtn");
+    acceptBtn.disabled = unavailable || expired || actionInProgress;
+    declineBtn.disabled = unavailable || expired || actionInProgress;
+    acceptBtn.textContent = actionInProgress ? "Accepting..." : "ACCEPT RIDE";
+    declineBtn.textContent = actionInProgress ? "Declining..." : "DECLINE";
+
+    return { remaining, unavailable, expired, actionInProgress };
+  }
+
+  function setRequestStatusFor(requestId, message) {
+    if (currentRequestId === requestId) {
+      document.getElementById("requestStatus").textContent = message;
+    }
+  }
+
+  function clearPendingRideRequest(message = "No pending ride request.") {
+    currentRequestId = null;
+    requestExpiresAt = null;
+    requestExpiredLocally = false;
+    clearRideRequestTimer();
+    syncRequestButtons();
+    document.getElementById("requestTimer").textContent = "30s";
+    document.getElementById("requestTimer").style.color = "var(--accent)";
+    document.getElementById("requestStatus").textContent = message;
+    document.getElementById("rideRequestCard").style.display = "none";
+  }
 
   function displayRideRequest(ride) {
-    if (!ride.requestedDriver || ride.requestStatus !== "pending") {
-      document.getElementById("rideRequestCard").style.display = "none";
-      clearRideRequestTimer();
+    const requestId = typeof ride?.id === "string" ? ride.id.trim() : "";
+    if (!ride?.requestedDriver || ride.requestStatus !== "pending" || ride.status !== "pending") {
+      clearPendingRideRequest();
       return;
     }
 
-    currentRequestId = ride.id;
-    requestExpiresAt = new Date(ride.requestExpiresAt);
+    const expiresAt = parseRequestExpiration(ride.requestExpiresAt);
+    const sameRequest = requestId === currentRequestId && expiresAt === requestExpiresAt;
+    clearRideRequestTimer();
+    currentRequestId = requestId || null;
+    requestExpiresAt = expiresAt;
+    requestExpiredLocally = false;
+    const requestStatus = document.getElementById("requestStatus");
+    if (!sameRequest || (expiresAt !== null && expiresAt > Date.now() && requestStatus.textContent === "⏰ Request expired")) {
+      requestStatus.textContent = "";
+    }
 
     document.getElementById("reqPassenger").textContent = escapeHtml(ride.passengerName);
-    document.getElementById("reqPickup").textContent = `${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}`;
-    document.getElementById("reqDropoff").textContent = `${ride.dropoffLat?.toFixed(4)}, ${ride.dropoffLng?.toFixed(4)}`;
+    document.getElementById("reqPickup").textContent = `${Number(ride.pickupLat)?.toFixed(4)}, ${Number(ride.pickupLng)?.toFixed(4)}`;
+    document.getElementById("reqDropoff").textContent = `${Number(ride.dropoffLat)?.toFixed(4)}, ${Number(ride.dropoffLng)?.toFixed(4)}`;
     document.getElementById("reqFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
 
     document.getElementById("rideRequestCard").style.display = "block";
+    syncRequestButtons();
     startRideRequestTimer();
   }
 
   function startRideRequestTimer() {
     clearRideRequestTimer();
+    const timerRequestId = currentRequestId;
+    const timerExpiration = requestExpiresAt;
     const updateTimer = () => {
-      if (!requestExpiresAt) return;
-      const now = new Date();
-      const remaining = Math.ceil((requestExpiresAt - now) / 1000);
-      if (remaining <= 0) {
+      if (currentRequestId !== timerRequestId || requestExpiresAt !== timerExpiration) {
+        clearInterval(timerId);
+        if (requestTimerInterval === timerId) requestTimerInterval = null;
+        return;
+      }
+
+      const { remaining, unavailable, expired } = syncRequestButtons();
+      if (unavailable) {
+        document.getElementById("requestTimer").textContent = "—";
+        document.getElementById("requestTimer").style.color = "var(--danger)";
+        document.getElementById("requestStatus").textContent = "Request unavailable: missing or invalid expiration.";
+        clearRideRequestTimer();
+        return;
+      }
+      if (expired) {
         document.getElementById("requestTimer").textContent = "0s";
         document.getElementById("requestTimer").style.color = "var(--danger)";
         document.getElementById("requestStatus").textContent = "⏰ Request expired";
-        document.getElementById("acceptBtn").disabled = true;
-        document.getElementById("declineBtn").disabled = true;
+        requestExpiredLocally = true;
         clearRideRequestTimer();
         return;
       }
       document.getElementById("requestTimer").textContent = remaining + "s";
+      document.getElementById("requestTimer").style.color = "var(--accent)";
+      if (requestExpiredLocally) {
+        document.getElementById("requestStatus").textContent = "";
+        requestExpiredLocally = false;
+      }
       if (remaining <= 5) {
         document.getElementById("requestTimer").style.color = "var(--warn)";
       }
     };
+    const timerId = setInterval(updateTimer, 100);
+    requestTimerInterval = timerId;
     updateTimer();
-    requestTimerInterval = setInterval(updateTimer, 100);
   }
 
   function clearRideRequestTimer() {
@@ -844,26 +996,25 @@
       clearInterval(requestTimerInterval);
       requestTimerInterval = null;
     }
-    document.getElementById("requestTimer").style.color = "var(--accent)";
   }
 
   document.getElementById("acceptBtn").addEventListener("click", async () => {
-    if (!currentRequestId) return;
-    const btn = document.getElementById("acceptBtn");
-    btn.disabled = true;
-    btn.textContent = "Accepting...";
-    document.getElementById("requestStatus").textContent = "";
+    const rideId = currentRequestId;
+    const currentState = syncRequestButtons();
+    if (!rideId || currentState.unavailable || currentState.expired || requestActionId === rideId) return;
+    requestActionId = rideId;
+    let accepted = false;
+    syncRequestButtons();
+    setRequestStatusFor(rideId, "");
 
     try {
       const rideToken = localStorage.getItem("sakayta_token");
       if (!rideToken) {
-        document.getElementById("requestStatus").textContent = "⚠️ You must be logged in to accept rides.";
-        btn.disabled = false;
-        btn.textContent = "ACCEPT RIDE";
+        setRequestStatusFor(rideId, "⚠️ You must be logged in to accept rides.");
         return;
       }
 
-      const res = await fetch(`/api/rides/${currentRequestId}/accept`, {
+      const res = await fetch(`http://localhost:8088/api/rides/${rideId}/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -873,42 +1024,44 @@
       const data = await res.json();
 
       if (!res.ok) {
-        document.getElementById("requestStatus").textContent = "❌ " + (data.error || "Failed to accept ride");
-        btn.disabled = false;
-        btn.textContent = "ACCEPT RIDE";
+        setRequestStatusFor(rideId, "❌ " + (data.error || "Failed to accept ride"));
         return;
       }
 
-      document.getElementById("requestStatus").textContent = "✅ Ride accepted! Driver assignment confirmed.";
-      clearRideRequestTimer();
+      setRequestStatusFor(rideId, "✅ Ride accepted! Driver assignment confirmed.");
+      pendingStateRevision += 1;
+      if (currentRequestId === rideId) clearRideRequestTimer();
+      accepted = true;
       setTimeout(() => {
-        document.getElementById("rideRequestCard").style.display = "none";
-        currentRequestId = null;
+        if (requestActionId === rideId) requestActionId = null;
+        if (currentRequestId === rideId) clearPendingRideRequest();
+        loadActiveRide();
       }, 2000);
     } catch (err) {
-      document.getElementById("requestStatus").textContent = "❌ Network error: " + err.message;
-      btn.disabled = false;
-      btn.textContent = "ACCEPT RIDE";
+      setRequestStatusFor(rideId, "❌ Network error: " + err.message);
+    } finally {
+      if (!accepted && requestActionId === rideId) requestActionId = null;
+      if (currentRequestId === rideId) syncRequestButtons();
     }
   });
 
   document.getElementById("declineBtn").addEventListener("click", async () => {
-    if (!currentRequestId) return;
-    const btn = document.getElementById("declineBtn");
-    btn.disabled = true;
-    btn.textContent = "Declining...";
-    document.getElementById("requestStatus").textContent = "";
+    const rideId = currentRequestId;
+    const currentState = syncRequestButtons();
+    if (!rideId || currentState.unavailable || currentState.expired || requestActionId === rideId) return;
+    requestActionId = rideId;
+    let declined = false;
+    syncRequestButtons();
+    setRequestStatusFor(rideId, "");
 
     try {
       const rideToken = localStorage.getItem("sakayta_token");
       if (!rideToken) {
-        document.getElementById("requestStatus").textContent = "⚠️ You must be logged in to decline rides.";
-        btn.disabled = false;
-        btn.textContent = "DECLINE";
+        setRequestStatusFor(rideId, "⚠️ You must be logged in to decline rides.");
         return;
       }
 
-      const res = await fetch(`/api/rides/${currentRequestId}/decline`, {
+      const res = await fetch(`http://localhost:8088/api/rides/${rideId}/decline`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -918,29 +1071,37 @@
       const data = await res.json();
 
       if (!res.ok) {
-        document.getElementById("requestStatus").textContent = "❌ " + (data.error || "Failed to decline ride");
-        btn.disabled = false;
-        btn.textContent = "DECLINE";
+        setRequestStatusFor(rideId, "❌ " + (data.error || "Failed to decline ride"));
         return;
       }
 
-      document.getElementById("requestStatus").textContent = "✅ Ride declined. Request sent to next driver.";
-      clearRideRequestTimer();
+      setRequestStatusFor(rideId, "✅ Ride declined. Request sent to next driver.");
+      pendingStateRevision += 1;
+      if (currentRequestId === rideId) clearRideRequestTimer();
+      declined = true;
       setTimeout(() => {
-        document.getElementById("rideRequestCard").style.display = "none";
-        currentRequestId = null;
+        if (requestActionId === rideId) requestActionId = null;
+        if (currentRequestId === rideId) clearPendingRideRequest();
+        loadActiveRide();
       }, 2000);
     } catch (err) {
-      document.getElementById("requestStatus").textContent = "❌ Network error: " + err.message;
-      btn.disabled = false;
-      btn.textContent = "DECLINE";
+      setRequestStatusFor(rideId, "❌ Network error: " + err.message);
+    } finally {
+      if (!declined && requestActionId === rideId) requestActionId = null;
+      if (currentRequestId === rideId) syncRequestButtons();
     }
   });
 
   // Socket listeners for ride requests
   socket.on("ride:request", (ride) => {
     if (ride.requestedDriver === getDriverId()) {
+      pendingStateRevision += 1;
       displayRideRequest(ride);
+      try {
+        pollRideState(ride);
+      } catch (e) {
+        console.warn("Legacy ride request rendering failed", e);
+      }
       if (document.getElementById("view-dashboard").classList.contains("active")) {
         loadDashboardSummary();
       }
@@ -960,54 +1121,174 @@
   socket.on("ride:timeout", (data) => {
     console.log("Ride request timed out:", data.rideId);
     if (currentRequestId === data.rideId) {
-      document.getElementById("rideRequestCard").style.display = "none";
-      currentRequestId = null;
-      clearRideRequestTimer();
+      pendingStateRevision += 1;
+      clearPendingRideRequest("No pending ride request.");
+      try {
+        pollRideState(null);
+      } catch (e) {
+        console.warn("Legacy ride request clearing failed", e);
+      }
+      activeRideViewRevision += 1;
+      loadActiveRide(true);
     }
   });
 
-  // ===== Active Ride =====
-  async function loadActiveRide() {
-    const rideId = rideIdInput.value.trim();
+﻿  // ===== Active Ride (authenticated driver-scoped discovery) =====
+  // Pending offers come from GET /api/drivers/me/ride; assigned/en_route rides
+  // come from GET /api/drivers/me/active-ride. No manual/demo ride ID is used.
+  let activeRideLoadPromise = null;
+  let activeRideRefreshQueued = false;
+  let activeRideViewRevision = 0;
+  function loadActiveRide(forceRefresh = false) {
+    if (activeRideLoadPromise) {
+      if (forceRefresh) activeRideRefreshQueued = true;
+      return activeRideLoadPromise;
+    }
+    const loadRevision = activeRideViewRevision;
+    activeRideLoadPromise = (async () => {
+      console.log('[SakayTa realtime] loadActiveRide()', new Date().toISOString());
+      const infoEl = document.getElementById("activeRideInfo");
+      const authToken = localStorage.getItem("sakayta_token");
+      const authHeaders = authToken ? { "Authorization": "Bearer " + authToken } : {};
+      const driverId = (typeof getDriverId === "function") ? getDriverId() : null;
+      const showEmpty = (msg) => {
+        infoEl.innerHTML = `<p class="active-ride-empty">${msg}</p>`;
+        try { rideIdInput.value = ""; } catch (e) {}
+        const actionDiv = document.getElementById("rideActionButtons");
+        if (actionDiv) actionDiv.classList.remove("visible");
+        const statusRide = document.getElementById("statusRide");
+        const legacyRequestCard = document.getElementById("legacyRideRequestCard");
+        if (statusRide && (!legacyRequestCard || legacyRequestCard.style.display === "none")) statusRide.textContent = "None";
+      };
+
+      try {
+        let activeRide = null;
+        try {
+          console.log('[SakayTa realtime] requesting /api/drivers/me/ride', new Date().toISOString());
+          const lookupRevision = pendingStateRevision;
+          const pendingRes = await fetch("http://localhost:8088/api/drivers/me/ride", { headers: authHeaders });
+          if (loadRevision !== activeRideViewRevision) return;
+          if (pendingRes.ok) {
+            console.log('[SakayTa realtime] /me/ride response', pendingRes.status, new Date().toISOString());
+            const payload = await pendingRes.json();
+            if (loadRevision !== activeRideViewRevision) return;
+            const candidate = (payload && payload.id) ? payload : (payload && payload.ride ? payload.ride : null);
+            if (lookupRevision === pendingStateRevision) {
+              if (candidate && candidate.id && candidate.status === "pending" && candidate.requestStatus === "pending" && (!driverId || candidate.requestedDriver === driverId)) {
+                console.log('[SakayTa realtime] /me/ride data', { rideId: candidate.id, requestedDriver: candidate.requestedDriver, requestStatus: candidate.requestStatus, status: candidate.status, requestExpiresAt: candidate.requestExpiresAt });
+                displayRideRequest(candidate);
+                try {
+                  pollRideState(candidate);
+                } catch (e) {
+                  console.warn("Legacy ride request rendering failed", e);
+                }
+              } else {
+                try {
+                  pollRideState(null);
+                } catch (e) {
+                  console.warn("Legacy ride request clearing failed", e);
+                }
+                clearPendingRideRequest();
+              }
+            }
+          }
+        } catch (e) { console.warn("Pending ride lookup failed", e); }
+
+        if (loadRevision !== activeRideViewRevision) return;
+        try {
+          console.log('[SakayTa realtime] requesting /api/drivers/me/active-ride', new Date().toISOString());
+          const activeRes = await fetch("http://localhost:8088/api/drivers/me/active-ride", { headers: authHeaders });
+          if (loadRevision !== activeRideViewRevision) return;
+          if (activeRes.ok) {
+            const payload = await activeRes.json();
+            if (loadRevision !== activeRideViewRevision) return;
+            const candidate = (payload && payload.id) ? payload : (payload && payload.ride ? payload.ride : null);
+            const candidateId = typeof candidate?.id === "string" ? candidate.id.trim() : "";
+            const validStatus = candidate?.status === "assigned" || candidate?.status === "en_route";
+            const belongsToDriver = !driverId || candidate?.driverId === driverId;
+            if (candidateId && validStatus && belongsToDriver) activeRide = candidate;
+          }
+        } catch (e) { console.warn("Active ride lookup failed", e); }
+        if (loadRevision !== activeRideViewRevision) return;
+        if (!activeRide) {
+          showEmpty("No active ride.");
+          return;
+        }
+        try { rideIdInput.value = activeRide.id; } catch (e) {}
+        renderActiveRideDetails(activeRide);
+      } catch (err) {
+        if (loadRevision === activeRideViewRevision) {
+          infoEl.innerHTML = `<p class="active-ride-empty">Could not load ride details.</p>`;
+        }
+      }
+    })().finally(() => {
+      activeRideLoadPromise = null;
+      if (activeRideRefreshQueued) {
+        activeRideRefreshQueued = false;
+        loadActiveRide();
+      }
+    });
+    return activeRideLoadPromise;
+  }
+  window.loadActiveRide = loadActiveRide;
+
+  function renderActiveRideDetails(ride) {
     const infoEl = document.getElementById("activeRideInfo");
-    try {
-      const res = await fetch(`/api/rides/${rideId}`);
-      if (!res.ok) {
-        infoEl.innerHTML = `<p class="active-ride-empty">No ride found with ID "${escapeHtml(rideId)}".</p>`;
-        return;
-      }
-      const ride = await res.json();
+    const en = ride.status === "en_route";
+    const s1 = en ? "done" : "now";
+    const s2 = en ? "now" : "";
+    const pt = (lat, lng) => `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
+    infoEl.innerHTML = `
+    <div class="ar-top">
+      <div class="req-passenger">
+        <span class="req-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></span>
+        <div>
+          <div class="req-small">Passenger</div>
+          <div class="req-name">${escapeHtml(ride.passengerName)}</div>
+        </div>
+      </div>
+      <div class="req-fare-box">
+        <div class="req-small">Fare</div>
+        <div class="req-fare">₱${escapeHtml(ride.fareEstimate ?? "—")}</div>
+      </div>
+    </div>
 
-      if (ride.requestStatus === "pending" && ride.requestedDriver === getDriverId()) {
-        displayRideRequest(ride);
-      }
+    <div class="ar-steps">
+      <div class="ar-step ${s1}">Accepted</div>
+      <div class="ar-step ${s2}">On the way</div>
+      <div class="ar-step">Completed</div>
+    </div>
 
-      infoEl.innerHTML = `
-        <div class="trip-summary-row"><span class="k">Passenger</span><span>${escapeHtml(ride.passengerName)}</span></div>
-        <div class="trip-summary-row"><span class="k">Pickup</span><span style="font-family: var(--font-mono); font-size: 12px;">${ride.pickupLat?.toFixed(4)}, ${ride.pickupLng?.toFixed(4)}</span></div>
-        <div class="trip-summary-row"><span class="k">Fare</span><span style="font-family: var(--font-display); color: var(--amber-deep); font-size: 16px;">₱${ride.fareEstimate ?? "—"}</span></div>
-        <div class="trip-summary-row"><span class="k">Status</span><span style="font-weight: 600; color: var(--info);">${escapeHtml(ride.status)}</span></div>
-      `;
-
-      const startBtn = document.getElementById("startRouteBtn");
-      const completeBtn = document.getElementById("completeBtn");
-      const actionDiv = document.getElementById("rideActionButtons");
-
-      if (ride.status === "assigned") {
-        startBtn.style.display = "block";
-        completeBtn.style.display = "none";
-        actionDiv.classList.add("visible");
-      } else if (ride.status === "en_route") {
-        startBtn.style.display = "none";
-        completeBtn.style.display = "block";
-        actionDiv.classList.add("visible");
-      } else {
-        actionDiv.classList.remove("visible");
-      }
-    } catch (err) {
-      infoEl.innerHTML = `<p class="active-ride-empty">Could not load ride details.</p>`;
+    <div class="req-route">
+      <div class="req-stop">
+        <span class="req-dot pickup"></span>
+        <div><div class="req-small">Pickup</div><div class="req-coords">${pt(ride.pickupLat, ride.pickupLng)}</div></div>
+      </div>
+      <div class="req-stop">
+        <span class="req-dot drop"></span>
+        <div><div class="req-small">Drop-off</div><div class="req-coords">${ride.dropoffLat != null ? pt(ride.dropoffLat, ride.dropoffLng) : "—"}</div></div>
+      </div>
+    </div>`;
+    const startBtn = document.getElementById("startRouteBtn");
+    const completeBtn = document.getElementById("completeBtn");
+    const actionDiv = document.getElementById("rideActionButtons");
+    const statusRide = document.getElementById("statusRide");
+    if (statusRide && (ride.status === "assigned" || ride.status === "en_route")) {
+      statusRide.textContent = ride.status === "assigned" ? "Assigned" : "En route";
+    }
+    if (ride.status === "assigned") {
+      startBtn.style.display = "block";
+      completeBtn.style.display = "none";
+      actionDiv.classList.add("visible");
+    } else if (ride.status === "en_route") {
+      startBtn.style.display = "none";
+      completeBtn.style.display = "block";
+      actionDiv.classList.add("visible");
+    } else {
+      actionDiv.classList.remove("visible");
     }
   }
+
 
   // Start Route
   document.getElementById("startRouteBtn").addEventListener("click", async () => {
@@ -1028,7 +1309,7 @@
         return;
       }
 
-      const res = await fetch(`/api/rides/${rideId}/start`, {
+      const res = await fetch(`http://localhost:8088/api/rides/${rideId}/start`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1059,6 +1340,15 @@
   document.getElementById("completeBtn").addEventListener("click", async () => {
     const rideId = rideIdInput.value.trim();
     if (!rideId) return;
+        const sure = window.skConfirm
+      ? await window.skConfirm({
+          title: "Complete this ride?",
+          message: "Only complete the ride after the passenger has reached the drop-off point. This cannot be undone.",
+          confirmText: "Complete ride",
+          cancelText: "Not yet"
+        })
+      : true;
+    if (!sure) return;
     const btn = document.getElementById("completeBtn");
     const rideStatusEl = document.getElementById("rideActionStatus");
     btn.disabled = true;
@@ -1074,7 +1364,7 @@
         return;
       }
 
-      const res = await fetch(`/api/rides/${rideId}/complete`, {
+      const res = await fetch(`http://localhost:8088/api/rides/${rideId}/complete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1383,7 +1673,7 @@
 
     try {
       // Confirm the authenticated identity from the JWT
-      const meRes = await fetch("/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
+      const meRes = await fetch("http://localhost:8088/api/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
       if (!meRes.ok) {
         setDriverProfileState(false);
         updateDriverLabels();
@@ -1392,7 +1682,7 @@
 
       // Fetch the logged-in driver's own profile (backend resolves
       // drivers.user_id from the JWT user id — no driverId is ever accepted)
-      const res = await fetch("/api/drivers/me", { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch("http://localhost:8088/api/drivers/me", { headers: { "Authorization": `Bearer ${token}` } });
       if (res.status === 404 || !res.ok) {
         setDriverProfileState(false);
         updateDriverLabels();
@@ -1415,6 +1705,7 @@
   }
 
   window.loadDriverProfile = loadDriverProfile;
+  window.loadAuthenticatedDriver = loadAuthenticatedDriver;
   // ===== Default view =====
   await Promise.all([loadAuthenticatedDriver(), window.loadDriverProfile()]);
   showView("dashboard");
@@ -1437,6 +1728,19 @@
     </div>
   </div>
 </div>
+
+<!-- Confirm popup -->
+<div id="confirmModal" class="sk-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="sk-modal-card">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMessage"></p>
+    <div class="sk-modal-actions">
+      <button type="button" id="confirmCancelBtn" class="sk-btn-grey">Cancel</button>
+      <button type="button" id="confirmOkBtn" class="sk-btn-green">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- Logout confirmation modal -->
 <div id="logoutModal" class="modal-overlay hidden">
   <div class="modal-card">
@@ -1535,6 +1839,7 @@
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
       document.getElementById('profileSetupCard').style.display = 'none';
       loadDriverProfile();
+       if (window.loadAuthenticatedDriver) window.loadAuthenticatedDriver(); q
     } catch (e) { err.textContent = e.message; err.hidden = false; }
   }
   async function setAvailability(available) {
@@ -1571,7 +1876,7 @@
         body: JSON.stringify({})
       });
       if (!res.ok) throw new Error('Decline failed');
-      document.getElementById('rideRequestCard').style.display = 'none';
+      document.getElementById('legacyRideRequestCard').style.display = 'none';
       setTimeout(loadDriverProfile, 800);
     } catch(e){ console.warn('Decline error',e); }
   }
@@ -1590,31 +1895,355 @@
       }
     } catch(e){ console.warn('Notifications load error', e); }
   }
-  async function pollRideState() {
-    try {
-      const token = localStorage.getItem('sakayta_token');
-      const res = await fetch('http://localhost:8088/api/drivers/me/ride', { headers: token ? {'Authorization':'Bearer '+token} : {} });
-      if (!res.ok) return;
-      const payload = await res.json();
-      const ride = payload && payload.id ? payload : (payload && payload.ride ? payload.ride : null);
-      if (ride && ride.id) {
-        document.getElementById('rideRequestCard').style.display = 'block';
-        document.getElementById('reqRideId').textContent = ride.id;
-        document.getElementById('reqRideType').textContent = ride.rideType || '—';
-        document.getElementById('reqPickup').textContent = ride.pickupLat ? ride.pickupLat + ', ' + ride.pickupLng : '—';
-        document.getElementById('reqDropoff').textContent = ride.dropoffLat ? ride.dropoffLat + ', ' + ride.dropoffLng : '—';
-        document.getElementById('reqFare').textContent = ride.fareEstimate ? '₱'+ride.fareEstimate : '—';
-        document.getElementById('reqStatus').textContent = ride.status || 'pending';
-        document.getElementById('statusRide').textContent = ride.id ? (ride.status==='assigned' ? 'Assigned' : 'Request waiting') : 'None';
-      } else {
-        document.getElementById('rideRequestCard').style.display = 'none';
-        document.getElementById('statusRide').textContent = 'None';
-      }
-    } catch(e){ console.warn('Poll error', e); }
+  function pollRideState(ride) {
+    const requestCard = document.getElementById('legacyRideRequestCard');
+    const statusRide = document.getElementById('statusRide');
+    const expiresAt = ride ? window.parseRequestExpiration(ride.requestExpiresAt) : null;
+    if (ride && ride.id && ride.status === 'pending' && ride.requestStatus === 'pending' && expiresAt !== null && expiresAt > Date.now()) {
+      requestCard.style.display = 'block';
+      document.getElementById('reqRideId').textContent = ride.id;
+      document.getElementById('reqRideType').textContent = ride.rideType || '—';
+      document.getElementById('legacyReqPickup').textContent = ride.pickupLat != null ? ride.pickupLat + ', ' + ride.pickupLng : '—';
+      document.getElementById('legacyReqDropoff').textContent = ride.dropoffLat != null ? ride.dropoffLat + ', ' + ride.dropoffLng : '—';
+      document.getElementById('legacyReqFare').textContent = ride.fareEstimate ? '₱' + ride.fareEstimate : '—';
+      document.getElementById('reqStatus').textContent = ride.status;
+      if (statusRide) statusRide.textContent = 'Request waiting';
+    } else {
+      requestCard.style.display = 'none';
+      document.getElementById('reqRideId').textContent = '—';
+      document.getElementById('reqRideType').textContent = '—';
+      document.getElementById('legacyReqPickup').textContent = '—';
+      document.getElementById('legacyReqDropoff').textContent = '—';
+      document.getElementById('legacyReqFare').textContent = '—';
+      document.getElementById('reqStatus').textContent = '—';
+      if (statusRide && statusRide.textContent === 'Request waiting') statusRide.textContent = 'None';
+    }
   }
   // Lightweight polling every 4s for ride + notifications
-  setInterval(() => { pollRideState(); loadNotifications(); }, 4000);
+  setInterval(() => { loadActiveRide(); loadNotifications(); }, 4000);
 
   </script>
+  <script>
+// Read-only: watches the seconds in #requestTimer and shrinks the bar.
+// It does not change any ride logic.
+(function () {
+  try {
+    var timer = document.getElementById("requestTimer");
+    var fill = document.getElementById("reqBarFill");
+    var card = document.getElementById("rideRequestCard");
+    if (!timer || !fill) return;
+    var TOTAL = 30;
+    function update() {
+      var s = parseInt(timer.textContent, 10);
+      if (isNaN(s)) s = 0;
+      fill.style.width = Math.max(0, Math.min(100, (s / TOTAL) * 100)) + "%";
+      if (card) card.classList.toggle("urgent", s <= 5);
+    }
+    new MutationObserver(update).observe(timer, { childList: true, characterData: true, subtree: true });
+    update();
+  } catch (e) { console.warn("Timer bar unavailable", e); }
+})();
+</script>
+<script>
+// Confirm popup helper. If anything goes wrong here, the buttons still work
+// (they skip the question), so it can never block a ride.
+window.skConfirm = function (opts) {
+  return new Promise(function (resolve) {
+    var overlay = document.getElementById("confirmModal");
+    var okBtn = document.getElementById("confirmOkBtn");
+    var noBtn = document.getElementById("confirmCancelBtn");
+    if (!overlay || !okBtn || !noBtn) { resolve(true); return; }
+
+    document.getElementById("confirmTitle").textContent = opts.title || "Are you sure?";
+    document.getElementById("confirmMessage").textContent = opts.message || "";
+    okBtn.textContent = opts.confirmText || "Confirm";
+    noBtn.textContent = opts.cancelText || "Cancel";
+    okBtn.className = opts.tone === "red" ? "sk-btn-red" : "sk-btn-green";
+    overlay.classList.remove("hidden");
+    noBtn.focus();
+
+    function done(result) {
+      overlay.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      noBtn.removeEventListener("click", onNo);
+      overlay.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    }
+    function onOk() { done(true); }
+    function onNo() { done(false); }
+    function onBackdrop(e) { if (e.target === overlay) done(false); }
+    function onKey(e) { if (e.key === "Escape") done(false); }
+
+    okBtn.addEventListener("click", onOk);
+    noBtn.addEventListener("click", onNo);
+    overlay.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKey);
+  });
+};
+</script>
+
+<script>
+// Online / Offline chip.
+// Reads the driver's availability from the server and calls your existing
+// setAvailability() when clicked. It does not change any ride logic.
+(function () {
+  try {
+    var chip = document.getElementById("dashStatusChip");
+    var chip2 = document.getElementById("profileStatusChip");
+    if (!chip) return;
+    var state = "unknown"; // online | offline | unknown
+
+    function onRide() {
+      var sr = document.getElementById("statusRide");
+      var t = sr ? (sr.textContent || "").trim() : "";
+      return t === "Assigned" || t === "En route";
+    }
+
+    function paint() {
+      var s = onRide() ? "busy" : state;
+      var label = { online: "● Online", offline: "● Offline", busy: "● On a ride", unknown: "● …" }[s];
+      var flag = { online: "1", offline: "0", busy: "2", unknown: "0" }[s];
+      [chip, chip2].forEach(function (c) {
+        if (!c) return;
+        c.textContent = label;
+        c.setAttribute("data-on", flag);
+      });
+      chip.setAttribute("aria-pressed", s === "online" ? "true" : "false");
+    }
+
+    function refresh() {
+      var token = localStorage.getItem("sakayta_token");
+      if (!token) return Promise.resolve();
+      return fetch("http://localhost:8088/api/drivers/me", { headers: { Authorization: "Bearer " + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (d && d.availability === "available") state = "online";
+          else if (d && d.availability === "unavailable") state = "offline";
+          paint();
+        })
+        .catch(function () {});
+    }
+
+    function toggle() {
+      if (state === "unknown" || onRide()) return;
+      if (typeof window.setAvailability !== "function") return;
+      var goOnline = state !== "online";
+      chip.classList.add("is-loading");
+      Promise.resolve(window.setAvailability(goOnline))
+        .then(refresh)
+        .then(
+          function () { chip.classList.remove("is-loading"); },
+          function () { chip.classList.remove("is-loading"); }
+        );
+    }
+
+    chip.addEventListener("click", toggle);
+    chip.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    // Update the chip when a ride starts or ends (your script already updates #statusRide)
+    var sr = document.getElementById("statusRide");
+    if (sr) new MutationObserver(paint).observe(sr, { childList: true, characterData: true, subtree: true });
+
+    paint();
+    refresh();
+    setInterval(refresh, 10000);
+  } catch (e) { console.warn("Status chip unavailable", e); }
+})();
+</script>
+<script>
+// Keeps the Dashboard "Current Ride Status" fresh while it is open (read-only).
+setInterval(function () {
+  var v = document.getElementById("view-dashboard");
+  if (v && v.classList.contains("active") && typeof window.loadDashboardSummary === "function") {
+    window.loadDashboardSummary();
+  }
+}, 5000);
+</script>
+
+<script>
+// Driver profile: fills the pills and highlights Available / Unavailable
+// from the server (read-only). No ride logic is touched.
+(function () {
+  try {
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
+    function paint(d) {
+      var ls = d.licenseStatus ? String(d.licenseStatus) : "";
+      var a = d.availability ? String(d.availability) : "";
+      var lic = document.getElementById("dpLicenseBadge");
+      var av = document.getElementById("dpAvailBadge");
+      var onBtn = document.getElementById("availOnBtn");
+      var offBtn = document.getElementById("availOffBtn");
+      if (lic) {
+        lic.textContent = ls ? "License " + ls : "No license yet";
+        lic.className = "dp-badge " + (ls === "verified" ? "ok" : ls === "rejected" ? "bad" : "warn");
+      }
+      if (av) {
+        av.textContent = cap(a) || "…";
+        av.className = "dp-badge " + (a === "available" ? "ok" : "off");
+      }
+      if (onBtn) onBtn.classList.toggle("is-current", a === "available");
+      if (offBtn) offBtn.classList.toggle("is-current", a === "unavailable");
+      var sl = document.getElementById("statusLicense");
+      if (sl && ls) sl.textContent = ls;
+      var sa = document.getElementById("statusAvailability");
+      if (sa && a) sa.textContent = a;
+    }
+    function load() {
+      var token = localStorage.getItem("sakayta_token");
+      if (!token) return;
+      fetch("http://localhost:8088/api/drivers/me", { headers: { Authorization: "Bearer " + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.id) paint(d); })
+        .catch(function () {});
+    }
+    load();
+    setInterval(load, 10000);
+  } catch (e) { console.warn("Profile pills unavailable", e); }
+})();
+</script>
+
+<script>
+// Location pill: reads the text of #status and shows Sharing / Not sharing.
+// It is read-only and does not change any location logic.
+(function () {
+  try {
+    var st = document.getElementById("status");
+    var pill = document.getElementById("locPill");
+    var txt = document.getElementById("locPillText");
+    if (!st || !pill || !txt) return;
+    function paint() {
+      var t = (st.textContent || "").toLowerCase();
+      var state = "off", label = "Not sharing";
+      if (t.indexOf("sharing location (") > -1) { state = "on"; label = "Sharing location"; }
+      else if (t.indexOf("error") > -1 || t.indexOf("not supported") > -1) { state = "error"; label = "Location problem"; }
+      pill.setAttribute("data-state", state);
+      txt.textContent = label;
+    }
+    new MutationObserver(paint).observe(st, { childList: true, characterData: true, subtree: true });
+    paint();
+  } catch (e) { console.warn("Location pill unavailable", e); }
+})();
+</script>
+
+<script>
+// Automatic location sharing while the driver is Online.
+// It only clicks your existing buttons, so the location logic is not touched.
+(function () {
+  var root = document.documentElement;
+  try {
+    if (/[?&]dev=1/.test(location.search)) root.classList.add("dev");
+
+    var overlay = document.getElementById("locationOverlay");
+    var allowBtn = document.getElementById("locAllowBtn");
+    var skipBtn = document.getElementById("locSkipBtn");
+    var locStatusEl = document.getElementById("locStatus");
+    var realBtn = document.getElementById("realBtn");
+    var stopBtn = document.getElementById("stopBtn");
+    var simBtn = document.getElementById("simBtn");
+    var statusEl = document.getElementById("status");
+    var chip = document.getElementById("dashStatusChip");
+    var retryBtn = document.getElementById("locRetryBtn");
+    // if something is missing, show the normal popup so nothing breaks
+    if (!overlay || !allowBtn || !realBtn || !stopBtn || !statusEl) { root.classList.add("loc-show"); return; }
+
+    var permState = "unknown";  // granted | prompt | denied | unknown
+    var userStopped = false;    // someone pressed Stop on purpose (dev mode only)
+    var autoStarted = false;    // we started the sharing
+    var skipped = false;        // "Continue Without Location" was chosen
+    var clicking = false;       // true while WE click a button
+    var requestedAt = 0;
+
+    function reveal() { root.classList.add("loc-show"); }
+    function press(btn) { clicking = true; try { btn.click(); } finally { clicking = false; } }
+    function isSharing() { return (statusEl.textContent || "").toLowerCase().indexOf("sharing location (") > -1; }
+    function overlayOpen() { return !overlay.classList.contains("hidden"); }
+    function availability() {
+      var t = chip ? (chip.textContent || "") : "";
+      if (t.indexOf("Offline") > -1) return "offline";
+      if (t.indexOf("Online") > -1 || t.indexOf("On a ride") > -1) return "online";
+      return "unknown";
+    }
+
+    stopBtn.addEventListener("click", function () { if (!clicking) { userStopped = true; autoStarted = false; } });
+    realBtn.addEventListener("click", function () { if (!clicking) { userStopped = false; autoStarted = false; } });
+    if (simBtn) simBtn.addEventListener("click", function () { if (!clicking) { userStopped = false; autoStarted = false; } });
+    if (skipBtn) skipBtn.addEventListener("click", function () { skipped = true; });
+
+    // show the "Turn on location" button only when something is wrong
+    function updateRetry() {
+      if (!retryBtn) return;
+      var show = availability() === "online" && !isSharing() && !overlayOpen() && permState !== "unknown";
+      retryBtn.hidden = !show;
+    }
+    if (retryBtn) retryBtn.addEventListener("click", function () {
+      userStopped = false; autoStarted = true; requestedAt = Date.now();
+      press(realBtn);
+    });
+
+    // show the popup only when the driver really has to see it (error or blocked)
+    if (locStatusEl) new MutationObserver(function () {
+      if (locStatusEl.style.display !== "none") reveal();
+    }).observe(locStatusEl, { attributes: true, attributeFilter: ["style"] });
+
+    function ensure() {
+      updateRetry();
+      if (userStopped || overlayOpen()) return;
+      var a = availability();
+      if (a === "online" && permState === "granted" && !isSharing()) {
+        if (Date.now() - requestedAt > 30000) {  // do not restart while waiting for the first GPS fix
+          requestedAt = Date.now();
+          autoStarted = true;
+          press(realBtn);
+        }
+      } else if (a === "offline" && autoStarted && isSharing()) {
+        autoStarted = false;
+        press(stopBtn);
+      }
+    }
+
+    function startFlow() {
+      if (!overlayOpen()) return;
+      if (permState === "denied") { reveal(); return; }
+      press(allowBtn);
+    }
+
+    function initPermission() {
+      if (!navigator.permissions || !navigator.permissions.query) { permState = "prompt"; return Promise.resolve(); }
+      return navigator.permissions.query({ name: "geolocation" }).then(function (p) {
+        permState = p.state;
+        p.onchange = function () {
+          permState = p.state;
+          if (permState === "granted" && overlayOpen()) startFlow();
+          ensure();
+        };
+      }).catch(function () { permState = "prompt"; });
+    }
+
+    // when the popup closes after a real location was found, location is allowed
+    new MutationObserver(function () {
+      if (!overlayOpen()) {
+        if (!skipped && permState !== "denied") permState = "granted";
+        setTimeout(ensure, 300);
+      }
+    }).observe(overlay, { attributes: true, attributeFilter: ["class"] });
+
+    new MutationObserver(updateRetry).observe(statusEl, { childList: true, characterData: true, subtree: true });
+    if (chip) new MutationObserver(ensure).observe(chip, { childList: true, characterData: true, subtree: true });
+
+    // wait until the main script has attached its button handlers
+    window.addEventListener("load", function () {
+      setTimeout(function () {
+        initPermission().then(function () {
+          if (permState === "denied") reveal(); else startFlow();
+          setInterval(ensure, 5000);
+        });
+      }, 400);
+    });
+  } catch (e) { root.classList.add("loc-show"); console.warn("Auto location unavailable", e); }
+})();
+</script>
 </body>
 </html>

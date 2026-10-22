@@ -5,3 +5,31 @@ data/*.json
 
 # SakayTa PHP/MariaDB foundation (FINAL SRS) — never commit local secrets
 php/config/.env
+
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.pre-restore.bak
+
+# Local credentials and temporary tokens
+test_token.txt
+php/bin/.*_token.tmp
+php/bin/.admin_token.tmp
+php/bin/.commuter_token.tmp
+php/bin/.driver_token.tmp
+
+# Local logs
+data/*.json
+
+# Temporary test files
+php/test_rp.php
+php/bin/99_reset_pw.php
+php/bin/99_seed_soap_test.php
+php/bin/99_soap_request.xml
+
+# Accidental generated path artifacts
+/DocumentRoot*/
+ /C*Users*.md

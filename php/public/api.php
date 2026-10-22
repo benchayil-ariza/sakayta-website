@@ -106,6 +106,19 @@ try {
                 $methodNotAllowed('PUT');
             }
             $controller->setAvailability();
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'location') {
+            if ($method !== 'PUT') {
+                $methodNotAllowed('PUT');
+            }
+            $controller->updateLocation();
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'ride') {
+            if ($method !== 'GET') $methodNotAllowed('GET');
+            $rideController = new RideController();
+            $rideController->driverPendingRide();
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'active-ride') {
+            if ($method !== 'GET') $methodNotAllowed('GET');
+            $rideController = new RideController();
+            $rideController->driverActiveRide();
         } else {
             $notFound();
         }
@@ -141,6 +154,18 @@ try {
                 $methodNotAllowed('POST');
             }
             $controller->cancel($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'accept') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->accept($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'start') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->start($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'complete') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->complete($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'decline') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->decline($parts[1]);
         } else {
             $notFound();
         }
@@ -170,16 +195,16 @@ try {
                     default => $notFound(),
                 };
             }
-        } elseif ($depth === 3) {
-            // Handle PUT for verify and reject
+        } elseif ($depth === 4 && strtolower($parts[1] ?? '') === 'drivers') {
+            // PUT /admin/drivers/:id/verify|reject
             if ($method !== 'PUT') {
                 $methodNotAllowed('PUT');
             }
-            $action = strtolower($parts[2] ?? '');
+            $action = strtolower($parts[3] ?? '');
             if ($action === 'verify') {
-                $controller->verifyDriver($parts[1]);
+                $controller->verifyDriver($parts[2]);
             } elseif ($action === 'reject') {
-                $controller->rejectDriver($parts[1]);
+                $controller->rejectDriver($parts[2]);
             } else {
                 $notFound();
             }

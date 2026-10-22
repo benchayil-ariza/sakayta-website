@@ -98,12 +98,53 @@ CREATE TABLE IF NOT EXISTS rides (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- ride_offer_attempts — durable per-driver offer history
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ride_offer_attempts (
+  offerId      VARCHAR(50) NOT NULL,
+  rideId       VARCHAR(50) NOT NULL,
+  driverId     VARCHAR(50) NOT NULL,
+  offeredAt    DATETIME    NOT NULL,
+  expiresAt    DATETIME    NOT NULL,
+  outcome      ENUM('pending','accepted','declined','expired','superseded') NOT NULL,
+  respondedAt  DATETIME    DEFAULT NULL,
+  activeSlot   TINYINT     DEFAULT NULL,
+  PRIMARY KEY (offerId),
+  UNIQUE KEY uq_roa_ride_driver (rideId, driverId),
+  UNIQUE KEY uq_roa_ride_active (rideId, activeSlot),
+  KEY idx_roa_expiry (outcome, expiresAt),
+  KEY idx_roa_ride_history (rideId, offeredAt, offerId),
+  CONSTRAINT fk_roa_ride
+    FOREIGN KEY (rideId) REFERENCES rides(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT fk_roa_driver
+    FOREIGN KEY (driverId) REFERENCES drivers(id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- ride_dispatch_state — durable scheduling state, separate from ride status
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ride_dispatch_state (
+  rideId         VARCHAR(50) NOT NULL,
+  dispatchStatus ENUM('queued','retry_wait','offered','stopped','manual_review') NOT NULL,
+  nextAttemptAt  DATETIME    DEFAULT NULL,
+  attemptCount   INT UNSIGNED NOT NULL DEFAULT 0,
+  lastAttemptAt  DATETIME    DEFAULT NULL,
+  lastErrorCode  VARCHAR(50) DEFAULT NULL,
+  updatedAt      DATETIME    NOT NULL,
+  PRIMARY KEY (rideId),
+  KEY idx_rds_due (dispatchStatus, nextAttemptAt, rideId),
+  CONSTRAINT fk_rds_ride
+    FOREIGN KEY (rideId) REFERENCES rides(id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- notifications
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
   id        VARCHAR(50)  NOT NULL,
   userId    VARCHAR(50)  NOT NULL,
   rideId    VARCHAR(50)  DEFAULT NULL,
+  offerId   VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   type      VARCHAR(50)  NOT NULL,
   title     VARCHAR(255) NOT NULL,
   message   TEXT         NOT NULL,
@@ -114,6 +155,9 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_notifications_ride
     FOREIGN KEY (rideId) REFERENCES rides(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_notifications_offer
+    FOREIGN KEY (offerId) REFERENCES ride_offer_attempts(offerId) ON DELETE RESTRICT ON UPDATE CASCADE,
+  UNIQUE KEY uq_notifications_offer (offerId),
   KEY idx_notifications_user_created (userId, createdAt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

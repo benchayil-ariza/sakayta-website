@@ -31,45 +31,69 @@ final class RideService
                 WHERE d.verified = 1
                   AND d.availability = 'available'
                   AND d.licenseStatus = 'verified'
+                  AND d.busy = 0
                   AND d.latitude IS NOT NULL
                   AND d.longitude IS NOT NULL";
         if ($excludeDriverId) {
             $sql .= " AND d.id != :exclude";
         }
-        $sql .= " ORDER BY (6371 * ACOS(COS(RADIANS(:lat)) * COS(RADIANS(d.latitude)) * COS(RADIANS(d.longitude) - RADIANS(:lng)) + SIN(RADIANS(:lat)) * SIN(RADIANS(d.latitude)))) ASC LIMIT 1";
+        $sql .= " ORDER BY (6371 * ACOS(COS(RADIANS(:lat1)) * COS(RADIANS(d.latitude)) * COS(RADIANS(d.longitude) - RADIANS(:lng1)) + SIN(RADIANS(:lat2)) * SIN(RADIANS(d.latitude)))) ASC LIMIT 1";
         $stmt = $pdo->prepare($sql);
-        $params = ['lat' => $pickupLat, 'lng' => $pickupLng];
+        $params = ['lat1' => $pickupLat, 'lng1' => $pickupLng, 'lat2' => $pickupLat];
         if ($excludeDriverId) $params['exclude'] = $excludeDriverId;
-        $stmt->execute($params);
+        try { $stmt->execute($params); } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] nearestEligibleDriver SELECT failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
         $row = $stmt->fetch();
         return $row ? $row : null;
     }
 
-    /** Offer ride to nearest eligible driver; create notification; set driverId but keep pending. */
-    public function offerRide(string $rideId, float $pickupLat, float $pickupLng): array
+    /** Offer ride to nearest eligible driver; create notification; keep pending offer (no driverId yet). */
+    public function offerRide(string $rideId, float $pickupLat, float $pickupLng, ?string $excludeDriverId = null): array
     {
-        $ride = $this->findByIdForAdminOrSelf($rideId, ''); // need proper auth check; using service-level
-        $driver = $this->nearestEligibleDriver($pickupLat, $pickupLng);
+        $ride = $this->findRideByIdInternal($rideId);
+        $driver = $this->nearestEligibleDriver($pickupLat, $pickupLng, $excludeDriverId);
         if (!$driver) {
             throw new RideException('No eligible verified available driver found.', 404);
         }
         $pdo = Database::connection();
-        $pdo->prepare("UPDATE rides SET driverId = :did, updatedAt = :now WHERE id = :rid")
-            ->execute(['did' => $driver['driver_id'], 'now' => date('Y-m-d H:i:s'), 'rid' => $rideId]);
-        // Notification
+        $now = date('Y-m-d H:i:s');
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 seconds'));
+        try {
+            $pdo->prepare("UPDATE rides SET requestedDriver = :did, requestStatus = 'pending', requestCreatedAt = :now1, requestExpiresAt = :expires, updatedAt = :now2 WHERE id = :rid")
+                ->execute(['did' => $driver['driver_id'], 'now1' => $now, 'expires' => $expiresAt, 'now2' => $now, 'rid' => $rideId]);
+        } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] offerRide UPDATE failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
         $this->createNotification($driver['user_id'], $rideId, 'ride_request',
             'New ride request', 'You have a new ride request near you.');
-        return $this->findById('', $rideId); // simplified
+        return $this->findRideByIdInternal($rideId);
+    }
+
+    /** Internal ride lookup by ID only (service-level, no passenger ownership check). */
+    private function findRideByIdInternal(string $rideId): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+                    driverId, status, requestedDriver, requestStatus, requestCreatedAt,
+                    requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
+                    startedAt, completedAt, cancelledAt, userId
+             FROM rides WHERE id = :id LIMIT 1'
+        );
+        try { $stmt->execute(['id' => $rideId]); } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] offerRide lookup failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
+        $ride = $stmt->fetch();
+        if (!$ride) {
+            throw new RideException('Ride not found.', 404);
+        }
+        return $ride;
     }
 
     private function createNotification(string $userId, ?string $rideId, string $type, string $title, string $message): void
     {
         $pdo = Database::connection();
         $id = 'n_' . time() . '_' . substr(bin2hex(random_bytes(9)), 0, 9);
-        $pdo->prepare('INSERT INTO notifications (id, userId, rideId, type, title, message, `read`, createdAt) VALUES (:id, :uid, :rid, :type, :title, :msg, 0, :now)')
-            ->execute(['id' => $id, 'uid' => $userId, 'rid' => $rideId, 'type' => $type, 'title' => $title, 'msg' => $message, 'now' => date('Y-m-d H:i:s')]);
+        try {
+            $pdo->prepare('INSERT INTO notifications (id, userId, rideId, type, title, message, `read`, createdAt) VALUES (:id, :uid, :rid, :type, :title, :msg, 0, :now)')
+                ->execute(['id' => $id, 'uid' => $userId, 'rid' => $rideId, 'type' => $type, 'title' => $title, 'msg' => $message, 'now' => date('Y-m-d H:i:s')]);
+        } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] createNotification INSERT failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
     }
-
     /** @return array<string,mixed> */
     public function createRide(
         string $userId,
@@ -116,6 +140,7 @@ final class RideService
             }
         } catch (\Exception $e) {
             // Preserve ride creation even if no eligible driver or offer fails
+            error_log('[SakayTa dispatch] ride=' . $ride['id'] . ' exception=' . get_class($e) . ' message=' . $e->getMessage());
         }
         return $ride;
     }
@@ -177,6 +202,62 @@ final class RideService
         return $ride;
     }
 
+    // --------------------------------------------- Driver pending/active (read-only)
+
+    /**
+     * Current pending ride request for the authenticated driver.
+     * READ-ONLY: resolves drivers.user_id -> drivers.id -> rides.requestedDriver.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function getDriverPendingRide(string $userId): ?array
+    {
+        $driver = $this->getDriverProfile($userId);
+        $driverId = (string) ($driver['id'] ?? '');
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+                    driverId, status, requestedDriver, requestStatus, requestCreatedAt,
+                    requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
+                    startedAt, completedAt, cancelledAt, userId
+             FROM rides
+             WHERE requestedDriver = :did
+               AND requestStatus = \'pending\'
+               AND status = \'pending\'
+               AND (requestExpiresAt IS NULL OR requestExpiresAt > NOW())
+             ORDER BY requestCreatedAt DESC LIMIT 1'
+        );
+        $stmt->execute(['did' => $driverId]);
+        $ride = $stmt->fetch();
+        return $ride ? $ride : null;
+    }
+
+    /**
+     * Driver's currently assigned/active ride.
+     * READ-ONLY: resolves drivers.user_id -> drivers.id -> rides.driverId.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function getDriverActiveRide(string $userId): ?array
+    {
+        $driver = $this->getDriverProfile($userId);
+        $driverId = (string) ($driver['id'] ?? '');
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+                    driverId, status, requestedDriver, requestStatus, requestCreatedAt,
+                    requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
+                    startedAt, completedAt, cancelledAt, userId
+             FROM rides
+             WHERE driverId = :did
+               AND status IN (\'assigned\', \'en_route\')
+             ORDER BY updatedAt DESC LIMIT 1'
+        );
+        $stmt->execute(['did' => $driverId]);
+        $ride = $stmt->fetch();
+        return $ride ? $ride : null;
+    }
+
     // ----------------------------------------------------- Cancel (commuter)
 
     /**
@@ -186,34 +267,90 @@ final class RideService
     public function cancelRide(string $userId, string $rideId): array
     {
         $pdo = Database::connection();
-
-        $current = $this->findById($userId, $rideId);
-        $status  = (string) ($current['status'] ?? '');
-
-        if (!in_array($status, self::CANCELLABLE, true)) {
-            throw new RideException(
-                'Cannot cancel ride in ' . $status . ' state. Cancellation only allowed before the ride starts.',
-                409
-            );
-        }
-
-        $now = date('Y-m-d H:i:s');
         try {
-            $pdo->prepare(
-                'UPDATE rides SET status = :status, cancelledAt = :cancelledAt, updatedAt = :updatedAt
-                 WHERE id = :id AND userId = :uid'
-            )->execute([
-                'status'       => 'cancelled',
-                'cancelledAt'  => $now,
-                'updatedAt'    => $now,
-                'id'           => $rideId,
-                'uid'          => $userId,
+            $pdo->beginTransaction();
+
+            $rideStmt = $pdo->prepare(
+                'SELECT id, driverId, status
+                 FROM rides WHERE id = :id AND userId = :uid LIMIT 1 FOR UPDATE'
+            );
+            $rideStmt->execute(['id' => $rideId, 'uid' => $userId]);
+            $current = $rideStmt->fetch();
+            if (!$current) {
+                throw new RideException('Ride not found.', 404);
+            }
+
+            $status = (string) $current['status'];
+            if (!in_array($status, self::CANCELLABLE, true)) {
+                throw new RideException(
+                    'Cannot cancel ride in ' . $status . ' state. Cancellation only allowed before the ride starts.',
+                    409
+                );
+            }
+
+            $driverId = null;
+            $driverBusy = null;
+            if ($status === 'assigned') {
+                $driverId = (string) ($current['driverId'] ?? '');
+                if ($driverId === '') {
+                    throw new RideException('Assigned driver profile is unavailable.', 409);
+                }
+
+                $driverStmt = $pdo->prepare(
+                    'SELECT id, busy FROM drivers WHERE id = :id LIMIT 1 FOR UPDATE'
+                );
+                $driverStmt->execute(['id' => $driverId]);
+                $driver = $driverStmt->fetch();
+                if (!$driver) {
+                    throw new RideException('Assigned driver profile is unavailable.', 409);
+                }
+                $driverBusy = (int) $driver['busy'];
+                if ($driverBusy !== 0 && $driverBusy !== 1) {
+                    throw new RideException('Assigned driver busy state is invalid.', 409);
+                }
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $cancelStmt = $pdo->prepare(
+                "UPDATE rides
+                 SET status = 'cancelled', cancelledAt = :cancelledAt, updatedAt = :updatedAt
+                 WHERE id = :id AND userId = :uid AND status IN ('pending', 'assigned')"
+            );
+            $cancelStmt->execute([
+                'cancelledAt' => $now,
+                'updatedAt' => $now,
+                'id' => $rideId,
+                'uid' => $userId,
             ]);
+            if ($cancelStmt->rowCount() !== 1) {
+                throw new RideException('Ride is no longer available to cancel.', 409);
+            }
+
+            if ($driverId !== null && $driverBusy === 1) {
+                $busyStmt = $pdo->prepare(
+                    'UPDATE drivers SET busy = 0 WHERE id = :id AND busy = 1'
+                );
+                $busyStmt->execute(['id' => $driverId]);
+                if ($busyStmt->rowCount() !== 1) {
+                    throw new RideException('Assigned driver busy state could not be released.', 409);
+                }
+            }
+
+            $updatedRide = $this->findById($userId, $rideId);
+            $pdo->commit();
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new RideException('Failed to cancel ride.', 500);
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
 
-        return ['message' => 'Ride cancelled successfully.', 'ride' => $this->findById($userId, $rideId)];
+        return ['message' => 'Ride cancelled successfully.', 'ride' => $updatedRide];
     }
 
     // ------------------------------------------------------- Legal transitions
@@ -286,4 +423,299 @@ final class RideService
         return $ride;
     }
 
+    /**
+     * Accept the pending offer addressed to the authenticated driver.
+     *
+     * @return array{message:string,ride:array<string,mixed>}
+     */
+    public function acceptRide(string $userId, string $rideId): array
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $rideStmt = $pdo->prepare(
+                'SELECT id, status, requestedDriver, requestStatus, requestExpiresAt,
+                        CASE WHEN requestExpiresAt IS NOT NULL AND requestExpiresAt > NOW() THEN 1 ELSE 0 END AS requestIsUnexpired
+                 FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
+            );
+            $rideStmt->execute(['id' => $rideId]);
+            $ride = $rideStmt->fetch();
+            if (!$ride) {
+                throw new RideException('Ride not found.', 404);
+            }
+            if ($ride['status'] !== 'pending' || $ride['requestStatus'] !== 'pending') {
+                throw new RideException('Ride is no longer available.', 409);
+            }
+
+            $driverStmt = $pdo->prepare(
+                'SELECT id, verified, licenseStatus, availability, busy
+                 FROM drivers WHERE user_id = :uid LIMIT 1 FOR UPDATE'
+            );
+            $driverStmt->execute(['uid' => $userId]);
+            $driver = $driverStmt->fetch();
+            if (!$driver) {
+                throw new RideException('Driver profile not found.', 404);
+            }
+
+            $driverId = (string) $driver['id'];
+            if (($ride['requestedDriver'] ?? null) !== $driverId) {
+                throw new RideException('Not offered to this driver.', 403);
+            }
+            if (!(bool) $ride['requestIsUnexpired']) {
+                throw new RideException('This ride request has expired.', 410);
+            }
+            if ((int) $driver['verified'] !== 1 || $driver['licenseStatus'] !== 'verified' || $driver['availability'] !== 'available') {
+                throw new RideException('Driver is no longer eligible for this ride.', 403);
+            }
+            if ((int) $driver['busy'] !== 0) {
+                throw new RideException('Driver is already assigned to another ride.', 409);
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $acceptStmt = $pdo->prepare(
+                "UPDATE rides
+                 SET driverId = :driverId, status = 'assigned', requestStatus = 'accepted', updatedAt = :updatedAt
+                 WHERE id = :id
+                   AND status = 'pending'
+                   AND requestStatus = 'pending'
+                   AND requestedDriver = :requestedDriver
+                   AND requestExpiresAt IS NOT NULL
+                   AND requestExpiresAt > NOW()"
+            );
+            $acceptStmt->execute([
+                'driverId' => $driverId,
+                'updatedAt' => $now,
+                'id' => $rideId,
+                'requestedDriver' => $driverId,
+            ]);
+            if ($acceptStmt->rowCount() !== 1) {
+                $stateStmt = $pdo->prepare(
+                    'SELECT status, requestedDriver, requestStatus,
+                            CASE WHEN requestExpiresAt IS NOT NULL AND requestExpiresAt > NOW() THEN 1 ELSE 0 END AS requestIsUnexpired
+                     FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
+                );
+                $stateStmt->execute(['id' => $rideId]);
+                $current = $stateStmt->fetch();
+                if (!$current) {
+                    throw new RideException('Ride not found.', 404);
+                }
+                if ($current['status'] === 'pending' && $current['requestStatus'] === 'pending'
+                    && ($current['requestedDriver'] ?? null) === $driverId
+                    && !(bool) $current['requestIsUnexpired']) {
+                    throw new RideException('This ride request has expired.', 410);
+                }
+                if ($current['status'] === 'pending' && $current['requestStatus'] === 'pending'
+                    && ($current['requestedDriver'] ?? null) !== $driverId) {
+                    throw new RideException('Not offered to this driver.', 403);
+                }
+                throw new RideException('Ride is no longer available.', 409);
+            }
+
+            $busyStmt = $pdo->prepare('UPDATE drivers SET busy = 1 WHERE id = :id AND busy = 0');
+            $busyStmt->execute(['id' => $driverId]);
+            if ($busyStmt->rowCount() !== 1) {
+                throw new RideException('Driver is already assigned to another ride.', 409);
+            }
+
+            $updatedRide = $this->findRideByIdInternal($rideId);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['message' => 'Ride accepted successfully.', 'ride' => $updatedRide];
+    }
+
+    /**
+     * Start an assigned ride owned by the authenticated driver.
+     *
+     * @return array{message:string,ride:array<string,mixed>}
+     */
+    public function startRide(string $userId, string $rideId): array
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $rideStmt = $pdo->prepare(
+                'SELECT id, driverId, status
+                 FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
+            );
+            $rideStmt->execute(['id' => $rideId]);
+            $ride = $rideStmt->fetch();
+            if (!$ride) {
+                throw new RideException('Ride not found.', 404);
+            }
+
+            $driverStmt = $pdo->prepare(
+                'SELECT id FROM drivers WHERE user_id = :uid LIMIT 1 FOR UPDATE'
+            );
+            $driverStmt->execute(['uid' => $userId]);
+            $driver = $driverStmt->fetch();
+            if (!$driver) {
+                throw new RideException('Driver profile not found.', 404);
+            }
+
+            $driverId = (string) $driver['id'];
+            if (($ride['driverId'] ?? null) !== $driverId) {
+                throw new RideException('This ride is assigned to another driver.', 403);
+            }
+            if ($ride['status'] !== 'assigned') {
+                throw new RideException('Ride is no longer available to start.', 409);
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $startStmt = $pdo->prepare(
+                "UPDATE rides
+                 SET status = 'en_route', startedAt = :startedAt, updatedAt = :updatedAt
+                 WHERE id = :id AND driverId = :driverId AND status = 'assigned'"
+            );
+            $startStmt->execute([
+                'startedAt' => $now,
+                'updatedAt' => $now,
+                'id' => $rideId,
+                'driverId' => $driverId,
+            ]);
+            if ($startStmt->rowCount() !== 1) {
+                throw new RideException('Ride is no longer available to start.', 409);
+            }
+
+            $updatedRide = $this->findRideByIdInternal($rideId);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['message' => 'Ride started successfully.', 'ride' => $updatedRide];
+    }
+
+    /**
+     * Complete an en_route ride owned by the authenticated driver and release busy state.
+     *
+     * @return array{message:string,ride:array<string,mixed>}
+     */
+    public function completeRide(string $userId, string $rideId): array
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            // Keep the same ride-then-driver lock order used by acceptRide() and startRide().
+            $rideStmt = $pdo->prepare(
+                'SELECT id, driverId, status
+                 FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
+            );
+            $rideStmt->execute(['id' => $rideId]);
+            $ride = $rideStmt->fetch();
+            if (!$ride) {
+                throw new RideException('Ride not found.', 404);
+            }
+
+            $driverStmt = $pdo->prepare(
+                'SELECT id FROM drivers WHERE user_id = :uid LIMIT 1 FOR UPDATE'
+            );
+            $driverStmt->execute(['uid' => $userId]);
+            $driver = $driverStmt->fetch();
+            if (!$driver) {
+                throw new RideException('Driver profile not found.', 404);
+            }
+
+            $driverId = (string) $driver['id'];
+            if (($ride['driverId'] ?? null) !== $driverId) {
+                throw new RideException('This ride is assigned to another driver.', 403);
+            }
+            if ($ride['status'] !== 'en_route') {
+                throw new RideException('Ride is no longer available to complete.', 409);
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $completeStmt = $pdo->prepare(
+                "UPDATE rides
+                 SET status = 'completed', completedAt = :completedAt, updatedAt = :updatedAt
+                 WHERE id = :id AND driverId = :driverId AND status = 'en_route'"
+            );
+            $completeStmt->execute([
+                'completedAt' => $now,
+                'updatedAt' => $now,
+                'id' => $rideId,
+                'driverId' => $driverId,
+            ]);
+            if ($completeStmt->rowCount() !== 1) {
+                throw new RideException('Ride is no longer available to complete.', 409);
+            }
+
+            $busyStmt = $pdo->prepare(
+                'UPDATE drivers SET busy = 0 WHERE id = :id AND busy = 1'
+            );
+            $busyStmt->execute(['id' => $driverId]);
+            if ($busyStmt->rowCount() !== 1) {
+                throw new RideException('Driver busy state could not be released.', 409);
+            }
+
+            $updatedRide = $this->findRideByIdInternal($rideId);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['message' => 'Ride completed successfully.', 'ride' => $updatedRide];
+    }
+
+    /** @return array<string,mixed> */
+    public function declineRide(string $userId, string $rideId): array
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $driver = $this->getDriverProfile($userId);
+            $driverId = (string) ($driver['id'] ?? '');
+            $stmt = $pdo->prepare('SELECT id, status, requestedDriver, requestStatus, requestExpiresAt, pickupLat, pickupLng FROM rides WHERE id = :id LIMIT 1 FOR UPDATE');
+            $stmt->execute(['id' => $rideId]);
+            $ride = $stmt->fetch();
+            if (!$ride) { throw new RideException('Ride not found.', 404); }
+            if ($ride['status'] !== 'pending') { throw new RideException('Ride not available.', 409); }
+            if (($ride['requestedDriver'] ?? null) !== $driverId) { throw new RideException('Not offered to this driver.', 403); }
+            if (($ride['requestStatus'] ?? null) !== 'pending') { throw new RideException('Request already processed.', 409); }
+            $declineStmt = $pdo->prepare("UPDATE rides SET requestedDriver = NULL, requestStatus = 'declined', updatedAt = :n WHERE id = :id AND requestedDriver = :driverId AND status = 'pending' AND requestStatus = 'pending'");
+            $declineStmt->execute(['n' => date('Y-m-d H:i:s'), 'id' => $rideId, 'driverId' => $driverId]);
+            if ($declineStmt->rowCount() !== 1) {
+                throw new RideException('Ride offer is no longer available.', 409);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+        try {
+            $ride = $this->findRideByIdInternal($rideId);
+            if (($ride['pickupLat'] ?? null) && ($ride['pickupLng'] ?? null)) {
+                $this->offerRide($rideId, (float) $ride['pickupLat'], (float) $ride['pickupLng'], $driverId);
+            }
+        } catch (\Exception $e) {
+            // Re-offer best-effort; preserve decline result
+        }
+        $this->createNotification($userId, $rideId, 'ride_declined', 'Ride declined', 'Your ride request was declined; searching for another driver.');
+        return ['message' => 'Ride declined; request sent to next driver.', 'ride' => $this->findRideByIdInternal($rideId)];
+    }
+
+    private function getDriverProfile(string $userId): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT * FROM drivers WHERE user_id = :uid LIMIT 1');
+        $stmt->execute(['uid' => $userId]);
+        $driver = $stmt->fetch();
+        if (!$driver) {
+            throw new RideException('Driver profile not found.', 404);
+        }
+        return $driver;
+    }
 }

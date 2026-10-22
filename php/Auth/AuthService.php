@@ -283,6 +283,20 @@ final class AuthService
         return $user;
     }
 
+    /**
+     * Authenticated account display name for an already-verified user ID.
+     * Used by ride creation so passengerName always comes from users.full_name.
+     */
+    public function displayNameForUser(string $userId): string
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT full_name FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch();
+        return trim((string) ($row['full_name'] ?? ''));
+    }
+
     // ------------------------------------------------------------------ Token
 
     /** @return string header.payload.signature (all base64url, HMAC-SHA256). */

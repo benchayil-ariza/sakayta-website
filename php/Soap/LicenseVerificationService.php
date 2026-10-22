@@ -20,7 +20,7 @@ final class LicenseVerificationService
 
     public function __construct(string $wsdlUrl = '', int $timeout = 10)
     {
-        $this->wsdlUrl = $wsdlUrl ?: $_ENV['SOAP_URL'] ?? 'http://localhost/soap-service/driverVerification.php?wsdl';
+        $this->wsdlUrl = $wsdlUrl ?: $_ENV['SOAP_URL'] ?? 'http://localhost:8080/driverVerification.php?wsdl';
         $this->timeout = $timeout;
     }
 

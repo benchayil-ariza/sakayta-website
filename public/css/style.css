@@ -104,6 +104,13 @@ p  { margin: 0 0 0.75em; }
 a  { color: var(--accent); }
 a:hover { color: var(--accent-hi); }
 
+
+body.home header.site-header {
+  position: fixed;
+  left: 0;
+  right: 0;
+}
+
 /* ============ Brand / Logo ============ */
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .brand img { height: 30px; width: auto; display: block; }
@@ -117,7 +124,9 @@ a:hover { color: var(--accent-hi); }
 
 /* ============ Top Navigation (dashboard-style header) ============ */
 header.site-header {
-  background: var(--forest-900);
+  background: rgba(35, 37, 36, 0.55);
+  backdrop-filter: blur(20px) saturate(120%);
+ -webkit-backdrop-filter: blur(20px) saturate(120%);
   color: #ffffff;
   padding: 0 28px;
   height: 60px;
@@ -127,10 +136,12 @@ header.site-header {
   flex-wrap: wrap;
   gap: 16px;
   box-shadow: var(--shadow-md);
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 header.site-header nav {
   display: flex;
@@ -174,21 +185,42 @@ header.site-header nav a[aria-current="page"]::after {
   background: transparent;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.nav-login-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.32); }
+.nav-login-btn:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.5); color: #ffffff; }
 .nav-login-btn[aria-current="page"] { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.32); }
 .nav-signup-btn {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
-  background: var(--accent);
+  background: transparent;
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  border: 1px solid var(--accent);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.nav-signup-btn:hover { background: var(--accent-hi); border-color: var(--accent-hi); color: #ffffff; }
-.nav-signup-btn[aria-current="page"] { background: var(--accent-hi); border-color: var(--accent-hi); }
+.nav-signup-btn:hover { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.5); color: #ffffff; }
+.nav-signup-btn[aria-current="page"] { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.32); }
+
+
+.hero {
+  position: relative;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 140px;
+ background: linear-gradient(
+    to bottom,
+    rgba(250, 247, 240, 0) 0%,
+    rgba(250, 247, 240, 0.45) 65%,
+    #FAF7F0 100%
+  );
+  pointer-events: none;
+}
+
 
 /* ============ Notification bell (in nav) ============ */
 .notification-bell {
@@ -615,105 +647,60 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* ============ Homepage hero ============ */
 .hero {
-  background: radial-gradient(ellipse at 30% 20%, #2C4A39 0%, var(--forest-900) 55%, #142A1F 100%);
-  color: #ffffff;
-  padding: 56px 32px 64px;
   position: relative;
+  min-height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
   overflow: hidden;
 }
 .hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image:
-    repeating-linear-gradient(0deg,  rgba(255,255,255,0.03) 0 1px, transparent 1px 64px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 64px);
+  background: rgba(0,0,0,0.28);
+  z-index: 1;
   pointer-events: none;
-  transform: translateY(var(--parallax-offset, 0px));
-  will-change: transform;
 }
-.hero-inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+.hero-content {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 40px;
+  height: 100%;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
+  padding: 40px;
 }
-.hero-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #ffffff;
-  background: rgba(255,255,255,0.10);
+.hero-panel {
+  max-width: 650px;
+  padding: 40px;
+  border-radius: 24px;
+  background: rgba(20, 20, 20, 0.55);
   border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 4px 12px;
-  font-weight: 700;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  color: #fff;
 }
-.hero h2 { color: #ffffff; font-size: 48px; line-height: 1.05; margin: 0 0 22px; font-weight: 700; letter-spacing: -0.02em; }
-.hero p.lead { font-size: 16px; color: rgba(255, 255, 255, 0.78); max-width: 46ch; margin: 0 0 28px; font-family: var(--font-body); }
-.hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-
-/* Hero visual */
-.hero-visual { position: relative; height: 460px; }
-.hero-visual .map-surface {
-  position: absolute; inset: 0; border-radius: var(--radius-lg);
-  background: linear-gradient(155deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: var(--shadow-lg);
+.hero-panel h1 {
+  color: #fff;
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1.02;
+  margin: 0 0 24px;
 }
-.hero-visual svg.route-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero-tricycle {
-  position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
-  width: 62%; filter: drop-shadow(0 22px 30px rgba(0,0,0,0.4));
-  animation: float 4.5s ease-in-out infinite;
+.hero-panel p {
+  color: rgba(255,255,255,0.88);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 58ch;
 }
-@keyframes float { 0%,100% { transform: translate(-50%,-50%) translateY(0); } 50% { transform: translate(-50%,-50%) translateY(-10px); } }
-
-.map-hero {
-  position: relative;
-  min-height: 520px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: var(--shadow-lg);
-  background: radial-gradient(ellipse at 30% 15%, #2C4A39 0%, #142A1F 70%);
-}
-.map-hero svg.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.map-hero .map-label { font-family: var(--font-mono); font-size: 9px; fill: rgba(255,255,255,0.32); }
-
-.map-floating-card {
-  position: absolute; z-index: 2;
-  background: rgba(20, 32, 26, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  color: #ffffff;
-  font-size: 12px;
-  box-shadow: var(--shadow-md);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.map-floating-card .fc-title {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.55);
-  font-weight: 700;
-}
-.map-floating-card .fc-value { font-family: var(--font-display); font-size: 16px; color: #ffffff; font-weight: 600; }
-.map-fc-driver { top: 7%; left: 6%; }
-.map-fc-fare { bottom: 9%; right: 6%; }
-.map-fc-fare .fc-value { color: #ffffff; }
-.map-fc-route { bottom: 9%; left: 6%; }
-.map-fc-route .fc-value { color: #ffffff; font-size: 14px; }
 
 /* ============ Trust section ============ */
 .trust-section {
@@ -2037,4 +2024,693 @@ input:checked + .slider::before { transform: translateX(18px); }
 }
 .modal-actions button.red:hover {
   background: #9A2F25;
+}
+
+body.auth-fb { background: #ffffff; margin: 0; }
+
+.fb-login { display: flex; min-height: 100vh; }
+
+.fb-left {
+  position: relative;
+  flex: 0 0 57%;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 2px solid #d3d6db;
+  background: #ffffff;
+  overflow: hidden;
+  z-index: 1;
+}
+.fb-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #14201A; font-weight: 800; font-size: 22px; }
+.fb-logo img { height: 60px; }
+
+.fb-left h1 { font-size: 64px; line-height: 1.05; font-weight: 800; color: #14201A; margin: 24px 0; bottom: 9vh; }
+.fb-left h1 span { color: var(--accent); }
+
+.fb-art {
+  position: absolute;
+  top: 44%;
+  left: 65%;
+  transform: translate(-50%, -50%);   /* no scale anymore */
+  width: 90%;
+  max-width: 820px;
+  height: auto;
+  max-height: 66vh;
+  object-fit: contain;
+}
+
+.fb-right {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #ffffff;
+  z-index: 2;
+  min-width: 0;
+}
+.fb-card { width: 100%; max-width: 420px; }
+.fb-card h2 { font-size: 22px; margin: 0 0 20px; color: #14201A; }
+
+.fb-card .auth-field { margin-bottom: 12px; }
+.fb-card input[type="text"],
+.fb-card input[type="password"] {
+  width: 100%;
+  padding: 18px 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 14px;
+  font-size: 16px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.fb-card input.has-toggle { padding-right: 48px; }
+.fb-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 125, 85, 0.2);
+}
+
+.fb-card .auth-submit {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fb-card .auth-submit:hover { background: var(--accent-hi); }
+
+.fb-card .auth-forgot { text-align: center; margin-top: 16px; }
+.fb-card .auth-forgot a { color: var(--accent); text-decoration: none; }
+
+.fb-divider { border: none; border-top: 1px solid #dadde1; margin: 24px 0; }
+
+.fb-create {
+  display: block;
+  text-align: center;
+  padding: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+.fb-create:hover { background: rgba(47, 125, 85, 0.08); }
+
+@media (max-width: 900px) {
+  .fb-left { display: none; }
+}
+
+body.auth-su { background: #ffffff; margin: 0; }
+
+.su-page { min-height: 100vh; display: flex; justify-content: center; padding: 40px 20px 60px; }
+.su-wrap { width: 100%; max-width: 640px; }
+
+.su-back { display: inline-block; font-size: 28px; color: #606770; text-decoration: none; margin-bottom: 8px; }
+.su-logo { display: block; height: 64px; width: auto; margin-bottom: 16px; }
+
+.su-wrap h1 { font-size: 28px; font-weight: 700; color: #14201A; margin: 0 0 6px; }
+.su-sub { color: #3d4a43; margin: 0 0 28px; }
+
+.su-wrap .auth-field { margin-bottom: 20px; }
+.su-wrap .auth-field > label {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: #14201A;
+  margin-bottom: 8px;
+}
+
+.su-wrap input[type="text"],
+.su-wrap input[type="password"] {
+  width: 100%;
+  padding: 22px 20px;
+  border: 1px solid #dddfe2;
+  border-radius: 16px;
+  font-size: 16px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.su-wrap input.has-toggle { padding-right: 52px; }
+.su-wrap input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 125, 85, 0.2);
+}
+
+/* Passenger / Driver cards, rounded like the inputs */
+.su-wrap .account-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.su-wrap .account-type-card {
+  padding: 18px 16px;
+  border: 1px solid #dddfe2;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+}
+.su-wrap .account-type-card:hover { border-color: var(--accent); }
+.su-wrap .account-type-card.selected {
+  border: 2px solid var(--accent);
+  background: rgba(47, 125, 85, 0.08);
+}
+.su-wrap .account-type-card .t { font-weight: 700; color: #14201A; margin-bottom: 4px; }
+.su-wrap .account-type-card .d { font-size: 13px; color: #506057; }
+
+.su-wrap .auth-submit {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.su-wrap .auth-submit:hover { background: var(--accent-hi); }
+
+.su-terms { font-size: 13px; color: #606770; margin: 20px 0; line-height: 1.5; }
+
+.su-have {
+  display: block;
+  text-align: center;
+  padding: 15px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+.su-have:hover { background: rgba(47, 125, 85, 0.08); }
+
+.su-wrap .spinner[hidden] { display: none !important; }
+
+@media (max-width: 520px) {
+  .su-wrap .account-type-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== Facebook-style dashboard (passenger) ===== */
+body.fb-dash,
+.fb-dash .driver-app,
+.fb-dash .driver-app-body,
+.fb-dash .driver-main { background: #f0f2f5 !important; }
+
+/* --- Top bar: white --- */
+.fb-dash .driver-topbar {
+  background: #ffffff !important;
+  color: #14201A !important;
+  border-bottom: 1px solid #e4e6eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.fb-dash .driver-topbar .brand-name,
+.fb-dash .driver-topbar-title,
+.fb-dash #topbarPassenger,
+.fb-dash .driver-menu-btn { color: #14201A !important; }
+.fb-dash .driver-topbar-title { color: #606770 !important; font-weight: 600; }
+.fb-dash .driver-topbar-brand img { height: 40px; width: auto; }
+
+/* --- Sidebar: white, soft --- */
+.fb-dash .driver-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e4e6eb !important;
+}
+.fb-dash .sidebar-profile {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 12px;
+}
+.fb-dash .sidebar-profile:hover { background: #f0f2f5 !important; }
+.fb-dash .sidebar-profile-name { color: #14201A !important; font-weight: 700; }
+.fb-dash .sidebar-profile-sub { color: #606770 !important; }
+
+.fb-dash .sidebar-link {
+  color: #3d4a43 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+  font-weight: 600;
+}
+.fb-dash .sidebar-link:hover { background: #f0f2f5 !important; }
+.fb-dash .sidebar-link.active {
+  background: rgba(47, 125, 85, 0.12) !important;
+  color: var(--accent) !important;
+}
+.fb-dash .sidebar-link.active::before { display: none !important; }
+
+.fb-dash .sidebar-logout {
+  background: #e4e6eb !important;
+  color: #14201A !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 700;
+}
+.fb-dash .sidebar-logout:hover { background: #d8dadf !important; }
+
+/* --- Cards: white, rounded, soft shadow --- */
+.fb-dash .card {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  padding: 22px;
+}
+
+/* --- Ride type cards --- */
+.fb-dash .ride-type-card {
+  border: 2px solid #dddfe2 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  padding: 18px 12px !important;
+  font-weight: 600;
+  color: #14201A;
+}
+.fb-dash .ride-type-card:hover { border-color: var(--accent) !important; }
+.fb-dash .ride-type-card.selected {
+  border-color: var(--accent) !important;
+  background: rgba(47, 125, 85, 0.08) !important;
+}
+
+/* --- Inputs --- */
+.fb-dash input[type="text"] {
+  border: 1px solid #dddfe2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+.fb-dash input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 125, 85, 0.2);
+}
+
+/* --- Buttons: green pill, grey when disabled --- */
+.fb-dash button.primary {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 14px 20px !important;
+  font-size: 16px;
+  font-weight: 700;
+  opacity: 1 !important;
+}
+.fb-dash button.primary:hover:not(:disabled) { background: var(--accent-hi) !important; }
+.fb-dash button.primary:disabled {
+  background: #e4e6eb !important;
+  color: #9aa3a0 !important;
+  cursor: not-allowed;
+}
+.fb-dash button.ghost {
+  background: #e4e6eb !important;
+  color: #14201A !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-weight: 600;
+}
+.fb-dash button.red { border-radius: 999px !important; }
+
+/* --- Trip summary: clean rows, normal font --- */
+.fb-dash .trip-summary-row {
+  border-bottom: 1px solid #eef0f2 !important;
+  padding: 12px 0 !important;
+}
+.fb-dash .trip-summary-row:last-child { border-bottom: none !important; }
+.fb-dash .trip-summary-row span {
+  font-family: inherit !important;
+  font-size: 14.5px !important;
+}
+.fb-dash .trip-summary-row span:first-child { color: #606770 !important; font-weight: 600; }
+.fb-dash #bookSummaryFare,
+.fb-dash #rideFare,
+.fb-dash #bookFareOut {
+  color: var(--accent) !important;
+  font-weight: 800;
+  font-size: 18px !important;
+}
+
+/* --- Map: rounded --- */
+.fb-dash .map-wrap {
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.fb-dash #bookLocationPrompt { background: rgba(255, 255, 255, 0.92) !important; }
+.fb-dash .location-prompt-card {
+  background: #fff !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* --- My Rides --- */
+.fb-dash .filter-pill {
+  background: #e4e6eb;
+  color: #14201A;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fb-dash .filter-pill.active { background: var(--accent); color: #fff; }
+.fb-dash .ride-card {
+  background: #fff;
+  border: none !important;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Hide the spinner when it should be hidden --- */
+.fb-dash .spinner[hidden] { display: none !important; }
+
+/* --- Sidebar: left aligned --- */
+.fb-dash .sidebar-link {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  gap: 12px;
+  padding: 12px 14px !important;
+}
+.fb-dash .sidebar-link .sl-ico { width: 24px; text-align: center; font-size: 18px; }
+
+/* --- Ride type cards: bigger emoji, less tall --- */
+.fb-dash .ride-type-card { padding: 14px 12px !important; }
+.fb-dash .ride-type-card .emoji { font-size: 32px; line-height: 1.4; }
+
+/* --- Bell: grey round button --- */
+.fb-dash .notification-bell {
+  background: #e4e6eb !important;
+  border-radius: 50% !important;
+  width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fb-dash .notification-bell:hover { background: #d8dadf !important; }
+
+/* --- Profile badge: lighter --- */
+.fb-dash .sidebar-profile-badge {
+  background: #e4e6eb !important;
+  border-radius: 50% !important;
+}
+
+/* --- Overview: cleaner --- */
+.fb-dash #view-dashboard label[for="rideId"],
+.fb-dash #view-dashboard #rideId { display: none; }   /* hide the testing box */
+
+.fb-dash #view-dashboard .card { max-width: 900px; }
+
+.fb-dash #view-dashboard h2 { font-size: 32px !important; font-weight: 800; }
+
+/* status pill */
+.fb-dash .ride-status-line {
+  display: inline-flex;
+  background: rgba(47, 125, 85, 0.1);
+  color: var(--accent) !important;
+  padding: 8px 14px;
+  border-radius: 999px;
+  margin-top: 16px;
+}
+
+.fb-dash .overview-actions { max-width: 720px; margin-top: 16px; }
+.fb-dash .overview-actions button { width: 100%; }
+
+/* --- Overview dashboard --- */
+.fb-dash .stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 20px 0;
+}
+.fb-dash .stat-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fb-dash .stat-label { font-size: 13.5px; font-weight: 600; color: #606770; }
+.fb-dash .stat-value { font-size: 32px; font-weight: 800; color: #14201A; line-height: 1.1; }
+.fb-dash .stat-value.accent { color: var(--accent); }
+
+.fb-dash .empty-state { text-align: center; padding: 24px 12px 12px; }
+.fb-dash .empty-icon { font-size: 44px; margin-bottom: 8px; }
+.fb-dash .empty-state h4 { margin: 0 0 6px; font-size: 18px; color: #14201A; }
+.fb-dash .empty-state p { margin: 0 0 18px; color: #606770; }
+.fb-dash .empty-state button { width: auto !important; padding: 12px 32px !important; }
+
+.fb-dash .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.fb-dash .card-head a { color: var(--accent); font-weight: 600; font-size: 14px; text-decoration: none; }
+.fb-dash .card-head a:hover { text-decoration: underline; }
+
+.fb-dash .recent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef0f2;
+}
+.fb-dash .recent-row:last-child { border-bottom: none; }
+.fb-dash .recent-type { font-weight: 700; color: #14201A; }
+.fb-dash .recent-sub { font-size: 13.5px; color: #606770; margin-top: 2px; }
+.fb-dash .recent-empty { text-align: center; color: #606770; padding: 16px 0; }
+
+@media (max-width: 700px) {
+  .fb-dash .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.fb-dash .cancel-ride-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #fde8e6;
+  color: #b3392b;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.fb-dash .cancel-ride-btn:hover:not(:disabled) { background: #fad3cf; }
+.fb-dash .cancel-ride-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* --- My Rides: clean cards --- */
+.fb-dash .ride-card-header { display: none !important; }   /* the old header row */
+
+.fb-dash .ride-card {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px !important;
+  margin-bottom: 12px;
+  background: #fff;
+  border: none !important;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.fb-dash .rc-main { min-width: 0; }
+.fb-dash .rc-top { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.fb-dash .rc-type { font-weight: 700; font-size: 16px; color: #14201A; }
+.fb-dash .rc-fare { font-weight: 800; font-size: 16px; color: var(--accent); }
+.fb-dash .rc-route { font-size: 13.5px; color: #606770; display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-dash .rc-arrow { color: #9aa3a0; }
+
+.fb-dash .rc-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.fb-dash .rc-side .cancel-ride-btn { margin-top: 0; }
+.fb-dash .rc-links { display: flex; gap: 10px; font-size: 12px; }
+.fb-dash .rc-links a { color: #8a9490; text-decoration: none; font-weight: 600; }
+.fb-dash .rc-links a:hover { color: var(--accent); text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .fb-dash .ride-card { flex-direction: column; align-items: flex-start; }
+  .fb-dash .rc-side { align-items: flex-start; }
+}
+
+/* --- Bell dropdown: fixed, never cut off --- */
+.fb-dash #notificationPanel {
+  position: fixed !important;
+  top: 64px !important;
+  right: 16px !important;
+  width: 360px !important;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18) !important;
+  overflow-y: auto;
+}
+.fb-dash #notificationPanel > div:first-child {
+  padding: 16px !important;
+  border-bottom: 1px solid #eef0f2 !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #14201A;
+}
+.fb-dash #notificationList { padding: 6px !important; }
+.fb-dash #fullNotificationList { padding: 8px !important; max-width: 640px !important; }
+
+/* --- Notification items --- */
+.fb-dash .notif-item { display: flex; gap: 12px; padding: 12px; border-radius: 12px; }
+.fb-dash .notif-item:hover { background: #f0f2f5; }
+.fb-dash .notif-item.unread { background: rgba(47, 125, 85, 0.08); }
+.fb-dash .notif-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: transparent; }
+.fb-dash .notif-item.unread .notif-dot { background: var(--accent); }
+.fb-dash .notif-body { flex: 1; min-width: 0; }
+.fb-dash .notif-title { font-weight: 700; font-size: 14.5px; color: #14201A; }
+.fb-dash .notif-msg { font-size: 13.5px; color: #3d4a43; margin-top: 2px; line-height: 1.4; }
+.fb-dash .notif-time { font-size: 12px; color: #606770; margin-top: 4px; }
+.fb-dash .notif-item.unread .notif-time { color: var(--accent); font-weight: 600; }
+
+.fb-dash .notif-actions { display: flex; gap: 8px; margin-top: 8px; }
+.fb-dash .notif-actions button {
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 5px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 700;
+  cursor: pointer;
+  background: #e4e6eb !important;
+  color: #14201A !important;
+}
+.fb-dash .notif-actions .mark-read-btn { background: rgba(47, 125, 85, 0.15) !important; color: var(--accent) !important; }
+.fb-dash .notif-actions button:hover { filter: brightness(0.95); }
+
+.fb-dash .notif-empty { text-align: center; color: #606770; padding: 32px 12px; }
+
+/* --- Line icons --- */
+.ic {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  display: block;
+}
+.fb-dash .sl-ico { display: inline-flex !important; width: 24px; justify-content: center; align-items: center; font-size: 0 !important; }
+.fb-dash .sidebar-link { align-items: center; }
+.fb-dash .sidebar-link:not(.active) .sl-ico { color: #606770; }
+.fb-dash .sidebar-link.active .sl-ico { color: var(--accent); }
+
+.fb-dash .sidebar-profile-badge { display: flex; align-items: center; justify-content: center; color: #606770; }
+.fb-dash .sidebar-profile-badge .ic { width: 22px; height: 22px; }
+
+.fb-dash .notification-bell { color: #3d4a43; }
+.fb-dash .notification-bell .ic { width: 22px; height: 22px; }
+
+.fb-dash .sidebar-logout { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ===== Passenger profile ===== */
+.fb-dash .pf-wrap { max-width: 900px; }
+
+.fb-dash .pf-hero {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.fb-dash .pf-cover {
+  height: 150px;
+  background: linear-gradient(135deg, #1F3A2C 0%, #2F7D55 60%, #4aa374 100%);
+}
+.fb-dash .pf-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 0 28px 24px;
+  flex-wrap: wrap;
+}
+.fb-dash .pf-avatar {
+  width: 120px;
+  height: 120px;
+  margin-top: -60px;
+  border-radius: 50%;
+  background: #e4e6eb;
+  border: 5px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #606770;
+  flex-shrink: 0;
+}
+.fb-dash .pf-avatar .ic { width: 52px; height: 52px; stroke-width: 1.6; }
+
+.fb-dash .pf-id { padding-top: 14px; min-width: 0; }
+.fb-dash .pf-id h2 { margin: 0; font-size: 28px; font-weight: 800; color: #14201A; }
+.fb-dash .pf-id p { margin: 2px 0 10px; color: #606770; font-size: 15px; }
+
+.fb-dash .pf-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.fb-dash .pf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #e4e6eb;
+  color: #14201A;
+  font-size: 13px;
+  font-weight: 700;
+}
+.fb-dash .pf-badge .ic { width: 15px; height: 15px; }
+.fb-dash .pf-badge.ok { background: rgba(47, 125, 85, 0.14); color: var(--accent); }
+
+.fb-dash .pf-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.fb-dash .pf-title { margin: 0 0 8px; font-size: 18px; font-weight: 800; color: #14201A; }
+
+.fb-dash .pf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eef0f2;
+}
+.fb-dash .pf-row:last-child { border-bottom: none; }
+.fb-dash .pf-label { display: flex; align-items: center; gap: 10px; color: #606770; font-weight: 600; font-size: 14.5px; }
+.fb-dash .pf-label .ic { width: 18px; height: 18px; }
+.fb-dash .pf-value { color: #14201A; font-weight: 600; text-align: right; }
+.fb-dash .pf-value.ok { color: var(--accent); font-weight: 700; }
+
+.fb-dash .pf-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  margin-top: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #14201A;
+  cursor: pointer;
+  text-align: left;
+}
+.fb-dash .pf-action:hover { background: #f0f2f5; }
+.fb-dash .pf-action .ic { color: #606770; }
+.fb-dash .pf-action.danger { color: #b3392b; }
+.fb-dash .pf-action.danger .ic { color: #b3392b; }
+.fb-dash .pf-action:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .fb-dash .pf-grid { grid-template-columns: 1fr; }
+  .fb-dash .pf-head { padding: 0 18px 20px; }
+  .fb-dash .pf-id h2 { font-size: 24px; }
 }

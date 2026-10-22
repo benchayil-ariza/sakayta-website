@@ -243,7 +243,7 @@ final class AdminService
         $pdo = Database::connection();
 
         // Check if driver exists
-        $stmt = $pdo->prepare('SELECT id, licenseStatus, verified FROM drivers WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, licenseNumber, licenseStatus, verified FROM drivers WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $driverId]);
         $driver = $stmt->fetch();
 
@@ -255,18 +255,26 @@ final class AdminService
         if ($driver['licenseStatus'] !== 'pending') {
             throw new AdminException('Only drivers with pending license status can be verified.', 409);
         }
+        if ($driver['licenseNumber'] === null || trim((string) $driver['licenseNumber']) === '' || (int) $driver['verified'] !== 0) {
+            throw new AdminException('Driver does not have a pending license submission.', 409);
+        }
 
         // Update driver to verified
         $now = date('Y-m-d H:i:s');
         $stmt = $pdo->prepare(
-            'UPDATE drivers SET licenseStatus = :licenseStatus, verified = :verified, licenseVerifiedAt = :licenseVerifiedAt WHERE id = :id'
+            "UPDATE drivers
+                SET licenseStatus = 'verified', verified = 1, licenseVerifiedAt = :licenseVerifiedAt
+              WHERE id = :id AND licenseStatus = 'pending' AND verified = 0
+                AND BINARY licenseNumber = BINARY :licenseNumber"
         );
         $stmt->execute([
-            'licenseStatus' => 'verified',
-            'verified' => 1,
             'licenseVerifiedAt' => $now,
             'id' => $driverId,
+            'licenseNumber' => $driver['licenseNumber'],
         ]);
+        if ($stmt->rowCount() !== 1) {
+            throw new AdminException('Driver license review is no longer pending.', 409);
+        }
 
         // Log the action
         $this->logAction(
@@ -292,7 +300,7 @@ final class AdminService
         $pdo = Database::connection();
 
         // Check if driver exists
-        $stmt = $pdo->prepare('SELECT id, licenseStatus FROM drivers WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, licenseNumber, licenseStatus, verified FROM drivers WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $driverId]);
         $driver = $stmt->fetch();
 
@@ -304,17 +312,24 @@ final class AdminService
         if ($driver['licenseStatus'] !== 'pending') {
             throw new AdminException('Only drivers with pending license status can be rejected.', 409);
         }
+        if ($driver['licenseNumber'] === null || trim((string) $driver['licenseNumber']) === '' || (int) $driver['verified'] !== 0) {
+            throw new AdminException('Driver does not have a pending license submission.', 409);
+        }
 
         // Update driver to rejected
-        $now = date('Y-m-d H:i:s');
         $stmt = $pdo->prepare(
-            'UPDATE drivers SET licenseStatus = :licenseStatus, verified = :verified WHERE id = :id'
+            "UPDATE drivers
+                SET licenseStatus = 'rejected', verified = 0, licenseVerifiedAt = NULL
+              WHERE id = :id AND licenseStatus = 'pending' AND verified = 0
+                AND BINARY licenseNumber = BINARY :licenseNumber"
         );
         $stmt->execute([
-            'licenseStatus' => 'rejected',
-            'verified' => 0,
             'id' => $driverId,
+            'licenseNumber' => $driver['licenseNumber'],
         ]);
+        if ($stmt->rowCount() !== 1) {
+            throw new AdminException('Driver license review is no longer pending.', 409);
+        }
 
         // Log the action
         $this->logAction(

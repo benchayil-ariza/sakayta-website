@@ -38,7 +38,7 @@
 
   <service name="DriverVerificationService">
     <port name="DriverVerificationPort" binding="tns:DriverVerificationBinding">
-      <soap:address location="http://localhost/soap-service/driverVerification.php"/>
+      <soap:address location="http://localhost:8080/driverVerification.php"/>
     </port>
   </service>
 </definitions>

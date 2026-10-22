@@ -67,6 +67,29 @@ final class DriverController
         Response::json(200, $result);
     }
 
+    /** PUT /api/drivers/me/location -> 200 own profile location. */
+    public function updateLocation(): void
+    {
+        $claims = CurrentUser::requiredDriver();
+        $body = $this->jsonBody();
+
+        if (!array_key_exists('latitude', $body) || !array_key_exists('longitude', $body)
+            || !is_numeric($body['latitude']) || !is_numeric($body['longitude'])) {
+            throw new DriverException('Latitude and longitude must be numeric.', 400);
+        }
+
+        $latitude = (float) $body['latitude'];
+        $longitude = (float) $body['longitude'];
+        if (!is_finite($latitude) || !is_finite($longitude)
+            || $latitude < -90 || $latitude > 90
+            || $longitude < -180 || $longitude > 180) {
+            throw new DriverException('Coordinates are outside the valid geographic range.', 400);
+        }
+
+        $result = $this->service->updateLocation($claims['uid'], $latitude, $longitude);
+        Response::json(200, $result);
+    }
+
     /** POST /api/drivers/me/submit-license -> 200 pending | 404 none. */
     public function submitLicense(): void
     {
