@@ -110,28 +110,52 @@ final class RideService
         $id = 'r_' . time() . '_' . substr(bin2hex(random_bytes(9)), 0, 9);
         $now = date('Y-m-d H:i:s');
 
-        $pdo->prepare(
-            'INSERT INTO rides (id, passengerName, rideType, pickupLat, pickupLng, dropoffLat,
-                                dropoffLng, status, distanceKm, fareEstimate, createdAt, updatedAt, userId)
-             VALUES (:id, :passengerName, :rideType, :pickupLat, :pickupLng, :dropoffLat,
-                     :dropoffLng, :status, :distanceKm, :fareEstimate, :createdAt, :updatedAt, :userId)'
-        )->execute([
-            'id'            => $id,
-            'passengerName' => $passengerName,
-            'rideType'      => $rideType,
-            'pickupLat'     => $pickupLat,
-            'pickupLng'     => $pickupLng,
-            'dropoffLat'    => $dropoffLat,
-            'dropoffLng'    => $dropoffLng,
-            'status'        => 'pending',
-            'distanceKm'    => $distanceKm,
-            'fareEstimate'  => $fareEstimate,
-            'createdAt'     => $now,
-            'updatedAt'     => $now,
-            'userId'        => $userId,
-        ]);
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO rides (id, passengerName, rideType, pickupLat, pickupLng, dropoffLat,
+                                    dropoffLng, status, distanceKm, fareEstimate, createdAt, updatedAt, userId)
+                 VALUES (:id, :passengerName, :rideType, :pickupLat, :pickupLng, :dropoffLat,
+                         :dropoffLng, :status, :distanceKm, :fareEstimate, :createdAt, :updatedAt, :userId)'
+            )->execute([
+                'id'            => $id,
+                'passengerName' => $passengerName,
+                'rideType'      => $rideType,
+                'pickupLat'     => $pickupLat,
+                'pickupLng'     => $pickupLng,
+                'dropoffLat'    => $dropoffLat,
+                'dropoffLng'    => $dropoffLng,
+                'status'        => 'pending',
+                'distanceKm'    => $distanceKm,
+                'fareEstimate'  => $fareEstimate,
+                'createdAt'     => $now,
+                'updatedAt'     => $now,
+                'userId'        => $userId,
+            ]);
 
-        $ride = $this->findById($userId, $id);
+            // Read ownership back from the persisted ride; never derive the recipient
+            // from request data or guess an owner for legacy/null-owned rides.
+            $ride = $this->findById($userId, $id);
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new \RuntimeException('Created ride has no passenger owner.');
+            }
+
+            $this->createNotification(
+                $passengerUserId,
+                $id,
+                'ride_booked',
+                'Ride request received',
+                'Your ride request has been submitted.'
+            );
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
         // Existing dispatch: trigger offer mechanism if eligible driver exists
         try {
             $driver = $this->nearestEligibleDriver($pickupLat, $pickupLng);
@@ -434,7 +458,7 @@ final class RideService
         $pdo->beginTransaction();
         try {
             $rideStmt = $pdo->prepare(
-                'SELECT id, status, requestedDriver, requestStatus, requestExpiresAt,
+                'SELECT id, userId, status, requestedDriver, requestStatus, requestExpiresAt,
                         CASE WHEN requestExpiresAt IS NOT NULL AND requestExpiresAt > NOW() THEN 1 ELSE 0 END AS requestIsUnexpired
                  FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
             );
@@ -518,6 +542,17 @@ final class RideService
             }
 
             $updatedRide = $this->findRideByIdInternal($rideId);
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new RideException('Passenger account is unavailable.', 409);
+            }
+            $this->createNotification(
+                $passengerUserId,
+                $rideId,
+                'ride_assigned',
+                'Driver assigned',
+                'A driver accepted your ride request.'
+            );
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -540,7 +575,7 @@ final class RideService
         $pdo->beginTransaction();
         try {
             $rideStmt = $pdo->prepare(
-                'SELECT id, driverId, status
+                'SELECT id, userId, driverId, status
                  FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
             );
             $rideStmt->execute(['id' => $rideId]);
@@ -583,6 +618,17 @@ final class RideService
             }
 
             $updatedRide = $this->findRideByIdInternal($rideId);
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new RideException('Passenger account is unavailable.', 409);
+            }
+            $this->createNotification(
+                $passengerUserId,
+                $rideId,
+                'ride_en_route',
+                'Ride started',
+                'Your ride is now en route.'
+            );
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -606,7 +652,7 @@ final class RideService
         try {
             // Keep the same ride-then-driver lock order used by acceptRide() and startRide().
             $rideStmt = $pdo->prepare(
-                'SELECT id, driverId, status
+                'SELECT id, userId, driverId, status
                  FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
             );
             $rideStmt->execute(['id' => $rideId]);
@@ -657,6 +703,17 @@ final class RideService
             }
 
             $updatedRide = $this->findRideByIdInternal($rideId);
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new RideException('Passenger account is unavailable.', 409);
+            }
+            $this->createNotification(
+                $passengerUserId,
+                $rideId,
+                'ride_completed',
+                'Ride completed',
+                'Your ride has been completed.'
+            );
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -676,7 +733,7 @@ final class RideService
         try {
             $driver = $this->getDriverProfile($userId);
             $driverId = (string) ($driver['id'] ?? '');
-            $stmt = $pdo->prepare('SELECT id, status, requestedDriver, requestStatus, requestExpiresAt, pickupLat, pickupLng FROM rides WHERE id = :id LIMIT 1 FOR UPDATE');
+            $stmt = $pdo->prepare('SELECT id, userId, status, requestedDriver, requestStatus, requestExpiresAt, pickupLat, pickupLng FROM rides WHERE id = :id LIMIT 1 FOR UPDATE');
             $stmt->execute(['id' => $rideId]);
             $ride = $stmt->fetch();
             if (!$ride) { throw new RideException('Ride not found.', 404); }
@@ -688,6 +745,18 @@ final class RideService
             if ($declineStmt->rowCount() !== 1) {
                 throw new RideException('Ride offer is no longer available.', 409);
             }
+
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new RideException('Passenger account is unavailable.', 409);
+            }
+            $this->createNotification(
+                $passengerUserId,
+                $rideId,
+                'ride_driver_declined',
+                'Driver update',
+                'A driver declined your ride request.'
+            );
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {

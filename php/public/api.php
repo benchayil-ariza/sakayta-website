@@ -23,6 +23,8 @@ use Sakayta\Driver\DriverController;
 use Sakayta\Driver\DriverException;
 use Sakayta\Ride\RideController;
 use Sakayta\Ride\RideException;
+use Sakayta\Notification\NotificationController;
+use Sakayta\Notification\NotificationException;
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -30,7 +32,7 @@ header('Content-Type: application/json; charset=utf-8');
 // PHP API cross-origin. Without these headers the browser blocks the fetch
 // (preflight fails on OPTIONS) and the UI shows a "Network error".
 header('Access-Control-Allow-Origin: http://localhost:3000');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Max-Age: 86400');
 
@@ -169,6 +171,24 @@ try {
         } else {
             $notFound();
         }
+    } elseif ($resource === 'notifications') {
+        $controller = new NotificationController();
+
+        if ($depth === 1) {
+            if ($method !== 'GET') {
+                $methodNotAllowed('GET');
+            }
+            $controller->list();
+        } elseif ($depth === 2 && $method === 'DELETE') {
+            $controller->delete($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'read') {
+            if ($method !== 'PUT') {
+                $methodNotAllowed('PUT');
+            }
+            $controller->markRead($parts[1]);
+        } else {
+            $notFound();
+        }
     } elseif ($resource === 'admin') {
         // Admin routes: require admin role
         $controller = new AdminController();
@@ -224,6 +244,9 @@ try {
     http_response_code($e->httpStatus());
     echo json_encode(['error' => $e->getMessage()]);
 } catch (RideException $e) {
+    http_response_code($e->httpStatus());
+    echo json_encode(['error' => $e->getMessage()]);
+} catch (NotificationException $e) {
     http_response_code($e->httpStatus());
     echo json_encode(['error' => $e->getMessage()]);
 } catch (\Throwable $e) {

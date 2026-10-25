@@ -384,10 +384,9 @@ function notifHtml(n) {
 }
 
 // FR-16: Update notification UI
-function updateNotificationUI() {
+function updateUnreadNotificationBadge() {
   const unreadCount = notifications.filter(n => !n.read).length;
   const badge = document.getElementById("unreadCount");
-  const list = document.getElementById("notificationList");
 
   if (unreadCount > 0) {
     badge.textContent = unreadCount;
@@ -395,6 +394,12 @@ function updateNotificationUI() {
   } else {
     badge.style.display = "none";
   }
+}
+
+function updateNotificationUI() {
+  updateUnreadNotificationBadge();
+  const list = document.getElementById("notificationList");
+
   list.innerHTML = notifications.length === 0
   ? `<div class="notif-empty">No notifications yet</div>`
   : notifications.map(notifHtml).join("");
@@ -1113,6 +1118,7 @@ async function loadFullNotifications() {
     if (!res.ok) return;
     const data = await res.json();
     notifications = data.notifications || [];
+    updateUnreadNotificationBadge();
     renderFullNotifications();
   } catch (err) {
     console.warn("Could not load notifications:", err.message);

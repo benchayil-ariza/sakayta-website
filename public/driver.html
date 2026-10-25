@@ -422,7 +422,7 @@
   async function loadNotifications() {
     if (!token) return;
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await fetch("http://localhost:8088/api/notifications", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -433,6 +433,7 @@
       console.warn("Could not load notifications:", err.message);
     }
   }
+  window.loadNotifications = loadNotifications;
 
   function updateNotificationUI() {
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -463,7 +464,7 @@
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
         try {
-          const res = await fetch(`/api/notifications/${id}/read`, {
+          const res = await fetch(`http://localhost:8088/api/notifications/${id}/read`, {
             method: "PUT",
             headers: { "Authorization": `Bearer ${token}` }
           });
@@ -478,7 +479,7 @@
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
         try {
-          const res = await fetch(`/api/notifications/${id}`, {
+          const res = await fetch(`http://localhost:8088/api/notifications/${id}`, {
             method: "DELETE",
             headers: { "Authorization": `Bearer ${token}` }
           });
@@ -1880,21 +1881,6 @@
       setTimeout(loadDriverProfile, 800);
     } catch(e){ console.warn('Decline error',e); }
   }
-  async function loadNotifications() {
-    try {
-      const token = localStorage.getItem('sakayta_token');
-      const res = await fetch('http://localhost:8088/api/notifications', { headers: token ? {'Authorization':'Bearer '+token} : {} });
-      if (!res.ok) return;
-      const list = await res.json();
-      // Sidebar notifications page uses updateNotificationUI(); dashboard cards removed
-      const sidebarBadge = document.getElementById('unreadCount');
-      if (sidebarBadge) sidebarBadge.textContent = (Array.isArray(list)?list:[]).filter(n => !n.read).length;
-      const sidebarList = document.getElementById('notificationList');
-      if (sidebarList && Array.isArray(list)) {
-        sidebarList.innerHTML = list.length === 0 ? '<p class="active-ride-empty">No notifications.</p>' : list.map(n => '<div style="padding:6px 0; border-bottom:1px dashed var(--sage-300);"><strong>' + (n.title||'') + '</strong> <span style="font-size:11px;color:var(--ink-soft)">(' + (n.createdAt||'') + ')</span><br/><span>' + (n.message||'') + '</span></div>').join('');
-      }
-    } catch(e){ console.warn('Notifications load error', e); }
-  }
   function pollRideState(ride) {
     const requestCard = document.getElementById('legacyRideRequestCard');
     const statusRide = document.getElementById('statusRide');
@@ -1920,7 +1906,7 @@
     }
   }
   // Lightweight polling every 4s for ride + notifications
-  setInterval(() => { loadActiveRide(); loadNotifications(); }, 4000);
+  setInterval(() => { loadActiveRide(); window.loadNotifications(); }, 4000);
 
   </script>
   <script>

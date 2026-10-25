@@ -367,3 +367,32 @@ html:not(.dev) #view-location #stopBtn,
 #view-location:has(.loc-pill[data-state="on"]) .loc-msg.m-on { display: block; }
 #view-location:has(.loc-pill[data-state="error"]) .loc-msg.m-off { display: none; }
 #view-location:has(.loc-pill[data-state="error"]) .loc-msg.m-error { display: block; color: #b3392b; }
+
+/* ===== Driver notifications (same look as the passenger) ===== */
+.fb-dash #notificationList > div {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 12px;
+  opacity: 1 !important;
+  padding: 14px 16px 14px 38px !important;
+}
+.fb-dash #notificationList > div:hover { background: #f7f8fa !important; }
+/* unread items are the ones with a background in their inline style */
+.fb-dash #notificationList > div[style*="background"] { background: rgba(47, 125, 85, 0.08) !important; }
+.fb-dash #notificationList > div[style*="background"]::before {
+  content: ""; position: absolute; left: 16px; top: 20px;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+}
+.fb-dash #notificationList > div > div:nth-child(1) { font-size: 15px !important; font-weight: 700 !important; color: #14201A !important; }
+.fb-dash #notificationList > div > div:nth-child(2) { font-size: 14px !important; color: #3d4a43 !important; line-height: 1.4; margin-top: 2px !important; }
+.fb-dash #notificationList > div > div:nth-child(3) { gap: 8px; margin-top: 10px !important; }
+.fb-dash #notificationList .mark-read-btn,
+.fb-dash #notificationList .delete-notif-btn {
+  border: none !important; border-radius: 999px !important; padding: 6px 14px !important;
+  font-size: 13px !important; font-weight: 700; cursor: pointer;
+  background: #e4e6eb !important; color: #14201A !important;
+}
+.fb-dash #notificationList .mark-read-btn { background: rgba(47, 125, 85, 0.15) !important; color: var(--accent) !important; }
+.fb-dash #notificationList .mark-read-btn:hover,
+.fb-dash #notificationList .delete-notif-btn:hover { filter: brightness(0.95); }

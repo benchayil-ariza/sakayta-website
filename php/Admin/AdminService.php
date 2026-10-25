@@ -354,15 +354,13 @@ final class AdminService
     private function logAction(string $actionType, string $description, string $performedBy, ?string $metadata): void
     {
         $pdo = Database::connection();
-        $id = 'a_' . time() . '_' . substr(bin2hex(random_bytes(9)), 0, 9);
         $performedAt = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            'INSERT INTO admin_action_logs (id, actionType, description, performedBy, performedAt, metadata)
-             VALUES (:id, :actionType, :description, :performedBy, :performedAt, :metadata)'
+            'INSERT INTO admin_action_logs (actionType, description, performedBy, performedAt, metadata)
+             VALUES (:actionType, :description, :performedBy, :performedAt, :metadata)'
         );
         $stmt->execute([
-            'id' => $id,
             'actionType' => $actionType,
             'description' => $description,
             'performedBy' => $performedBy,

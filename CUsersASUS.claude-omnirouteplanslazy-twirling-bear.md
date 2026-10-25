@@ -1,0 +1,4 @@
+Context: Homepage redesign approved — visual only, preserve all functionality (nav, hero sections, buttons, footer, JS IDs/classes). No backend/JS changes.
+Approach: CSS-first redesign of public/index.html using existing /css/style.css palette (paper/amber/stone/slate). Preserve all selectors: #how-it-works, #features, #about, #nav-logout-btn, .btn, .hero-ctas, .hero-inner, .map-hero, .steps-grid, .features-grid, .cta-band, .site-footer, .nav-auth-buttons, homepage-animations.js + navbar-auth.js untouched.
+Critical paths: public/index.html (visual layout/spacing/typography/section styling), public/css/style.css (only if new tokens needed).
+Verification: git diff shows only index.html (+ possibly style.css) changes; no edits to js/, routes/, server.js; responsive preserved; all anchor targets (#how-it-works etc.) and button IDs intact.
