@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SakayTa Cash Receipt</title>
+  <style>
+    :root { color-scheme: light; --green:#1f6b4e; --dark:#173528; --muted:#68766f; --line:#e4ebe6; --paper:#fff; --bg:#f1f5f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:32px 16px; background:var(--bg); color:var(--dark); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(100%,620px); margin:0 auto; }
+    .receipt { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 45px #183d2b12; overflow:hidden; }
+    header { padding:30px 32px 24px; border-bottom:1px dashed #cbd8d0; text-align:center; }
+    .brand { color:var(--green); font-size:13px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; }
+    h1 { margin:12px 0 4px; font-size:25px; line-height:1.2; }
+    .subtle,.meta-label { color:var(--muted); }
+    .amount { padding:25px 32px; text-align:center; background:#f7faf8; }
+    .amount strong { display:block; margin-top:5px; font-size:40px; letter-spacing:-.04em; }
+    section { padding:22px 32px; border-bottom:1px solid var(--line); }
+    h2 { margin:0 0 15px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+    .row { display:flex; justify-content:space-between; gap:16px; padding:7px 0; }
+    .row span:last-child { text-align:right; overflow-wrap:anywhere; }
+    .total { margin-top:8px; padding-top:15px; border-top:1px solid var(--line); font-weight:800; font-size:17px; }
+    .cash { display:inline-block; padding:4px 10px; background:#e8f3ec; color:#1f6b4e; border-radius:20px; font-weight:700; text-transform:capitalize; }
+    footer { padding:22px 32px 28px; text-align:center; }
+    a { display:inline-block; color:var(--green); font-weight:700; text-decoration:none; }
+    .status { margin:0 0 15px; color:var(--muted); text-align:center; }
+    .error { color:#a33b32; }
+    @media(max-width:480px) { body{padding:16px 10px}.receipt{border-radius:14px}header,section,.amount,footer{padding-left:20px;padding-right:20px}h1{font-size:22px}.amount strong{font-size:34px}.row{gap:8px} }
+  </style>
+</head>
+<body>
+  <main>
+    <p id="pageStatus" class="status" role="status" aria-live="polite">Loading your receipt…</p>
+    <article id="receipt" class="receipt" hidden>
+      <header>
+        <div class="brand">SakayTa</div>
+        <h1>Hope you had a safe ride!</h1>
+        <div class="subtle">Your completed ride receipt</div>
+      </header>
+      <div class="amount">
+        <span class="meta-label">Total fare</span>
+        <strong id="totalFare">—</strong>
+      </div>
+      <section>
+        <h2>Ride details</h2>
+        <div class="row"><span class="meta-label">Completed</span><span id="completedAt">—</span></div>
+        <div class="row"><span class="meta-label">Transaction reference</span><span id="transactionId">—</span></div>
+        <div class="row"><span class="meta-label">Ride reference</span><span id="rideId">—</span></div>
+        <div class="row"><span class="meta-label">Ride type</span><span id="rideType">—</span></div>
+        <div class="row"><span class="meta-label">Distance</span><span id="distance">—</span></div>
+      </section>
+      <section>
+        <h2>People</h2>
+        <div class="row"><span class="meta-label">Passenger</span><span id="passengerName">—</span></div>
+        <div class="row"><span class="meta-label">Driver</span><span id="driverName">—</span></div>
+      </section>
+      <section>
+        <h2>Route</h2>
+        <div class="row"><span class="meta-label">Pickup</span><span id="pickup">—</span></div>
+        <div class="row"><span class="meta-label">Drop-off</span><span id="dropoff">—</span></div>
+      </section>
+      <section>
+        <h2>Receipt summary</h2>
+        <div class="row"><span>Ride fare</span><span id="rideFare">—</span></div>
+        <div class="row"><span class="meta-label">Payment method</span><span id="paymentMethod" class="cash">Cash</span></div>
+        <div class="row total"><span>Total</span><span id="summaryTotal">—</span></div>
+        <p class="subtle" style="font-size:12px;margin:14px 0 0">Cash payment is recorded as the ride payment method. This receipt does not verify that cash was collected.</p>
+      </section>
+      <footer><a id="backLink" href="passenger.html">Back to SakayTa</a></footer>
+    </article>
+  </main>
+  <script>
+    const statusEl = document.getElementById("pageStatus");
+    const rideId = new URLSearchParams(location.search).get("rideId") || "";
+    const setText = (id, value) => { document.getElementById(id).textContent = value; };
+    const coordinates = (lat, lng) => lat == null || lng == null
+      ? "Location not recorded"
+      : `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+
+    async function loadReceipt() {
+      const token = localStorage.getItem("sakayta_token");
+      if (!rideId || !token) throw new Error("Sign in with the account linked to this ride to view its receipt.");
+      const response = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(rideId)}/receipt`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.transaction) throw new Error(data.error || "Receipt is unavailable.");
+      const t = data.transaction;
+      const fare = Number(t.fareAmount);
+      if (!Number.isFinite(fare) || fare < 0) throw new Error("Receipt fare is invalid.");
+      const total = new Intl.NumberFormat(undefined, { style:"currency", currency:t.currency || "PHP" }).format(fare);
+      setText("totalFare", total);
+      setText("summaryTotal", total);
+      setText("rideFare", total);
+      setText("transactionId", t.id || "—");
+      setText("rideId", t.rideId || "—");
+      setText("rideType", t.rideType || "—");
+      setText("distance", t.distanceKm == null ? "Not recorded" : `${Number(t.distanceKm).toFixed(2)} km`);
+      setText("passengerName", t.passengerName || "Not recorded");
+      setText("driverName", t.driverName || "Not recorded");
+      setText("pickup", coordinates(t.pickupLat, t.pickupLng));
+      setText("dropoff", coordinates(t.dropoffLat, t.dropoffLng));
+      setText("paymentMethod", t.paymentMethod || "Cash");
+      const completed = t.completedAt ? new Date(String(t.completedAt).replace(" ", "T")) : null;
+      setText("completedAt", completed && !Number.isNaN(completed.getTime()) ? completed.toLocaleString() : "Not recorded");
+      let role = "";
+      try { role = JSON.parse(localStorage.getItem("sakayta_user") || "null")?.role || ""; } catch (_) {}
+      document.getElementById("backLink").href = role === "driver" ? "driver.html" : "passenger.html";
+      document.getElementById("receipt").hidden = false;
+      statusEl.hidden = true;
+    }
+
+    loadReceipt().catch(error => {
+      statusEl.textContent = error.message;
+      statusEl.classList.add("error");
+    });
+  </script>
+</body>
+</html>
