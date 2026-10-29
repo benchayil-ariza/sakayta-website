@@ -1263,7 +1263,7 @@ async function loadOverview() {
     if (sorted.length === 0) {
       recent.innerHTML = `<div class="recent-empty">No rides yet.</div>`;
     } else {
-      recent.innerHTML = sorted.slice(0, 5).map(r => `
+      recent.innerHTML = sorted.slice(0, 6).map(r => `
         <div class="recent-row">
           <div>
             <div class="recent-type">${escapeHtml(r.rideType || "Tricycle")}</div>
