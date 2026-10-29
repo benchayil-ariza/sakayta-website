@@ -368,6 +368,9 @@ function timeAgo(d) {
 }
 
 function notifHtml(n) {
+  const receiptLink = n.type === "receipt_ready" && n.rideId
+    ? `<a class="notif-receipt-link" href="receipt.html?rideId=${encodeURIComponent(n.rideId)}">View cash receipt</a>`
+    : "";
   return `
     <div class="notif-item ${n.read ? "" : "unread"}">
       <div class="notif-dot"></div>
@@ -375,6 +378,7 @@ function notifHtml(n) {
         <div class="notif-title">${escapeHtml(n.title)}</div>
         <div class="notif-msg">${escapeHtml(n.message)}</div>
         <div class="notif-time">${timeAgo(n.created_at)}</div>
+        ${receiptLink}
         <div class="notif-actions">
           ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}">Mark read</button>` : ""}
           <button class="delete-notif-btn" data-id="${n.id}">Delete</button>
@@ -451,6 +455,9 @@ socket.on("notification:new", (notification) => {
   notifications.unshift(notification);
   updateNotificationUI();
 });
+
+// PHP persists receipt notifications; refresh the list while the page is open.
+setInterval(loadNotifications, 4000);
 
 // Load REAL ride info (passenger name used for greeting, real fare) from the API
 async function loadRideInfo() {
