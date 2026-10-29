@@ -127,7 +127,7 @@
 
     <!-- shown when there is no active ride -->
     <div id="noRideState" class="empty-state">
-      <div class="empty-icon" aria-hidden="true">🛺</div>
+      <div class="empty-icon" aria-hidden="true"><svg class="ic"><use href="#i-car"/></svg></div>
       <h4>No active ride</h4>
       <p>Book a ride and it will show up here.</p>
       <button class="primary" onclick="document.querySelector('.sidebar-link[data-view=book-ride]').click()">Book a Ride</button>
@@ -393,7 +393,7 @@ function updateUnreadNotificationBadge() {
   const badge = document.getElementById("unreadCount");
 
   if (unreadCount > 0) {
-    badge.textContent = unreadCount;
+    badge.textContent = unreadCount > 9 ? "9+" : unreadCount;
     badge.style.display = "flex";
   } else {
     badge.style.display = "none";
@@ -1263,7 +1263,7 @@ async function loadOverview() {
     if (sorted.length === 0) {
       recent.innerHTML = `<div class="recent-empty">No rides yet.</div>`;
     } else {
-      recent.innerHTML = sorted.slice(0, 3).map(r => `
+      recent.innerHTML = sorted.slice(0, 5).map(r => `
         <div class="recent-row">
           <div>
             <div class="recent-type">${escapeHtml(r.rideType || "Tricycle")}</div>
@@ -1295,7 +1295,53 @@ loadAuthenticatedPassenger();
       </div>
     </div>
   </div>
-
   <script src="/js/navbar-auth.js"></script>
+
+  <script>
+// Overview: fit on one screen on laptop / PC (layout only, no ride logic).
+// If the window is too small to fit it, normal scrolling stays on.
+(function () {
+  try {
+    var view = document.getElementById("view-dashboard");
+    if (!view) return;
+    var desk = window.matchMedia("(min-width: 1000px) and (min-height: 540px)");
+    var queued = false;
+
+    function fit() {
+      queued = false;
+      document.body.classList.remove("ov-fit");
+      view.style.height = "";
+      if (!view.classList.contains("active") || !desk.matches) return;
+
+      var main = view.closest(".driver-main");
+      if (main) main.scrollTop = 0;
+      window.scrollTo(0, 0);
+
+      var top = view.getBoundingClientRect().top;
+      var below = 0;
+      for (var el = view.parentElement; el; el = el.parentElement) {
+        var cs = getComputedStyle(el);
+        below += (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+        if (el === document.body) break;
+      }
+      var room = Math.floor(window.innerHeight - top - below) - 4;
+      if (view.offsetHeight <= room) {
+        view.style.height = room + "px";
+        document.body.classList.add("ov-fit");
+      }
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    new MutationObserver(schedule).observe(view, { childList: true, characterData: true, subtree: true });
+    new MutationObserver(schedule).observe(view, { attributes: true, attributeFilter: ["class"] });
+    schedule();
+  } catch (e) { console.warn("Overview fit unavailable", e); }
+})();
+</script>
+
+  
 </body>
 </html>

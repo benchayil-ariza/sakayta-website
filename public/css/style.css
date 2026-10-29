@@ -2714,3 +2714,63 @@ body.fb-dash,
   .fb-dash .pf-head { padding: 0 18px 20px; }
   .fb-dash .pf-id h2 { font-size: 24px; }
 }
+
+/* ===== Passenger Overview: fits one screen on laptop / PC ===== */
+@media (min-width: 1000px) {
+  .fb-dash #view-dashboard.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "title title" "stats stats" "ride recent";
+    gap: 14px 16px;
+    align-content: start;
+    max-width: 1180px;
+  }
+  .fb-dash #view-dashboard > nav,
+  .fb-dash #view-dashboard > p { display: none; }
+  .fb-dash #view-dashboard > h2 { grid-area: title; margin: 0 !important; font-size: 26px !important; }
+
+  /* stat cards */
+  .fb-dash #view-dashboard .stat-grid { grid-area: stats; margin: 0; max-width: none; gap: 14px; }
+  .fb-dash #view-dashboard .stat-card { padding: 12px 18px; gap: 2px; }
+  .fb-dash #view-dashboard .stat-label { font-size: 12px; }
+  .fb-dash #view-dashboard .stat-value { font-size: 26px; }
+
+  /* the two cards: Current ride (left) and Recent rides (right) */
+  .fb-dash #view-dashboard > div:nth-of-type(2),
+  .fb-dash #view-dashboard > div:nth-of-type(3) {
+    margin: 0 !important; max-width: none !important; padding: 16px 20px !important;
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .fb-dash #view-dashboard > div:nth-of-type(2) { grid-area: ride; }
+  .fb-dash #view-dashboard > div:nth-of-type(3) { grid-area: recent; }
+  .fb-dash #view-dashboard .card-head { margin-bottom: 4px; }
+  .fb-dash #recentRides { flex: 1; min-height: 0; overflow: hidden; }
+  .fb-dash #recentRides .recent-row { padding: 10px 0; }
+  .fb-dash #recentRides .recent-row:nth-child(n+6) { display: none; }
+
+  /* empty state: small and centered in its card */
+  .fb-dash #view-dashboard #noRideState { margin-block: auto; padding: 8px; }
+  .fb-dash #view-dashboard .empty-icon { font-size: 36px; margin-bottom: 4px; }
+  .fb-dash #view-dashboard .empty-state h4 { font-size: 17px; margin-bottom: 4px; }
+  .fb-dash #view-dashboard .empty-state p { margin-bottom: 14px; }
+  .fb-dash #view-dashboard .empty-state button { padding: 10px 28px !important; }
+}
+
+/* show fewer recent rides on shorter screens */
+@media (min-width: 1000px) and (max-height: 820px) {
+  .fb-dash #recentRides .recent-row:nth-child(n+5) { display: none; }
+}
+@media (min-width: 1000px) and (max-height: 720px) {
+  .fb-dash #recentRides .recent-row:nth-child(n+4) { display: none; }
+}
+/* small screens keep the old look: 3 rides */
+@media (max-width: 999px) {
+  .fb-dash #recentRides .recent-row:nth-child(n+4) { display: none; }
+}
+
+/* the lock, switched on by the small script below only when everything fits */
+body.ov-fit .driver-main { overflow: hidden !important; }
+body.ov-fit #view-dashboard.active { overflow: hidden; }
+
+.fb-dash .empty-icon .ic { width: 40px; height: 40px; margin: 0 auto; color: #a9b1ad; stroke-width: 1.6; }
