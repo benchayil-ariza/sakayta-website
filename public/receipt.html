@@ -253,7 +253,7 @@
       setText("rideFare", total);
       setText("transactionId", t.id || "—");
       setText("rideId", t.rideId || "—");
-      setText("rideType", t.rideType || "—");
+      setText("rideType", (!t.rideType || t.rideType === "Tricycle") ? "Taxicle" : t.rideType);
       setText("distance", t.distanceKm == null ? "Not recorded" : `${Number(t.distanceKm).toFixed(2)} km`);
       setText("passengerName", t.passengerName || "Not recorded");
       setText("driverName", t.driverName || "Not recorded");

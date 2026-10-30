@@ -137,7 +137,7 @@
     <div id="activeRideState" style="display:none;">
       <div id="currentRideInfo">
         <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Driver</span><span id="riderDriverName">Verified driver</span></div>
-        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Tricycle</span></div>
+        <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Taxicle</span></div>
         <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Fare</span><span id="rideFare" style="font-family: var(--font-display); color: var(--amber-deep); font-size: 17px;">—</span></div>
         <div class="trip-summary-row" style="padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">ETA (estimated)</span><span id="rideEta">—</span></div>
       </div>
@@ -165,43 +165,67 @@
         <p style="color: var(--ink-soft); margin-top: 0; margin-bottom: 24px;">Set your trip, pick a ride type, and see your fare before confirming.</p>
 
         <div class="booking-grid" style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 24px; align-items: start;">
-          <div>
-            <div class="card">
-              <p id="bookIdentityLine" class="status-text" style="font-size:13px; color:var(--ink-soft); margin-bottom: 4px;">Booking as <strong id="bookPassengerNameLabel">…</strong></p>
+          <div class="bk-col">
+  <div class="card bk-card" id="bookCard">
+    <div class="bk-vehicle">
+      <span class="bk-vehicle-ico" aria-hidden="true">🛺</span>
+      <div>
+        <div class="bk-vehicle-name">Taxicle</div>
+        <div class="bk-vehicle-sub">Fare is based on distance</div>
+      </div>
+    </div>
 
-              <label style="margin-top: 16px;">Ride type</label>
-              <div class="ride-type-grid" role="radiogroup" aria-label="Ride type" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                <div class="ride-type-card selected" data-type="Tricycle" role="radio" aria-checked="true" tabindex="0" style="cursor:pointer; padding:12px; border:1px solid var(--sage-300); border-radius:8px; text-align:center;">
-                  <span class="emoji" aria-hidden="true">🛺</span><br/>Tricycle
-                </div>
-                <div class="ride-type-card" data-type="Habal-Habal" role="radio" aria-checked="false" tabindex="0" style="cursor:pointer; padding:12px; border:1px solid var(--sage-300); border-radius:8px; text-align:center;">
-                  <span class="emoji" aria-hidden="true">🏍️</span><br/>Habal-Habal
-                </div>
-              </div>
+    <!-- kept because the script still uses them; hidden by CSS -->
+    <p id="bookIdentityLine">Booking as <strong id="bookPassengerNameLabel">…</strong></p>
+    <span id="bookSummaryType">Taxicle</span>
 
-              <p id="bookMapInstructions" class="status-text" style="font-size:13px; color:var(--ink-soft); margin-bottom: 8px;">Click the map once for <strong>pickup</strong>, click again for <strong>drop-off</strong>.</p>
-              <p id="bookBookingError" class="field-error" role="alert" hidden style="font-size:12px; color:var(--danger);"></p>
+    <div class="bk-route">
+      <div class="bk-stop" id="bkStopA" data-set="0" data-active="1">
+        <span class="bk-dot a"></span>
+        <div class="bk-stop-body">
+          <div class="bk-label">Pickup</div>
+          <div class="bk-val"><span id="bookSummaryPickup">Not set</span></div>
+        </div>
+      </div>
+      <div class="bk-stop" id="bkStopB" data-set="0" data-active="0">
+        <span class="bk-dot b"></span>
+        <div class="bk-stop-body">
+          <div class="bk-label">Drop-off</div>
+          <div class="bk-val"><span id="bookSummaryDropoff">Not set</span></div>
+        </div>
+      </div>
+    </div>
 
-              <button id="bookRideBtn" class="primary" disabled style="width: 100%; justify-content: center; margin-top: 8px;">Book Ride</button>
-              <span id="bookRideSpinner" class="spinner" hidden aria-hidden="true"></span>
-            </div>
+    <p id="bookBookingError" class="field-error" role="alert" hidden style="font-size:12px; color:var(--danger);"></p>
 
-            <div class="card" id="tripCard" style="margin-top: 20px;">
-              <h3 style="margin: 0 0 8px; font-size: 17px;">Trip summary</h3>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Ride type</span><span id="bookSummaryType" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Tricycle</span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Pickup</span><span id="bookSummaryPickup" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Destination</span><span id="bookSummaryDropoff" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Distance</span><span id="bookSummaryDistance" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">—</span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Estimated Fare</span><span id="bookSummaryFare" style="font-family: var(--font-display); font-size: 18px; color: var(--amber-deep); text-align: right;">—</span></div>
-            </div>
+    <div class="bk-fare">
+      <div class="bk-fare-row"><span>Distance</span><b id="bookSummaryDistance">—</b></div>
+      <div class="bk-fare-row big"><span>Estimated fare</span><b id="bookSummaryFare">—</b></div>
+    </div>
 
-            <div id="bookResultCard" class="card" style="display:none; border-color: var(--amber-deep); margin-top: 20px;" role="status" aria-live="polite">
-              <h3 style="margin: 0 0 8px;">Booking Confirmed</h3>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Ride ID</span><span id="bookRideIdOut" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;"></span></div>
-              <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Estimated Fare</span><span id="bookFareOut" style="font-family: var(--font-display); font-size: 18px; color: var(--amber-deep); text-align: right;"></span></div>
-              <p style="font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 0;">Source: <span id="bookFareSourceOut"></span></p>
-            </div>
-          </div>
+    <button id="bookRideBtn" class="primary" disabled>Book Ride</button>
+    <span id="bookRideSpinner" class="spinner" hidden aria-hidden="true"></span>
+  </div>
+
+  <div id="bookResultCard" class="card bk-done" style="display:none;" role="status" aria-live="polite">
+    <div class="bk-done-head">
+      <span class="bk-check" aria-hidden="true">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </span>
+      <div>
+        <h3>Ride booked</h3>
+        <p>We're looking for a driver near you.</p>
+      </div>
+    </div>
+    <div class="bk-done-row"><span>Estimated fare</span><b id="bookFareOut"></b></div>
+    <div class="bk-done-row small"><span>Reference</span><b id="bookRideIdOut"></b></div>
+    <p hidden>Source: <span id="bookFareSourceOut"></span></p>
+    <div class="bk-done-actions">
+      <button type="button" class="ghost" onclick="window.resetBooking && window.resetBooking()">Book another ride</button>
+      <button type="button" class="primary" onclick="document.querySelector('.sidebar-link[data-view=dashboard]').click()">View my ride</button>
+    </div>
+  </div>
+</div>
 
           <div class="map-wrap">
             <div id="bookingMap" class="map" role="application" aria-label="Map for selecting pickup and drop-off points"></div>
@@ -342,6 +366,9 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+  // The database keeps the value "Tricycle". People see the local name.
+  function rideTypeLabel(t) { return (!t || t === "Tricycle") ? "Taxicle" : t; }
+
 // FR-16: Load notifications from API (FR-17 persistence)
 async function loadNotifications() {
   if (!token) return;
@@ -474,7 +501,7 @@ async function loadRideInfo() {
     const ride = await res.json();
     document.getElementById("greeting").textContent = `Good day, ${ride.passengerName}`;
     document.getElementById("rideFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
-    document.getElementById("rideVehicleType").textContent = escapeHtml(ride.rideType || "Tricycle");
+    document.getElementById("rideVehicleType").textContent = rideTypeLabel(ride.rideType);
     topbarPassengerEl.textContent = ride.passengerName || "Passenger";
     sidebarPassengerNameEl.textContent = ride.passengerName || "Passenger";
 
@@ -737,6 +764,14 @@ let bookingRideType = "Tricycle";
 let bookingUserLocationMarker = null;
 let bookingMap = null;
 
+  function pinIcon(kind) {
+    return L.divIcon({
+      className: "bk-pin",
+      html: `<span class="${kind}"></span>`,
+      iconSize: [28, 34], iconAnchor: [14, 34], popupAnchor: [0, -30]
+    });
+  }
+
 function initBookingMap() {
   if (bookingMap) return;
   bookingMap = L.map("bookingMap").setView([0, 0], 2);
@@ -747,16 +782,16 @@ function initBookingMap() {
   bookingMap.on("click", (e) => {
     if (!bookingPickup) {
       bookingPickup = e.latlng;
-      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
+      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup", icon: pinIcon("pickup") }).addTo(bookingMap).bindPopup("Pickup").openPopup();
     } else if (!bookingDropoff) {
       bookingDropoff = e.latlng;
-      bookingDropoffMarker = L.marker(bookingDropoff, { title: "Drop-off" }).addTo(bookingMap).bindPopup("Drop-off").openPopup();
+      bookingDropoffMarker = L.marker(bookingDropoff, { title: "Drop-off", icon: pinIcon("dropoff") }).addTo(bookingMap).bindPopup("Drop-off").openPopup();
     } else {
       bookingMap.removeLayer(bookingPickupMarker);
       bookingMap.removeLayer(bookingDropoffMarker);
       bookingPickup = e.latlng;
       bookingDropoff = null;
-      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup" }).addTo(bookingMap).bindPopup("Pickup").openPopup();
+      bookingPickupMarker = L.marker(bookingPickup, { title: "Pickup", icon: pinIcon("pickup") }).addTo(bookingMap).bindPopup("Pickup").openPopup();
       document.getElementById("bookResultCard").style.display = "none";
       document.getElementById("bookFareFloatCard").style.display = "none";
     }
@@ -780,6 +815,7 @@ function updateBookingStatus() {
   document.getElementById("bookSummaryPickup").textContent = bookingPickup ? `${bookingPickup.lat.toFixed(4)}, ${bookingPickup.lng.toFixed(4)}` : "Not set";
   document.getElementById("bookSummaryDropoff").textContent = bookingDropoff ? `${bookingDropoff.lat.toFixed(4)}, ${bookingDropoff.lng.toFixed(4)}` : "Not set";
   bookBtn.disabled = !(bookingPickup && bookingDropoff);
+  if (bookBtn.textContent === "Ride booked") bookBtn.textContent = "Book Ride";
 
   if (bookingPickup && bookingDropoff) {
     fetchBookingFareEstimate();
@@ -789,6 +825,20 @@ function updateBookingStatus() {
     document.getElementById("bookFareFloatValue").textContent = "—";
   }
 }
+
+function resetBooking() {
+    if (bookingMap) {
+      if (bookingPickupMarker) bookingMap.removeLayer(bookingPickupMarker);
+      if (bookingDropoffMarker) bookingMap.removeLayer(bookingDropoffMarker);
+    }
+    bookingPickup = null; bookingDropoff = null;
+    bookingPickupMarker = null; bookingDropoffMarker = null;
+    document.getElementById("bookResultCard").style.display = "none";
+    document.getElementById("bookFareFloatCard").style.display = "none";
+    document.getElementById("bookRideBtn").textContent = "Book Ride";
+    updateBookingStatus();
+}
+  window.resetBooking = resetBooking;
 
 async function fetchBookingFareEstimate() {
   if (!bookingPickup || !bookingDropoff) {
@@ -828,6 +878,7 @@ document.getElementById("bookRideBtn").addEventListener("click", async () => {
   const bookingError = document.getElementById("bookBookingError");
   const bookBtn = document.getElementById("bookRideBtn");
   const spinner = document.getElementById("bookRideSpinner");
+  let bookedOk = false;
 
   // Passenger name comes from the authenticated account (see loadAuthenticatedPassenger),
   // never from a manual form input.
@@ -876,10 +927,11 @@ document.getElementById("bookRideBtn").addEventListener("click", async () => {
     const data = await res.json();
 
     document.getElementById("bookRideIdOut").textContent = data.id;
-    document.getElementById("bookFareOut").textContent = data.fareEstimate;
+    document.getElementById("bookFareOut").textContent =
+      "₱" + Number(data.fareEstimate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     document.getElementById("bookFareSourceOut").textContent = data.fareSource;
     document.getElementById("bookResultCard").style.display = "block";
-    document.getElementById("bookResultCard").scrollIntoView({ behavior: "smooth" });
+    bookedOk = true;
 
     document.getElementById("bookFareFloatValue").textContent = "₱" + data.fareEstimate;
     document.getElementById("bookFareFloatCard").style.display = "flex";
@@ -887,8 +939,8 @@ document.getElementById("bookRideBtn").addEventListener("click", async () => {
     bookingError.hidden = false;
     bookingError.textContent = "Something went wrong: " + err.message;
   } finally {
-    bookBtn.disabled = false;
-    bookBtn.textContent = "Book Ride";
+        if (bookedOk) { bookBtn.disabled = true; bookBtn.textContent = "Ride booked"; }
+    else { bookBtn.disabled = false; bookBtn.textContent = "Book Ride"; }
     spinner.hidden = true;
   }
 });
@@ -922,8 +974,9 @@ function initializeBookingMapAt(lat, lng, zoom) {
     bookingMap.removeLayer(bookingUserLocationMarker);
   }
 
-  bookingUserLocationMarker = L.marker([lat, lng]).addTo(bookingMap)
-    .bindPopup("You are here").openPopup();
+  bookingUserLocationMarker = L.circleMarker([lat, lng], {
+    radius: 8, color: "#fff", weight: 3, fillColor: "#2a5bd7", fillOpacity: 1, interactive: false
+  }).addTo(bookingMap)
 
   // Hide location prompt so user can select pickup/dropoff
   document.getElementById("bookLocationPrompt").classList.add("hidden");
@@ -1245,7 +1298,7 @@ async function loadOverview() {
     assigned: "Driver assigned",
     en_route: "Driver is on the way"
   };
-  document.getElementById("rideVehicleType").textContent = activeRide.rideType || "Tricycle";
+  document.getElementById("rideVehicleType").textContent = rideTypeLabel(activeRide.rideType);
   document.getElementById("rideFare").textContent = activeRide.fareEstimate ? "₱" + activeRide.fareEstimate : "—";
   document.getElementById("riderDriverName").textContent =
     activeRide.driverName || (activeRide.status === "pending" ? "Not assigned yet" : "Verified driver");
@@ -1266,7 +1319,7 @@ async function loadOverview() {
       recent.innerHTML = sorted.slice(0, 6).map(r => `
         <div class="recent-row">
           <div>
-            <div class="recent-type">${escapeHtml(r.rideType || "Tricycle")}</div>
+            <div class="recent-type">${escapeHtml(rideTypeLabel(r.rideType))}</div>
             <div class="recent-sub">${r.fareEstimate ? "₱" + escapeHtml(r.fareEstimate) : "—"}</div>
           </div>
           <span class="status-badge status-${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
@@ -1383,6 +1436,30 @@ loadAuthenticatedPassenger();
 
     schedule();
   } catch (e) { console.warn("Fit-to-screen unavailable", e); }
+})();
+</script>
+
+<script>
+// Book a Ride: marks which step (pickup / drop-off) is done and which is next.
+(function () {
+  try {
+    var a = document.getElementById("bookSummaryPickup");
+    var b = document.getElementById("bookSummaryDropoff");
+    var sa = document.getElementById("bkStopA");
+    var sb = document.getElementById("bkStopB");
+    if (!a || !b || !sa || !sb) return;
+    function paint() {
+      var ia = a.textContent.trim() !== "Not set";
+      var ib = b.textContent.trim() !== "Not set";
+      sa.dataset.set = ia ? "1" : "0";
+      sb.dataset.set = ib ? "1" : "0";
+      sa.dataset.active = ia ? "0" : "1";
+      sb.dataset.active = (ia && !ib) ? "1" : "0";
+    }
+    var mo = new MutationObserver(paint);
+    [a, b].forEach(function (n) { mo.observe(n, { childList: true, characterData: true, subtree: true }); });
+    paint();
+  } catch (e) { console.warn("Booking steps unavailable", e); }
 })();
 </script>
   

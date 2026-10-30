@@ -2828,3 +2828,68 @@ body.ov-fit #view-dashboard.active { overflow: hidden; }
 /* switched on by the small script, only when everything fits */
 body.ov-fit #view-book-ride.active { overflow: hidden; }
 body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
+
+/* ===== Book a Ride: calm layout (one card + map) ===== */
+.fb-dash #bookIdentityLine, .fb-dash #bookSummaryType { display: none !important; }
+.fb-dash #bookFareFloatCard { display: none !important; }   /* the fare is already in the card */
+
+.fb-dash .bk-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.fb-dash #view-book-ride .booking-grid > div:first-child > .card.bk-card,
+.fb-dash #view-book-ride .booking-grid > div:first-child > .card.bk-done { padding: 20px 22px !important; margin: 0 !important; }
+
+/* vehicle */
+.fb-dash .bk-vehicle { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid #eef0f2; }
+.fb-dash .bk-vehicle-ico { width: 46px; height: 46px; border-radius: 14px; background: rgba(47, 125, 85, 0.12); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.fb-dash .bk-vehicle-name { font-size: 17px; font-weight: 800; color: #14201A; }
+.fb-dash .bk-vehicle-sub { font-size: 13px; color: #606770; }
+
+/* the two steps */
+.fb-dash .bk-stop { position: relative; display: flex; gap: 14px; align-items: flex-start; padding-bottom: 16px; }
+.fb-dash .bk-stop:last-child { padding-bottom: 0; }
+.fb-dash .bk-stop:not(:last-child)::before { content: ""; position: absolute; left: 6px; top: 20px; bottom: 0; width: 2px; background: #d3d6db; }
+.fb-dash .bk-dot { width: 14px; height: 14px; margin-top: 3px; border-radius: 50%; flex-shrink: 0; box-sizing: border-box; background: #d3d6db; }
+.fb-dash .bk-stop[data-set="1"] .bk-dot.a { background: var(--accent); }
+.fb-dash .bk-stop[data-set="1"] .bk-dot.b { background: #fff; border: 3px solid #14201A; }
+.fb-dash .bk-stop[data-active="1"] .bk-dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(47, 125, 85, 0.25); }
+.fb-dash .bk-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #606770; }
+.fb-dash .bk-val { min-height: 22px; font-size: 15.5px; font-weight: 700; color: #14201A; }
+.fb-dash .bk-stop[data-set="0"] .bk-val span { display: none; }
+.fb-dash #bkStopA[data-set="0"] .bk-val::before { content: "Tap the map to set your pickup"; font-weight: 600; color: #8a9490; }
+.fb-dash #bkStopB[data-set="0"] .bk-val::before { content: "Then tap again for your drop-off"; font-weight: 600; color: #8a9490; }
+.fb-dash #bkStopA[data-active="1"] .bk-val::before { color: var(--accent); }
+.fb-dash #bkStopB[data-active="1"] .bk-val::before { color: var(--accent); }
+.fb-dash #bkStopA[data-set="1"] .bk-val::before { content: "Pickup point set"; display: block; }
+.fb-dash #bkStopB[data-set="1"] .bk-val::before { content: "Drop-off point set"; display: block; }
+.fb-dash .bk-stop[data-set="1"] .bk-val span { font-size: 13px; font-weight: 600; color: #606770; }
+
+/* fare */
+.fb-dash .bk-fare { margin: 18px 0 14px; padding: 12px 14px; background: #f7f8fa; border-radius: 14px; }
+.fb-dash .bk-fare-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; color: #606770; font-size: 14px; font-weight: 600; }
+.fb-dash .bk-fare-row b { font-family: inherit; font-weight: 700; color: #14201A; }
+.fb-dash .bk-fare-row.big { margin-top: 4px; padding-top: 8px; border-top: 1px dashed #cdd5d0; }
+.fb-dash .bk-fare-row.big span { font-size: 15px; font-weight: 800; color: #14201A; }
+.fb-dash #view-book-ride .bk-fare-row.big #bookSummaryFare { font-size: 28px !important; font-weight: 800; letter-spacing: -0.02em; }
+.fb-dash #view-book-ride #bookRideBtn { width: 100%; margin-top: 0 !important; padding: 14px 20px !important; font-size: 16px; }
+
+/* after booking: this card replaces the form */
+.fb-dash .bk-col:has(#bookResultCard[style*="display: block"]) #bookCard { display: none; }
+.fb-dash .bk-done { border: 2px solid var(--accent) !important; }
+.fb-dash .bk-done-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+.fb-dash .bk-check { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; background: rgba(47, 125, 85, 0.14); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.fb-dash .bk-check .ic { width: 26px; height: 26px; }
+.fb-dash .bk-done-head h3 { margin: 0; font-size: 20px; font-weight: 800; color: #14201A; }
+.fb-dash .bk-done-head p { margin: 2px 0 0; font-size: 14.5px; color: #606770; }
+.fb-dash .bk-done-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-top: 1px dashed #cdd5d0; color: #606770; font-weight: 600; }
+.fb-dash .bk-done-row b { font-family: inherit; font-weight: 800; color: #14201A; }
+.fb-dash #view-book-ride .bk-done-row #bookFareOut { font-size: 28px !important; color: var(--accent) !important; }
+.fb-dash .bk-done-row.small { font-size: 13px; }
+.fb-dash .bk-done-row.small b { font-size: 12.5px; font-weight: 600; color: #606770; text-align: right; overflow-wrap: anywhere; }
+.fb-dash .bk-done-actions { display: flex; gap: 10px; margin-top: 12px; }
+.fb-dash .bk-done-actions button { flex: 1; }
+
+/* colored pins on the map */
+.bk-pin { background: none; border: none; }
+.bk-pin span { position: relative; display: block; width: 28px; height: 28px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.bk-pin span.pickup { background: #2F7D55; }
+.bk-pin span.dropoff { background: #14201A; }
+.bk-pin span::after { content: ""; position: absolute; top: 9px; left: 9px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
