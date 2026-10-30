@@ -186,7 +186,7 @@
               <span id="bookRideSpinner" class="spinner" hidden aria-hidden="true"></span>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
+            <div class="card" id="tripCard" style="margin-top: 20px;">
               <h3 style="margin: 0 0 8px; font-size: 17px;">Trip summary</h3>
               <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Ride type</span><span id="bookSummaryType" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Tricycle</span></div>
               <div class="trip-summary-row" style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--sage-300); font-size: 13.5px;"><span style="color: var(--ink-soft); font-weight: 600;">Pickup</span><span id="bookSummaryPickup" style="font-family: var(--font-mono); font-size: 12.5px; text-align: right;">Not set</span></div>
@@ -1297,51 +1297,94 @@ loadAuthenticatedPassenger();
   </div>
   <script src="/js/navbar-auth.js"></script>
 
-  <script>
-// Overview: fit on one screen on laptop / PC (layout only, no ride logic).
-// If the window is too small to fit it, normal scrolling stays on.
+ <script>
+// Fits Overview and Book a Ride on one screen on laptop / PC (layout only, no ride logic).
+// If the window is too small, normal scrolling stays on so nothing is cut off.
 (function () {
   try {
-    var view = document.getElementById("view-dashboard");
-    if (!view) return;
+    var views = ["view-dashboard", "view-book-ride"]
+      .map(function (id) { return document.getElementById(id); })
+      .filter(Boolean);
+    if (!views.length) return;
     var desk = window.matchMedia("(min-width: 1000px) and (min-height: 540px)");
-    var queued = false;
+    var queued = false, internal = false, lastMap = "";
+    var mo = new MutationObserver(schedule);
 
-    function fit() {
-      queued = false;
+    function schedule() {
+      if (internal || queued) return;
+      queued = true;
+      requestAnimationFrame(fit);
+    }
+    function unlock() {
       document.body.classList.remove("ov-fit");
-      view.style.height = "";
-      if (!view.classList.contains("active") || !desk.matches) return;
-
-      var main = view.closest(".driver-main");
-      if (main) main.scrollTop = 0;
-      window.scrollTo(0, 0);
-
-      var top = view.getBoundingClientRect().top;
+      views.forEach(function (v) { v.style.height = ""; });
+    }
+    function spaceBelow(view) {
       var below = 0;
       for (var el = view.parentElement; el; el = el.parentElement) {
         var cs = getComputedStyle(el);
         below += (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
         if (el === document.body) break;
       }
-      var room = Math.floor(window.innerHeight - top - below) - 4;
-      if (view.offsetHeight <= room) {
-        view.style.height = room + "px";
-        document.body.classList.add("ov-fit");
-      }
+      return below;
     }
-    function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+    // tell the map it changed size (Leaflet listens to the window resize event)
+    function nudgeMap() {
+      var m = document.getElementById("bookingMap");
+      if (!m) return;
+      var size = m.offsetWidth + "x" + m.offsetHeight;
+      if (size === lastMap) return;
+      lastMap = size;
+      internal = true;
+      try { window.dispatchEvent(new Event("resize")); } finally { internal = false; }
+    }
+
+    function fit() {
+      queued = false;
+      var view = views.filter(function (v) { return v.classList.contains("active"); })[0];
+      if (!view || !desk.matches) { unlock(); mo.takeRecords(); return; }
+
+      var main = view.closest(".driver-main");
+      var top = view.getBoundingClientRect().top + (main ? main.scrollTop : 0) + window.scrollY;
+      var room = Math.floor(window.innerHeight - top - spaceBelow(view)) - 4;
+      var ok;
+
+      if (view.id === "view-book-ride") {
+        document.body.classList.add("ov-fit");
+        view.style.height = room + "px";
+        var left = view.querySelector(".booking-grid > div:first-child");
+        ok = !left || left.scrollHeight <= left.clientHeight + 1;
+      } else {
+        unlock();
+        ok = view.offsetHeight <= room;
+        if (ok) { document.body.classList.add("ov-fit"); view.style.height = room + "px"; }
+      }
+
+      if (ok) { if (main) main.scrollTop = 0; window.scrollTo(0, 0); }
+      else { unlock(); }
+
+      if (view.id === "view-book-ride") nudgeMap();
+      mo.takeRecords();   // ignore the changes we just made ourselves
+    }
 
     window.addEventListener("resize", schedule);
     window.addEventListener("load", schedule);
+    if (desk.addEventListener) desk.addEventListener("change", schedule);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
-    new MutationObserver(schedule).observe(view, { childList: true, characterData: true, subtree: true });
-    new MutationObserver(schedule).observe(view, { attributes: true, attributeFilter: ["class"] });
+
+    // switching between pages
+    views.forEach(function (v) { mo.observe(v, { attributes: true, attributeFilter: ["class"] }); });
+    // Overview content changes (stats, current ride, recent rides)
+    var dash = document.getElementById("view-dashboard");
+    if (dash) mo.observe(dash, { childList: true, characterData: true, subtree: true });
+    // Book a Ride left column changes (error message, booking confirmed card)
+    var left = document.querySelector("#view-book-ride .booking-grid > div:first-child");
+    if (left) mo.observe(left, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden", "class"] });
+
     schedule();
-  } catch (e) { console.warn("Overview fit unavailable", e); }
+  } catch (e) { console.warn("Fit-to-screen unavailable", e); }
 })();
 </script>
-
   
 </body>
 </html>

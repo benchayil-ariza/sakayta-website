@@ -3,85 +3,242 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SakayTa Cash Receipt</title>
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Receipt · SakayTa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/logo-icon.png" type="image/png">
   <style>
-    :root { color-scheme: light; --green:#1f6b4e; --dark:#173528; --muted:#68766f; --line:#e4ebe6; --paper:#fff; --bg:#f1f5f2; }
-    * { box-sizing:border-box; }
-    body { margin:0; padding:32px 16px; background:var(--bg); color:var(--dark); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
-    main { width:min(100%,620px); margin:0 auto; }
-    .receipt { background:var(--paper); border:1px solid var(--line); border-radius:20px; box-shadow:0 16px 45px #183d2b12; overflow:hidden; }
-    header { padding:30px 32px 24px; border-bottom:1px dashed #cbd8d0; text-align:center; }
-    .brand { color:var(--green); font-size:13px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; }
-    h1 { margin:12px 0 4px; font-size:25px; line-height:1.2; }
-    .subtle,.meta-label { color:var(--muted); }
-    .amount { padding:25px 32px; text-align:center; background:#f7faf8; }
-    .amount strong { display:block; margin-top:5px; font-size:40px; letter-spacing:-.04em; }
-    section { padding:22px 32px; border-bottom:1px solid var(--line); }
-    h2 { margin:0 0 15px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
-    .row { display:flex; justify-content:space-between; gap:16px; padding:7px 0; }
-    .row span:last-child { text-align:right; overflow-wrap:anywhere; }
-    .total { margin-top:8px; padding-top:15px; border-top:1px solid var(--line); font-weight:800; font-size:17px; }
-    .cash { display:inline-block; padding:4px 10px; background:#e8f3ec; color:#1f6b4e; border-radius:20px; font-weight:700; text-transform:capitalize; }
-    footer { padding:22px 32px 28px; text-align:center; }
-    a { display:inline-block; color:var(--green); font-weight:700; text-decoration:none; }
-    .status { margin:0 0 15px; color:var(--muted); text-align:center; }
-    .error { color:#a33b32; }
-    @media(max-width:480px) { body{padding:16px 10px}.receipt{border-radius:14px}header,section,.amount,footer{padding-left:20px;padding-right:20px}h1{font-size:22px}.amount strong{font-size:34px}.row{gap:8px} }
+    :root { color-scheme: light; --accent:#2F7D55; --accent-hi:#369263; --ink:#14201A; --muted:#606770; --line:#e4e6eb; --soft:#f7f8fa; --bg:#f0f2f5; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { font-size: 16px; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem 1rem; background: var(--bg); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 1rem; line-height: 1.45; }
+    main { width: min(100%, 60rem); }
+    .status { margin: 0; text-align: center; color: var(--muted); font-weight: 600; }
+    .status.error { color: #b3392b; }
+
+    .receipt { background: #fff; border-radius: 1.25rem; box-shadow: 0 .5rem 2rem rgba(20, 32, 26, .12); overflow: hidden; }
+
+    /* header band */
+    .band { position: relative; overflow: hidden; padding: 1.2rem 2rem 1.3rem; color: #fff; background: linear-gradient(135deg, #1F3A2C 0%, #2F7D55 65%, #4aa374 100%); }
+    .deco { position: absolute; right: 0; top: 0; width: 55%; height: 100%; pointer-events: none; }
+    .band-top { position: relative; display: flex; justify-content: space-between; align-items: center; margin-bottom: .7rem; }
+    .brand { display: flex; align-items: center; gap: .55rem; font-weight: 800; font-size: 1.05rem; }
+    .brand img { height: 1.9rem; width: auto; display: block; }
+    .tag { padding: .25rem .8rem; border-radius: 999px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .3); font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { position: relative; margin: 0; font-size: 1.75rem; line-height: 1.2; font-weight: 800; letter-spacing: -.01em; }
+    .sub { position: relative; margin: .2rem 0 0; font-size: .92rem; opacity: .9; }
+
+    /* total strip */
+    .strip { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; padding: 1rem 2rem; border-bottom: 1px dashed #cdd5d0; }
+    .label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .label.right { text-align: right; }
+    .big { margin-top: .1rem; font-size: 2.4rem; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; color: var(--accent); }
+    .when { margin-top: .1rem; font-size: 1.05rem; font-weight: 700; text-align: right; }
+
+    /* two columns */
+    .cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 2rem; padding: 1.2rem 2rem; }
+    h2 { margin: 0 0 .6rem; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
+
+    .route { background: var(--soft); border-radius: .9rem; padding: .9rem 1rem; margin-bottom: 1.1rem; }
+    .stop { position: relative; display: flex; gap: .8rem; align-items: flex-start; padding-bottom: .8rem; }
+    .stop:last-child { padding-bottom: 0; }
+    .stop:not(:last-child)::before { content: ""; position: absolute; left: .4rem; top: 1.25rem; bottom: -.1rem; width: 2px; background: #d3d6db; }
+    .dot { width: .9rem; height: .9rem; margin-top: .2rem; border-radius: 50%; flex-shrink: 0; }
+    .dot.a { background: var(--accent); }
+    .dot.b { background: #fff; border: .2rem solid var(--ink); }
+    .stop-body { flex: 1; min-width: 0; }
+    .stop-head { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+    .stop-head a { font-size: .75rem; font-weight: 700; color: var(--accent); text-decoration: none; }
+    .stop-head a:hover { text-decoration: underline; }
+    .coords { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem 1.2rem; }
+    .grid .v { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; }
+
+    .sum { border: 1px solid var(--line); border-radius: .9rem; padding: .4rem 1.1rem; }
+    .srow { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .7rem 0; }
+    .srow + .srow { border-top: 1px dashed #cdd5d0; }
+    .srow .k { color: var(--muted); font-weight: 600; font-size: .95rem; }
+    .srow .v { font-weight: 700; font-size: .98rem; text-align: right; }
+    .srow.total { padding: .85rem 0; }
+    .srow.total .k { color: var(--ink); font-weight: 800; font-size: 1.05rem; }
+    .srow.total .v { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    .cash { display: inline-block; padding: .2rem .75rem; border-radius: 999px; background: rgba(47, 125, 85, .14); color: var(--accent); font-weight: 700; text-transform: capitalize; }
+    .note { margin: .6rem 0 0; font-size: .72rem; line-height: 1.45; color: var(--muted); }
+    .refs { margin-top: 1.1rem; }
+    .ref { margin-bottom: .45rem; }
+    .ref .v { font-size: .82rem; font-weight: 600; overflow-wrap: anywhere; }
+
+    /* buttons */
+    .actions { display: flex; justify-content: center; gap: .8rem; padding: .9rem 2rem 1.2rem; border-top: 1px solid var(--line); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: .7rem 1.6rem; border-radius: 999px; font: inherit; font-weight: 700; font-size: .95rem; cursor: pointer; text-decoration: none; border: 2px solid transparent; }
+    .btn.primary { background: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-hi); }
+    .btn.ghost { background: #fff; color: var(--ink); border-color: #d3d6db; }
+    .btn.ghost:hover { background: var(--bg); }
+    .btn:focus-visible, .stop-head a:focus-visible { outline: 3px solid rgba(47, 125, 85, .45); outline-offset: 2px; }
+
+    /* big enough window: the whole receipt is fixed on one screen, no scrolling */
+    @media (min-width: 860px) and (min-height: 560px) {
+      html { font-size: clamp(11.5px, 1.95vh, 16px); }
+      html, body { height: 100%; overflow: hidden; }
+      body { padding: 1rem; }
+    }
+    /* safety: if it still does not fit, allow scrolling so nothing is cut off */
+    html.scroll-ok, html.scroll-ok body { height: auto; overflow: auto; }
+    html.scroll-ok body { align-items: flex-start; }
+
+    /* narrow screens: one column */
+    @media (max-width: 859px) {
+      .cols { grid-template-columns: 1fr; gap: 1.2rem; }
+      .band, .strip, .cols, .actions { padding-left: 1.25rem; padding-right: 1.25rem; }
+      h1 { font-size: 1.45rem; }
+      .big { font-size: 2rem; }
+      .actions { flex-direction: column; }
+    }
+    @media (max-width: 420px) {
+      body { padding: .75rem .5rem; }
+      .grid { grid-template-columns: 1fr; }
+      .strip { flex-direction: column; align-items: flex-start; }
+      .when, .label.right { text-align: left; }
+    }
+
+    /* print: one A4 page */
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      html { font-size: 12px !important; }
+      html, body { height: auto !important; overflow: visible !important; }
+      body { background: #fff; padding: 0; display: block; }
+      .receipt { box-shadow: none; border: 1px solid var(--line); }
+      .actions, .status, .stop-head a { display: none !important; }
+      .band, .dot, .cash { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
   <main>
     <p id="pageStatus" class="status" role="status" aria-live="polite">Loading your receipt…</p>
-    <article id="receipt" class="receipt" hidden>
-      <header>
-        <div class="brand">SakayTa</div>
-        <h1>Hope you had a safe ride!</h1>
-        <div class="subtle">Your completed ride receipt</div>
+
+    <article id="receipt" class="receipt" hidden aria-labelledby="receiptTitle">
+      <header class="band">
+       <svg class="deco" viewBox="0 0 400 140" preserveAspectRatio="xMaxYMid meet" aria-hidden="true">
+        <path d="M14,122 C94,112 84,48 172,58 S300,30 386,22" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2.5" stroke-dasharray="1 10" stroke-linecap="round"/>
+        <circle cx="14" cy="122" r="5" fill="rgba(255,255,255,.7)"/>
+         <circle cx="386" cy="22" r="5" fill="#fff"/>
+      </svg>
+        <div class="band-top">
+          <div class="brand"><img src="/assets/logo-icon.png" alt=""><span>SakayTa</span></div>
+          <span class="tag">Receipt</span>
+        </div>
+        <h1 id="receiptTitle">Hope you had a safe ride!</h1>
+        <p id="receiptSub" class="sub">Your completed ride receipt</p>
       </header>
-      <div class="amount">
-        <span class="meta-label">Total fare</span>
-        <strong id="totalFare">—</strong>
+
+      <div class="strip">
+        <div>
+          <div class="label">Total fare</div>
+          <div id="totalFare" class="big">—</div>
+        </div>
+        <div>
+          <div class="label right">Completed</div>
+          <div id="completedAt" class="when">—</div>
+        </div>
       </div>
-      <section>
-        <h2>Ride details</h2>
-        <div class="row"><span class="meta-label">Completed</span><span id="completedAt">—</span></div>
-        <div class="row"><span class="meta-label">Transaction reference</span><span id="transactionId">—</span></div>
-        <div class="row"><span class="meta-label">Ride reference</span><span id="rideId">—</span></div>
-        <div class="row"><span class="meta-label">Ride type</span><span id="rideType">—</span></div>
-        <div class="row"><span class="meta-label">Distance</span><span id="distance">—</span></div>
-      </section>
-      <section>
-        <h2>People</h2>
-        <div class="row"><span class="meta-label">Passenger</span><span id="passengerName">—</span></div>
-        <div class="row"><span class="meta-label">Driver</span><span id="driverName">—</span></div>
-      </section>
-      <section>
-        <h2>Route</h2>
-        <div class="row"><span class="meta-label">Pickup</span><span id="pickup">—</span></div>
-        <div class="row"><span class="meta-label">Drop-off</span><span id="dropoff">—</span></div>
-      </section>
-      <section>
-        <h2>Receipt summary</h2>
-        <div class="row"><span>Ride fare</span><span id="rideFare">—</span></div>
-        <div class="row"><span class="meta-label">Payment method</span><span id="paymentMethod" class="cash">Cash</span></div>
-        <div class="row total"><span>Total</span><span id="summaryTotal">—</span></div>
-        <p class="subtle" style="font-size:12px;margin:14px 0 0">Cash payment is recorded as the ride payment method. This receipt does not verify that cash was collected.</p>
-      </section>
-      <footer><a id="backLink" href="passenger.html">Back to SakayTa</a></footer>
+
+      <div class="cols">
+        <div>
+          <h2>Trip</h2>
+          <div class="route">
+            <div class="stop">
+              <span class="dot a"></span>
+              <div class="stop-body">
+                <div class="stop-head"><span class="label">Pickup</span><a id="pickupMap" href="#" target="_blank" rel="noopener noreferrer" hidden>View on map</a></div>
+                <div id="pickup" class="coords">—</div>
+              </div>
+            </div>
+            <div class="stop">
+              <span class="dot b"></span>
+              <div class="stop-body">
+                <div class="stop-head"><span class="label">Drop-off</span><a id="dropoffMap" href="#" target="_blank" rel="noopener noreferrer" hidden>View on map</a></div>
+                <div id="dropoff" class="coords">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="grid">
+            <div><div class="label">Ride type</div><div id="rideType" class="v">—</div></div>
+            <div><div class="label">Distance</div><div id="distance" class="v">—</div></div>
+            <div><div class="label">Passenger</div><div id="passengerName" class="v">—</div></div>
+            <div><div class="label">Driver</div><div id="driverName" class="v">—</div></div>
+            <div id="plateWrap" hidden><div class="label">Plate number</div><div id="plate" class="v">—</div></div>
+          </div>
+        </div>
+
+        <div>
+          <h2>Receipt summary</h2>
+          <div class="sum">
+            <div class="srow"><span class="k">Payment method</span><span id="paymentMethod" class="cash">Cash</span></div>
+            <div class="srow"><span class="k">Ride fare</span><span id="rideFare" class="v">—</span></div>
+            <div class="srow total"><span class="k">Total</span><span id="summaryTotal" class="v">—</span></div>
+          </div>
+          <p class="note">The payment method is recorded for reference. This receipt does not confirm that cash was collected.</p>
+          <div class="refs">
+            <h2>References</h2>
+            <div class="ref"><div class="label">Ride reference</div><div id="rideId" class="v">—</div></div>
+            <div class="ref"><div class="label">Transaction reference</div><div id="transactionId" class="v">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="printBtn" class="btn ghost">Print / Save PDF</button>
+        <a id="backLink" class="btn primary" href="passenger.html">Back to SakayTa</a>
+      </div>
     </article>
   </main>
+
   <script>
     const statusEl = document.getElementById("pageStatus");
-    const rideId = new URLSearchParams(location.search).get("rideId") || "";
+    const rideIdParam = new URLSearchParams(location.search).get("rideId") || "";
     const setText = (id, value) => { document.getElementById(id).textContent = value; };
     const coordinates = (lat, lng) => lat == null || lng == null
       ? "Location not recorded"
       : `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
 
+    function mapLink(id, lat, lng) {
+      const a = document.getElementById(id);
+      const la = Number(lat), lo = Number(lng);
+      if (lat == null || lng == null || !Number.isFinite(la) || !Number.isFinite(lo)) return;
+      a.href = `https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=17/${la}/${lo}`;
+      a.hidden = false;
+    }
+
+    function niceDate(value) {
+      if (!value) return "Not recorded";
+      const d = new Date(String(value).replace(" ", "T"));
+      if (Number.isNaN(d.getTime())) return "Not recorded";
+      const day = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      return `${day} · ${time}`;
+    }
+
+    // Keeps the receipt on one screen. If a very small window cannot fit it,
+    // scrolling is switched on so nothing is ever cut off.
+    function fit() {
+      const root = document.documentElement;
+      root.classList.remove("scroll-ok");
+      const card = document.getElementById("receipt");
+      if (card.hidden) return;
+      if (card.getBoundingClientRect().height + 16 > window.innerHeight) root.classList.add("scroll-ok");
+    }
+
     async function loadReceipt() {
       const token = localStorage.getItem("sakayta_token");
-      if (!rideId || !token) throw new Error("Sign in with the account linked to this ride to view its receipt.");
-      const response = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(rideId)}/receipt`, {
+      if (!rideIdParam || !token) throw new Error("Sign in with the account linked to this ride to view its receipt.");
+      const response = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(rideIdParam)}/receipt`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
@@ -89,7 +246,8 @@
       const t = data.transaction;
       const fare = Number(t.fareAmount);
       if (!Number.isFinite(fare) || fare < 0) throw new Error("Receipt fare is invalid.");
-      const total = new Intl.NumberFormat(undefined, { style:"currency", currency:t.currency || "PHP" }).format(fare);
+      const total = new Intl.NumberFormat("en-PH", { style: "currency", currency: t.currency || "PHP" }).format(fare);
+
       setText("totalFare", total);
       setText("summaryTotal", total);
       setText("rideFare", total);
@@ -101,15 +259,29 @@
       setText("driverName", t.driverName || "Not recorded");
       setText("pickup", coordinates(t.pickupLat, t.pickupLng));
       setText("dropoff", coordinates(t.dropoffLat, t.dropoffLng));
+      mapLink("pickupMap", t.pickupLat, t.pickupLng);
+      mapLink("dropoffMap", t.dropoffLat, t.dropoffLng);
       setText("paymentMethod", t.paymentMethod || "Cash");
-      const completed = t.completedAt ? new Date(String(t.completedAt).replace(" ", "T")) : null;
-      setText("completedAt", completed && !Number.isNaN(completed.getTime()) ? completed.toLocaleString() : "Not recorded");
+      setText("completedAt", niceDate(t.completedAt));
+
+      const plate = t.driverPlateNumber || t.plateNumber || "";
+      if (plate) { setText("plate", plate); document.getElementById("plateWrap").hidden = false; }
+
       let role = "";
       try { role = JSON.parse(localStorage.getItem("sakayta_user") || "null")?.role || ""; } catch (_) {}
-      document.getElementById("backLink").href = role === "driver" ? "driver.html" : "passenger.html";
+      const isDriver = role === "driver";
+      setText("receiptTitle", isDriver ? "Ride completed" : "Hope you had a safe ride!");
+      setText("receiptSub", isDriver ? "Trip receipt for your records" : "Your completed ride receipt");
+      document.getElementById("backLink").href = isDriver ? "driver.html" : "passenger.html";
+
       document.getElementById("receipt").hidden = false;
       statusEl.hidden = true;
+      fit();
     }
+
+    window.addEventListener("resize", fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
 
     loadReceipt().catch(error => {
       statusEl.textContent = error.message;

@@ -2774,3 +2774,57 @@ body.ov-fit .driver-main { overflow: hidden !important; }
 body.ov-fit #view-dashboard.active { overflow: hidden; }
 
 .fb-dash .empty-icon .ic { width: 40px; height: 40px; margin: 0 auto; color: #a9b1ad; stroke-width: 1.6; }
+
+/* ===== Book a Ride: fits one screen on laptop / PC ===== */
+@media (min-width: 1000px) {
+  .fb-dash #view-book-ride.active { display: flex; flex-direction: column; max-width: 1280px; }
+  .fb-dash #view-book-ride > nav,
+  .fb-dash #view-book-ride > p { display: none; }
+  .fb-dash #view-book-ride > h2 { margin: 0 0 12px !important; font-size: 26px !important; }
+
+  .fb-dash #view-book-ride .booking-grid {
+    flex: 1 1 auto; min-height: 0;
+    grid-template-columns: minmax(340px, 0.75fr) minmax(0, 1.25fr) !important;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 16px !important;
+    align-items: stretch !important;
+  }
+
+  /* left column */
+  .fb-dash #view-book-ride .booking-grid > div:first-child { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .fb-dash #view-book-ride .booking-grid > div:first-child > .card { margin: 0 !important; padding: 12px 16px !important; flex-shrink: 0; }
+
+  /* booking card, smaller */
+  .fb-dash #view-book-ride #bookIdentityLine { margin: 0 !important; font-size: 13px; }
+  .fb-dash #view-book-ride .booking-grid label { margin: 8px 0 6px !important; }
+  .fb-dash #view-book-ride .ride-type-grid { gap: 10px !important; margin-bottom: 8px !important; }
+  .fb-dash #view-book-ride .ride-type-card { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 7px 10px !important; }
+  .fb-dash #view-book-ride .ride-type-card br { display: none; }
+  .fb-dash #view-book-ride .ride-type-card .emoji { font-size: 22px; line-height: 1; }
+  .fb-dash #view-book-ride #bookMapInstructions { margin: 0 0 6px !important; }
+  .fb-dash #view-book-ride #bookRideBtn { margin-top: 4px !important; padding: 11px 20px !important; }
+
+  /* trip summary, with the fare highlighted */
+  .fb-dash #view-book-ride #tripCard h3 { margin: 0 0 2px !important; font-size: 16px !important; }
+  .fb-dash #view-book-ride #tripCard .trip-summary-row { padding: 5px 0 !important; }
+  .fb-dash #view-book-ride #tripCard .trip-summary-row:has(#bookSummaryType) { display: none !important; }
+  .fb-dash #view-book-ride #tripCard .trip-summary-row:last-child {
+    margin-top: 6px; padding: 8px 12px !important; border-bottom: none !important;
+    background: rgba(47, 125, 85, 0.08); border-radius: 12px;
+  }
+  .fb-dash #view-book-ride #tripCard #bookSummaryFare { font-size: 22px !important; }
+
+  /* after booking: the confirmed card replaces the trip summary */
+  .fb-dash #view-book-ride #bookResultCard { border: 2px solid var(--accent) !important; }
+  .fb-dash #view-book-ride #bookResultCard h3 { margin: 0 0 2px !important; font-size: 16px; }
+  .fb-dash #view-book-ride #bookResultCard .trip-summary-row { padding: 5px 0 !important; }
+  .fb-dash #view-book-ride .booking-grid > div:first-child:has(#bookResultCard[style*="display: block"]) #tripCard { display: none; }
+
+  /* map fills the right side */
+  .fb-dash #view-book-ride .map-wrap { position: relative; min-height: 420px; height: auto; }
+  .fb-dash #view-book-ride #bookingMap { position: absolute; inset: 0; height: auto !important; border-radius: 14px; }
+}
+
+/* switched on by the small script, only when everything fits */
+body.ov-fit #view-book-ride.active { overflow: hidden; }
+body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
