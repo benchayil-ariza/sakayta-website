@@ -786,6 +786,7 @@ function initBookingMap() {
     } else if (!bookingDropoff) {
       bookingDropoff = e.latlng;
       bookingDropoffMarker = L.marker(bookingDropoff, { title: "Drop-off", icon: pinIcon("dropoff") }).addTo(bookingMap).bindPopup("Drop-off").openPopup();
+      bookingMap.fitBounds(L.latLngBounds([bookingPickup, bookingDropoff]), { padding: [80, 80], maxZoom: 17 });
     } else {
       bookingMap.removeLayer(bookingPickupMarker);
       bookingMap.removeLayer(bookingDropoffMarker);
