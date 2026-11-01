@@ -2893,3 +2893,9 @@ body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
 .bk-pin span.pickup { background: #2F7D55; }
 .bk-pin span.dropoff { background: #14201A; }
 .bk-pin span::after { content: ""; position: absolute; top: 9px; left: 9px; width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+
+/* place names in the Book a Ride steps */
+.fb-dash .bk-place { font-size: 15.5px; font-weight: 700; line-height: 1.3; color: #14201A; }
+.fb-dash #bkStopA[data-named="1"] .bk-val::before,
+.fb-dash #bkStopB[data-named="1"] .bk-val::before { display: none !important; }
+.fb-dash .bk-stop[data-named="1"] .bk-val span { font-size: 12.5px; }

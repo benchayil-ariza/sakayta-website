@@ -336,6 +336,7 @@
      SCRIPTS
      ============================================================ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 // All element lookups and initialization run only after the DOM is fully
@@ -811,7 +812,104 @@ function selectBookingRideType(card) {
   document.getElementById("bookSummaryType").textContent = bookingRideType;
 }
 
+  // ===== Place names (Leaflet Control Geocoder + OpenStreetMap Nominatim) =====
+  const placeNames = { pickup: "", dropoff: "" };
+  const lastPlaceKey = { pickup: "", dropoff: "" };
+  const lookupSeq = { pickup: 0, dropoff: 0 };
+  const lookupBusy = { pickup: false, dropoff: false };
+  const geoCache = new Map();
+  let nextGeoAt = 0;
+  let geocoder = null;
+
+  function getGeocoder() {
+    if (!geocoder && window.L && L.Control && L.Control.Geocoder) {
+      geocoder = L.Control.Geocoder.nominatim({ reverseQueryParams: { "accept-language": "en" } });
+    }
+    return geocoder;
+  }
+
+    // ===== What to show as the place name =====
+  // We show the BARANGAY only (not the street and not the purok).
+  const SHOW_CITY = false;          // true -> "Macasing, Pagadian"
+  const BRGY_PREFIX = "";           // "Brgy. " -> "Brgy. Macasing"
+  // Which OpenStreetMap fields can hold a barangay, in order.
+  // Streets and purok / zone fields (neighbourhood, quarter, hamlet) are skipped on purpose.
+  const BRGY_KEYS = ["suburb", "village", "city_district", "borough"];
+
+  function cleanBarangay(s) {
+    return String(s || "").replace(/^(barangay|brgy\.?|bgy\.?)\s+/i, "").trim();
+  }
+
+  function shortPlace(res) {
+    const a = res && res.properties && res.properties.address;
+    if (a) {
+      console.log("[place] address from OpenStreetMap:", a);   // delete this line when the names are right
+      let brgy = "";
+      for (const k of BRGY_KEYS) { if (a[k]) { brgy = cleanBarangay(a[k]); break; } }
+      const city = a.city || a.town || a.municipality || a.county || "";
+      const text = brgy
+        ? BRGY_PREFIX + brgy + (SHOW_CITY && city ? ", " + city : "")
+        : city;                       // barangay not found: show the city, never a street
+      if (text) return text.slice(0, 200);
+    }
+    // last resort, only if the service sent no detailed address: skip the first part (usually the street)
+    const parts = String((res && res.name) || "").split(",").map((s) => s.trim()).filter(Boolean);
+    return parts.slice(1, 3).join(", ").slice(0, 200);
+  }
+
+  function showPlace(kind, name) {
+    const stop = document.getElementById(kind === "pickup" ? "bkStopA" : "bkStopB");
+    if (!stop) return;
+    const val = stop.querySelector(".bk-val");
+    let el = val.querySelector(".bk-place");
+    if (!el) { el = document.createElement("div"); el.className = "bk-place"; val.prepend(el); }
+    el.textContent = name || "";
+    stop.dataset.named = name ? "1" : "0";
+  }
+
+  function lookupPlace(kind, latlng, key) {
+    if (geoCache.has(key)) {
+      placeNames[kind] = geoCache.get(key);
+      showPlace(kind, placeNames[kind]);
+      return;
+    }
+    const g = getGeocoder();
+    if (!g) return;                       // plugin missing: the coordinates stay
+    const token = lookupSeq[kind];
+    lookupBusy[kind] = true;
+    // wait a moment (so dragging a pin does not spam the service) and keep to 1 request per second
+    const slot = Math.max(Date.now() + 700, nextGeoAt);
+    nextGeoAt = slot + 1100;
+    setTimeout(() => {
+      if (token !== lookupSeq[kind]) return;          // the point changed again; a newer lookup owns it
+      g.reverse(latlng, bookingMap.options.crs.scale(18), (results) => {
+        if (token !== lookupSeq[kind]) return;
+        lookupBusy[kind] = false;
+        const name = results && results[0] ? shortPlace(results[0]) : "";
+        if (name) geoCache.set(key, name);
+        placeNames[kind] = name;
+        showPlace(kind, name);
+      });
+    }, slot - Date.now());
+  }
+
+  // looks up a name whenever the pickup or the drop-off point is new or has moved
+  function syncPlaceNames() {
+    ["pickup", "dropoff"].forEach((kind) => {
+      const pt = kind === "pickup" ? bookingPickup : bookingDropoff;
+      const key = pt ? pt.lat.toFixed(5) + "," + pt.lng.toFixed(5) : "";
+      if (key === lastPlaceKey[kind]) return;
+      lastPlaceKey[kind] = key;
+      lookupSeq[kind]++;
+      lookupBusy[kind] = false;
+      placeNames[kind] = "";
+      showPlace(kind, "");
+      if (pt) lookupPlace(kind, pt, key);
+    });
+  }
+
 function updateBookingStatus() {
+  syncPlaceNames();
   const bookBtn = document.getElementById("bookRideBtn");
   document.getElementById("bookSummaryPickup").textContent = bookingPickup ? `${bookingPickup.lat.toFixed(4)}, ${bookingPickup.lng.toFixed(4)}` : "Not set";
   document.getElementById("bookSummaryDropoff").textContent = bookingDropoff ? `${bookingDropoff.lat.toFixed(4)}, ${bookingDropoff.lng.toFixed(4)}` : "Not set";
@@ -900,6 +998,10 @@ document.getElementById("bookRideBtn").addEventListener("click", async () => {
   bookBtn.disabled = true;
   bookBtn.textContent = "Booking...";
   spinner.hidden = false;
+  // give the place-name lookups a moment to finish (at most 3 seconds)
+  for (let i = 0; i < 20 && (lookupBusy.pickup || lookupBusy.dropoff); i++) {
+    await new Promise((r) => setTimeout(r, 150));
+  }
 
   try {
     const token = localStorage.getItem("sakayta_token");
@@ -918,6 +1020,8 @@ document.getElementById("bookRideBtn").addEventListener("click", async () => {
         pickupLng: bookingPickup.lng,
         dropoffLat: bookingDropoff.lat,
         dropoffLng: bookingDropoff.lng,
+        pickupAddress: placeNames.pickup || undefined,
+        dropoffAddress: placeNames.dropoff || undefined,
       }),
     });
 
