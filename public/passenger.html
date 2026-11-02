@@ -812,7 +812,7 @@ function selectBookingRideType(card) {
   document.getElementById("bookSummaryType").textContent = bookingRideType;
 }
 
-  // ===== Place names (Leaflet Control Geocoder + OpenStreetMap Nominatim) =====
+    // ===== Place names (Leaflet Control Geocoder + OpenStreetMap Nominatim) =====
   const placeNames = { pickup: "", dropoff: "" };
   const lastPlaceKey = { pickup: "", dropoff: "" };
   const lookupSeq = { pickup: 0, dropoff: 0 };
@@ -821,6 +821,15 @@ function selectBookingRideType(card) {
   let nextGeoAt = 0;
   let geocoder = null;
 
+  // ---- settings you can change ----
+  const BRGY_PREFIX = "";   // "Brgy. " would give "Brgy. Macasing, Pagadian City, Zamboanga del Sur"
+  const BRGY_KEYS = ["suburb", "village", "city_district", "borough"];   // barangay fields (never street or purok)
+  const CITY_PROVINCE = { "Pagadian City": "Zamboanga del Sur" };        // add other cities you serve
+
+  function cleanBarangay(s) {
+    return String(s || "").replace(/^(barangay|brgy\.?|bgy\.?)\s+/i, "").trim();
+  }
+
   function getGeocoder() {
     if (!geocoder && window.L && L.Control && L.Control.Geocoder) {
       geocoder = L.Control.Geocoder.nominatim({ reverseQueryParams: { "accept-language": "en" } });
@@ -828,33 +837,29 @@ function selectBookingRideType(card) {
     return geocoder;
   }
 
-    // ===== What to show as the place name =====
-  // We show the BARANGAY only (not the street and not the purok).
-  const SHOW_CITY = false;          // true -> "Macasing, Pagadian"
-  const BRGY_PREFIX = "";           // "Brgy. " -> "Brgy. Macasing"
-  // Which OpenStreetMap fields can hold a barangay, in order.
-  // Streets and purok / zone fields (neighbourhood, quarter, hamlet) are skipped on purpose.
-  const BRGY_KEYS = ["suburb", "village", "city_district", "borough"];
-
-  function cleanBarangay(s) {
-    return String(s || "").replace(/^(barangay|brgy\.?|bgy\.?)\s+/i, "").trim();
-  }
-
+  // "Barangay, City, Province"
   function shortPlace(res) {
     const a = res && res.properties && res.properties.address;
     if (a) {
       console.log("[place] address from OpenStreetMap:", a);   // delete this line when the names are right
+
       let brgy = "";
       for (const k of BRGY_KEYS) { if (a[k]) { brgy = cleanBarangay(a[k]); break; } }
-      const city = a.city || a.town || a.municipality || a.county || "";
-      const text = brgy
-        ? BRGY_PREFIX + brgy + (SHOW_CITY && city ? ", " + city : "")
-        : city;                       // barangay not found: show the city, never a street
+
+      let city = a.city || a.town || a.municipality || "";
+      if (a.city && !/city$/i.test(city)) city += " City";          // "Pagadian" -> "Pagadian City"
+
+      let province = CITY_PROVINCE[city] || a.province || a.state_district || a.county || "";
+      const base = (a.city || a.town || a.municipality || "").toLowerCase();
+      if (base && province.toLowerCase().includes(base)) province = "";   // do not repeat the city
+
+      const parts = [brgy ? BRGY_PREFIX + brgy : "", city, province].filter(Boolean);
+      const text = [...new Set(parts)].join(", ");
       if (text) return text.slice(0, 200);
     }
-    // last resort, only if the service sent no detailed address: skip the first part (usually the street)
+    // last resort: skip the first part of the long name (usually the street)
     const parts = String((res && res.name) || "").split(",").map((s) => s.trim()).filter(Boolean);
-    return parts.slice(1, 3).join(", ").slice(0, 200);
+    return parts.slice(1, 4).join(", ").slice(0, 200);
   }
 
   function showPlace(kind, name) {
@@ -863,7 +868,18 @@ function selectBookingRideType(card) {
     const val = stop.querySelector(".bk-val");
     let el = val.querySelector(".bk-place");
     if (!el) { el = document.createElement("div"); el.className = "bk-place"; val.prepend(el); }
-    el.textContent = name || "";
+    el.textContent = "";
+    if (name) {
+      const i = name.indexOf(", ");
+      const first = document.createElement("b");
+      first.textContent = i > 0 ? name.slice(0, i) : name;
+      el.appendChild(first);
+      if (i > 0) {
+        const rest = document.createElement("em");
+        rest.textContent = name.slice(i);            // starts with ", "
+        el.appendChild(rest);
+      }
+    }
     stop.dataset.named = name ? "1" : "0";
   }
 

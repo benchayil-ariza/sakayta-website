@@ -2899,3 +2899,7 @@ body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
 .fb-dash #bkStopA[data-named="1"] .bk-val::before,
 .fb-dash #bkStopB[data-named="1"] .bk-val::before { display: none !important; }
 .fb-dash .bk-stop[data-named="1"] .bk-val span { font-size: 12.5px; }
+
+/* barangay in bold, the rest quiet */
+.fb-dash .bk-place b { font-weight: 800; }
+.fb-dash .bk-place em { font-style: normal; font-weight: 600; color: #606770; }
