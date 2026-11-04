@@ -162,6 +162,40 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- transactions — immutable cash-fare receipt snapshot (one per completed ride)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `transactions` (
+  id                VARCHAR(50)   NOT NULL,
+  rideId            VARCHAR(50)   NOT NULL,
+  passengerUserId   VARCHAR(50)   DEFAULT NULL,
+  driverId          VARCHAR(50)   DEFAULT NULL,
+  fareAmount        DECIMAL(10,2) NOT NULL,
+  currency          CHAR(3)       NOT NULL DEFAULT 'PHP',
+  paymentMethod     ENUM('cash')  NOT NULL DEFAULT 'cash',
+  rideType          VARCHAR(50)   NOT NULL,
+  distanceKm        DECIMAL(10,2) DEFAULT NULL,
+  passengerName     VARCHAR(255) NOT NULL,
+  driverName        VARCHAR(255) NOT NULL,
+  pickupLat         DECIMAL(10,7) DEFAULT NULL,
+  pickupLng         DECIMAL(10,7) DEFAULT NULL,
+  dropoffLat        DECIMAL(10,7) DEFAULT NULL,
+  dropoffLng        DECIMAL(10,7) DEFAULT NULL,
+  completedAt       DATETIME      NOT NULL,
+  createdAt         DATETIME      NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_transactions_ride (rideId),
+  KEY idx_transactions_passenger_created (passengerUserId, createdAt),
+  KEY idx_transactions_driver_created (driverId, createdAt),
+  CONSTRAINT fk_transactions_ride
+    FOREIGN KEY (rideId) REFERENCES rides(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT fk_transactions_passenger
+    FOREIGN KEY (passengerUserId) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_transactions_driver
+    FOREIGN KEY (driverId) REFERENCES drivers(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT chk_transactions_fare_nonnegative CHECK (fareAmount >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- fare_config (legacy global, kept for parity with the current data model)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS fare_config (

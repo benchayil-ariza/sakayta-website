@@ -165,9 +165,15 @@ try {
         } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'complete') {
             if ($method !== 'POST') { $methodNotAllowed('POST'); }
             $controller->complete($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'receipt') {
+            if ($method !== 'GET') { $methodNotAllowed('GET'); }
+            $controller->receipt($parts[1]);
         } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'decline') {
             if ($method !== 'POST') { $methodNotAllowed('POST'); }
             $controller->decline($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'expire') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->expire($parts[1]);
         } else {
             $notFound();
         }
@@ -215,6 +221,13 @@ try {
                     default => $notFound(),
                 };
             }
+        } elseif ($depth === 3
+            && strtolower($parts[1] ?? '') === 'reports'
+            && strtolower($parts[2] ?? '') === 'driver-activity') {
+            if ($method !== 'GET') {
+                $methodNotAllowed('GET');
+            }
+            $controller->driverActivityReport();
         } elseif ($depth === 4 && strtolower($parts[1] ?? '') === 'drivers') {
             // PUT /admin/drivers/:id/verify|reject
             if ($method !== 'PUT') {

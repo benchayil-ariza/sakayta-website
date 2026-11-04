@@ -453,6 +453,7 @@
         <div style="padding: 12px; border-bottom: 1px solid var(--sage-200); ${n.read ? "opacity: 0.6;" : "background: var(--sage-100);"}">
           <div style="font-weight: 600; color: var(--ink); font-size: 13px;">${escapeHtml(n.title)}</div>
           <div style="color: var(--ink-soft); font-size: 12px; margin-top: 2px;">${escapeHtml(n.message)}</div>
+          ${n.type === "receipt_ready" && n.rideId ? `<a class="notif-receipt-link" href="receipt.html?rideId=${encodeURIComponent(n.rideId)}">View cash receipt</a>` : ""}
           <div style="display: flex; gap: 8px; margin-top: 6px; font-size: 11px;">
             ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}" style="background: var(--sage-600); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Mark read</button>` : ""}
             <button class="delete-notif-btn" data-id="${n.id}" style="background: var(--ink-soft); color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Delete</button>
@@ -868,6 +869,7 @@
   let requestActionId = null;
   let requestExpiredLocally = false;
   let pendingStateRevision = 0;
+  const requestTimeoutAttempts = new Set();
 
   function parseRequestExpiration(value) {
     if (typeof value !== "string" || !value.trim()) return null;
@@ -972,8 +974,8 @@
       if (expired) {
         document.getElementById("requestTimer").textContent = "0s";
         document.getElementById("requestTimer").style.color = "var(--danger)";
-        document.getElementById("requestStatus").textContent = "⏰ Request expired";
         requestExpiredLocally = true;
+        submitExpiredRideRequest(timerRequestId, timerExpiration);
         clearRideRequestTimer();
         return;
       }
@@ -996,6 +998,49 @@
     if (requestTimerInterval) {
       clearInterval(requestTimerInterval);
       requestTimerInterval = null;
+    }
+  }
+
+  async function submitExpiredRideRequest(rideId, expiresAt) {
+    const timeoutKey = `${rideId}|${expiresAt}`;
+    if (requestTimeoutAttempts.has(timeoutKey)) return;
+    requestTimeoutAttempts.add(timeoutKey);
+    if (currentRequestId !== rideId || requestExpiresAt !== expiresAt) return;
+
+    pendingStateRevision += 1;
+    activeRideViewRevision += 1;
+    document.getElementById("requestStatus").textContent = "⏳ Confirming expired request with the server…";
+    const timeoutToken = localStorage.getItem("sakayta_token");
+    if (!timeoutToken) {
+      setRequestStatusFor(rideId, "⚠️ You must be logged in to process this expired request.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(rideId)}/expire`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${timeoutToken}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRequestStatusFor(rideId, "❌ " + (data.error || "The server could not confirm this expired request."));
+        loadActiveRide(true);
+        return;
+      }
+
+      setRequestStatusFor(rideId, data.message || "Expired request processed.");
+      setTimeout(() => {
+        if (currentRequestId === rideId) clearPendingRideRequest(data.message || "Expired request processed.");
+        activeRideViewRevision += 1;
+        loadActiveRide(true);
+      }, 1200);
+    } catch (err) {
+      // Do not blindly retry: the server may have completed before the connection failed.
+      setRequestStatusFor(rideId, "❌ Could not confirm the timeout response. Refreshing ride state; this offer will not be resubmitted automatically.");
+      loadActiveRide(true);
     }
   }
 

@@ -33,3 +33,8 @@ php/bin/99_soap_request.xml
 # Accidental generated path artifacts
 /DocumentRoot*/
  /C*Users*.md
+
+ data/
+*.db
+*.db.*
+.env

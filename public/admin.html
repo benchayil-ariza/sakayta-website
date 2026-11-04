@@ -118,6 +118,9 @@
         <button type="button" class="sidebar-link active" id="nav-overview" data-tab="overview">
           <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-dashboard"/></svg></span> Overview
         </button>
+        <button type="button" class="sidebar-link" id="nav-activity" data-tab="activity">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-list"/></svg></span> Driver Activity
+        </button>
         <button type="button" class="sidebar-link" id="nav-drivers" data-tab="drivers">
           <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-id"/></svg></span> Drivers
           <span id="navPendingBadge" class="nav-badge" hidden></span>
@@ -148,6 +151,42 @@
           <p class="ad-sub">A quick look at your drivers and rides.</p>
           <div id="needsAttention"></div>
           <div id="statsContainer"><div class="loading">Loading statistics...</div></div>
+        </section>
+
+        <!-- Driver activity report -->
+        <section id="activity" class="ad-view" style="display: none;">
+          <h2 class="ad-title">Driver Activity Report</h2>
+          <p class="ad-sub">Ride activity based on persisted driver assignments.</p>
+          <div id="activityFeedback"></div>
+          <div class="ad-card">
+            <div class="ad-filters" role="group" aria-label="Filter driver activity by ride booking date">
+              <label for="activityStartDate">Start date
+                <input type="date" id="activityStartDate" aria-label="Start booking date">
+              </label>
+              <label for="activityEndDate">End date
+                <input type="date" id="activityEndDate" aria-label="End booking date">
+              </label>
+              <button type="button" class="ad-btn" id="applyActivityFilters">Apply Filters</button>
+              <button type="button" class="ad-btn" id="clearActivityFilters">Clear Filters</button>
+            </div>
+            <p class="ad-note">Dates filter ride booking dates in Asia/Manila. A single date may be used as an open-ended boundary.</p>
+            <div class="table-container">
+              <table id="driverActivityTable" class="ad-table">
+                <thead>
+                  <tr>
+                    <th>Driver</th>
+                    <th>Total assigned rides</th>
+                    <th>Completed rides</th>
+                    <th>Active rides</th>
+                    <th>Latest ride update</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="5" class="loading">Loading driver activity...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- Drivers -->
@@ -278,12 +317,14 @@
   const feedbackEl = document.getElementById('feedback');
   const navLinks = {
     overview: document.getElementById('nav-overview'),
+    activity: document.getElementById('nav-activity'),
     drivers: document.getElementById('nav-drivers'),
     fares: document.getElementById('nav-fares'),
     logs: document.getElementById('nav-logs')
   };
   const sections = {
     overview: document.getElementById('overview'),
+    activity: document.getElementById('activity'),
     drivers: document.getElementById('drivers'),
     fares: document.getElementById('fares'),
     logs: document.getElementById('logs')
@@ -327,6 +368,9 @@
     switch(sectionId) {
       case 'overview':
         loadOverviewStats();
+        break;
+      case 'activity':
+        loadDriverActivity();
         break;
       case 'drivers':
         loadDrivers();
@@ -540,6 +584,53 @@
     } catch (err) {
       console.error('Failed to load stats:', err);
       statsContainer.innerHTML = '<div class="feedback error">Failed to load statistics: ' + escapeHtml(err.message) + '</div>';
+    }
+  }
+
+  let driverActivityRequestRevision = 0;
+
+  async function loadDriverActivity(startDate = document.getElementById('activityStartDate').value, endDate = document.getElementById('activityEndDate').value) {
+    const requestRevision = ++driverActivityRequestRevision;
+    const tbody = document.getElementById('driverActivityTable').getElementsByTagName('tbody')[0];
+    const feedback = document.getElementById('activityFeedback');
+    const applyButton = document.getElementById('applyActivityFilters');
+    feedback.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading driver activity...</td></tr>';
+    applyButton.disabled = true;
+
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+      const query = params.toString();
+      const result = await apiFetch('/api/admin/reports/driver-activity' + (query ? '?' + query : ''));
+      if (requestRevision !== driverActivityRequestRevision) return;
+      const drivers = result && Array.isArray(result.drivers) ? result.drivers : null;
+      if (drivers === null) throw new Error('The driver activity response was invalid.');
+      if (drivers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No drivers found.</td></tr>';
+        return;
+      }
+
+      const count = value => {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+      };
+      tbody.innerHTML = drivers.map(driver => `
+        <tr>
+          <td>${escapeHtml(driver.driverName || 'Unnamed driver')}</td>
+          <td>${count(driver.totalAssignedRides)}</td>
+          <td>${count(driver.completedRides)}</td>
+          <td>${count(driver.activeRides)}</td>
+          <td>${escapeHtml(driver.latestRideUpdatedAt || '—')}</td>
+        </tr>`).join('');
+    } catch (err) {
+      if (requestRevision === driverActivityRequestRevision) {
+        tbody.innerHTML = '';
+        feedback.innerHTML = '<div class="feedback error">Failed to load driver activity: ' + escapeHtml(err.message) + '</div>';
+      }
+    } finally {
+      if (requestRevision === driverActivityRequestRevision) applyButton.disabled = false;
     }
   }
 
@@ -837,6 +928,32 @@
   navLinks.overview.addEventListener('click', (e) => {
     e.preventDefault();
     showSection('overview');
+  });
+
+  navLinks.activity.addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('activity');
+  });
+
+  document.getElementById('applyActivityFilters').addEventListener('click', () => {
+    const startDate = document.getElementById('activityStartDate').value;
+    const endDate = document.getElementById('activityEndDate').value;
+    const feedback = document.getElementById('activityFeedback');
+    const tbody = document.getElementById('driverActivityTable').getElementsByTagName('tbody')[0];
+    if (startDate && endDate && startDate > endDate) {
+      driverActivityRequestRevision += 1;
+      document.getElementById('applyActivityFilters').disabled = false;
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Choose a valid date range to display results.</td></tr>';
+      feedback.innerHTML = '<div class="feedback error">Start date cannot be later than end date.</div>';
+      return;
+    }
+    loadDriverActivity(startDate, endDate);
+  });
+
+  document.getElementById('clearActivityFilters').addEventListener('click', () => {
+    document.getElementById('activityStartDate').value = '';
+    document.getElementById('activityEndDate').value = '';
+    loadDriverActivity('', '');
   });
 
   navLinks.drivers.addEventListener('click', (e) => {

@@ -2903,3 +2903,10 @@ body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
 /* barangay in bold, the rest quiet */
 .fb-dash .bk-place b { font-weight: 800; }
 .fb-dash .bk-place em { font-style: normal; font-weight: 600; color: #606770; }
+
+/* route info under the two steps */
+.fb-dash .bk-route-info { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 12px; border-radius: 12px; background: rgba(47, 125, 85, 0.1); color: var(--accent); font-size: 13.5px; font-weight: 700; }
+.fb-dash .bk-route-info .ic { width: 18px; height: 18px; flex-shrink: 0; }
+.fb-dash .bk-route-info[data-state="loading"] { background: #f0f2f5; color: #606770; }
+.fb-dash .bk-route-info[data-state="err"] { background: #fff4d6; color: #8a5a00; }
+.fb-dash .bk-route-info[hidden] { display: none; }

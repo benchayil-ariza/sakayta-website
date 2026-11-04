@@ -93,6 +93,83 @@ final class AdminService
     }
 
     /**
+     * Get per-driver ride activity from persisted ride assignments.
+     *
+     * @return array<int, array{driverName:string,totalAssignedRides:int,completedRides:int,activeRides:int,latestRideUpdatedAt:?string}>
+     */
+    public function getDriverActivityReport(?string $startDate = null, ?string $endDate = null): array
+    {
+        $start = $this->parseDriverActivityDate($startDate, 'startDate');
+        $end = $this->parseDriverActivityDate($endDate, 'endDate');
+        if ($start !== null && $end !== null && $start > $end) {
+            throw new AdminException('Start date cannot be later than end date.', 400);
+        }
+
+        $startBoundary = $start?->format('Y-m-d 00:00:00');
+        $endExclusive = $end?->modify('+1 day');
+        if ($endExclusive !== null && (int) $endExclusive->format('Y') > 9999) {
+            throw new AdminException('End date is outside the supported report date range.', 400);
+        }
+
+        $pdo = Database::connection();
+        $sql = "SELECT d.id, d.name AS driverName,
+                    COUNT(r.id) AS totalAssignedRides,
+                    SUM(CASE WHEN r.status = 'completed' THEN 1 ELSE 0 END) AS completedRides,
+                    SUM(CASE WHEN r.status IN ('assigned', 'en_route') THEN 1 ELSE 0 END) AS activeRides,
+                    MAX(COALESCE(r.updatedAt, r.createdAt)) AS latestRideUpdatedAt
+             FROM drivers d
+             LEFT JOIN rides r ON r.driverId = d.id";
+        $params = [];
+        if ($startBoundary !== null) {
+            $sql .= ' AND r.createdAt >= :startBoundary';
+            $params['startBoundary'] = $startBoundary;
+        }
+        if ($endExclusive !== null) {
+            $sql .= ' AND r.createdAt < :endExclusive';
+            $params['endExclusive'] = $endExclusive->format('Y-m-d 00:00:00');
+        }
+        $sql .= ' GROUP BY d.id, d.name ORDER BY d.name ASC, d.id ASC';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row = [
+                'driverName' => (string) $row['driverName'],
+                'totalAssignedRides' => (int) $row['totalAssignedRides'],
+                'completedRides' => (int) $row['completedRides'],
+                'activeRides' => (int) $row['activeRides'],
+                'latestRideUpdatedAt' => $row['latestRideUpdatedAt'] === null ? null : (string) $row['latestRideUpdatedAt'],
+            ];
+        }
+        unset($row);
+        return $rows;
+    }
+
+    private function parseDriverActivityDate(?string $value, string $parameter): ?\DateTimeImmutable
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value) !== 1) {
+            throw new AdminException('Invalid ' . $parameter . '. Use YYYY-MM-DD.', 400);
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('Asia/Manila'));
+        $errors = \DateTimeImmutable::getLastErrors();
+        if ($date === false
+            || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+            || $date->format('Y-m-d') !== $value) {
+            throw new AdminException('Invalid ' . $parameter . '. Use a valid YYYY-MM-DD date.', 400);
+        }
+        if ((int) $date->format('Y') < 1000) {
+            throw new AdminException('Date is outside the supported report date range.', 400);
+        }
+        return $date;
+    }
+
+    /**
      * Get drivers with optional filtering.
      *
      * @param string|null $search Search term for name, plate, or license

@@ -174,6 +174,23 @@ final class RideController
         Response::json(200, $result);
     }
 
+    /** GET /api/rides/:id/receipt -> 200 | 401 | 403 | 404 */
+    public function receipt(string $id): void
+    {
+        $claims = CurrentUser::required();
+        $role = (string) ($claims['role'] ?? '');
+        if (!in_array($role, ['commuter', 'driver'], true)) {
+            throw new RideException('Only passengers and assigned drivers can view receipts.', 403);
+        }
+        if (trim($id) === '') {
+            throw new RideException('Ride ID is required.', 400);
+        }
+
+        Response::json(200, [
+            'transaction' => $this->service->getReceiptForUser($claims['uid'], $role, $id),
+        ]);
+    }
+
     /** POST /api/rides/:id/decline -> 200 | 401 | 403 | 404 */
     public function decline(string $id): void
     {
@@ -183,6 +200,19 @@ final class RideController
         }
         $result = $this->service->declineRide($claims['uid'], $id);
         Response::json(200, $result);
+    }
+
+    /** POST /api/rides/:id/expire -> 200 | 401 | 403 | 404 | 409 */
+    public function expire(string $id): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers can expire ride offers.', 403);
+        }
+        if (trim($id) === '') {
+            throw new RideException('Ride ID is required.', 400);
+        }
+        Response::json(200, $this->service->expireRideOffer($claims['uid'], $id));
     }
 
     /** POST /api/rides/:id/cancel -> 200 | 409 | 403 | 404 */

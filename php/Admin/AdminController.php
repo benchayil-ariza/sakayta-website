@@ -32,6 +32,19 @@ final class AdminController
         $this->respond(200, $result);
     }
 
+    /** GET /api/admin/reports/driver-activity -> 200 on success. */
+    public function driverActivityReport(): void
+    {
+        $token = $this->bearerToken();
+        $this->service->requireAdmin($token);
+        $startDate = $_GET['startDate'] ?? null;
+        $endDate = $_GET['endDate'] ?? null;
+        if (($startDate !== null && !is_string($startDate)) || ($endDate !== null && !is_string($endDate))) {
+            throw new AdminException('Date filters must be single YYYY-MM-DD values.', 400);
+        }
+        $this->respond(200, ['drivers' => $this->service->getDriverActivityReport($startDate, $endDate)]);
+    }
+
     /** GET /api/admin/drivers -> 200 with optional query params. */
     public function drivers(): void
     {
