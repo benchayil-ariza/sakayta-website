@@ -1340,9 +1340,9 @@ function renderMyRides() {
           <span class="rc-fare">${r.fareEstimate ? "₱" + escapeHtml(r.fareEstimate) : "—"}</span>
         </div>
         <div class="rc-route">
-          <span>From ${pt(r.pickupLat, r.pickupLng)}</span>
+          <span>From ${escapeHtml(r.pickupAddress || pt(r.pickupLat, r.pickupLng))}</span>
           <span class="rc-arrow">→</span>
-          <span>To ${pt(r.dropoffLat, r.dropoffLng)}</span>
+          <span>To ${escapeHtml(r.dropoffAddress || pt(r.dropoffLat, r.dropoffLng))}</span>
         </div>
       </div>
       <div class="rc-side">

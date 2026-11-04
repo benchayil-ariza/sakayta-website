@@ -691,7 +691,7 @@ final class RideService
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
                     startedAt, completedAt, cancelledAt, userId
@@ -720,7 +720,7 @@ final class RideService
         } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] createNotification INSERT failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
     }
     /** @return array<string,mixed> */
-    public function createRide(
+        public function createRide(
         string $userId,
         string $passengerName,
         string $rideType,
@@ -728,6 +728,8 @@ final class RideService
         float $pickupLng,
         float $dropoffLat,
         float $dropoffLng,
+        ?string $pickupAddress = null,
+        ?string $dropoffAddress = null,
     ): array {
         $pdo = Database::connection();
         $distanceKm = $this->estimateDistanceKm($pickupLat, $pickupLng, $dropoffLat, $dropoffLng);
@@ -737,25 +739,29 @@ final class RideService
 
         $pdo->beginTransaction();
         try {
-            $pdo->prepare(
+                        $pdo->prepare(
                 'INSERT INTO rides (id, passengerName, rideType, pickupLat, pickupLng, dropoffLat,
-                                    dropoffLng, status, distanceKm, fareEstimate, createdAt, updatedAt, userId)
+                                    dropoffLng, pickupAddress, dropoffAddress, status, distanceKm,
+                                    fareEstimate, createdAt, updatedAt, userId)
                  VALUES (:id, :passengerName, :rideType, :pickupLat, :pickupLng, :dropoffLat,
-                         :dropoffLng, :status, :distanceKm, :fareEstimate, :createdAt, :updatedAt, :userId)'
+                         :dropoffLng, :pickupAddress, :dropoffAddress, :status, :distanceKm,
+                         :fareEstimate, :createdAt, :updatedAt, :userId)'
             )->execute([
-                'id'            => $id,
-                'passengerName' => $passengerName,
-                'rideType'      => $rideType,
-                'pickupLat'     => $pickupLat,
-                'pickupLng'     => $pickupLng,
-                'dropoffLat'    => $dropoffLat,
-                'dropoffLng'    => $dropoffLng,
-                'status'        => 'pending',
-                'distanceKm'    => $distanceKm,
-                'fareEstimate'  => $fareEstimate,
-                'createdAt'     => $now,
-                'updatedAt'     => $now,
-                'userId'        => $userId,
+                'id'             => $id,
+                'passengerName'  => $passengerName,
+                'rideType'       => $rideType,
+                'pickupLat'      => $pickupLat,
+                'pickupLng'      => $pickupLng,
+                'dropoffLat'     => $dropoffLat,
+                'dropoffLng'     => $dropoffLng,
+                'pickupAddress'  => $pickupAddress,
+                'dropoffAddress' => $dropoffAddress,
+                'status'         => 'pending',
+                'distanceKm'     => $distanceKm,
+                'fareEstimate'   => $fareEstimate,
+                'createdAt'      => $now,
+                'updatedAt'      => $now,
+                'userId'         => $userId,
             ]);
 
             // Read ownership back from the persisted ride; never derive the recipient
@@ -833,7 +839,7 @@ final class RideService
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, distanceKm, fareEstimate, createdAt, updatedAt
              FROM rides WHERE userId = :uid ORDER BY createdAt DESC'
         );
@@ -862,7 +868,7 @@ final class RideService
         $driverId = (string) ($driver['id'] ?? '');
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
                     startedAt, completedAt, cancelledAt, userId
@@ -890,7 +896,7 @@ final class RideService
         $driverId = (string) ($driver['id'] ?? '');
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
                     startedAt, completedAt, cancelledAt, userId
@@ -1081,7 +1087,7 @@ final class RideService
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng,
+            'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
                     startedAt, completedAt, cancelledAt, userId
@@ -1469,7 +1475,7 @@ final class RideService
             $stmt = $pdo->prepare(
                 "SELECT t.id, t.rideId, t.fareAmount, t.currency, t.paymentMethod,
                         t.rideType, t.distanceKm, t.passengerName, t.driverName,
-                        t.pickupLat, t.pickupLng, t.dropoffLat, t.dropoffLng,
+                        t.pickupLat, t.pickupLng, t.dropoffLat, t.dropoffLng, r.pickupAddress, r.dropoffAddress,
                         t.completedAt, t.createdAt
                  FROM `transactions` t
                  JOIN rides r ON r.id = t.rideId
@@ -1482,7 +1488,7 @@ final class RideService
             $stmt = $pdo->prepare(
                 "SELECT t.id, t.rideId, t.fareAmount, t.currency, t.paymentMethod,
                         t.rideType, t.distanceKm, t.passengerName, t.driverName,
-                        t.pickupLat, t.pickupLng, t.dropoffLat, t.dropoffLng,
+                        t.pickupLat, t.pickupLng, t.dropoffLat, t.dropoffLng, r.pickupAddress, r.dropoffAddress,
                         t.completedAt, t.createdAt
                  FROM `transactions` t
                  JOIN rides r ON r.id = t.rideId

@@ -55,6 +55,7 @@
     .stop-head a { font-size: .75rem; font-weight: 700; color: var(--accent); text-decoration: none; }
     .stop-head a:hover { text-decoration: underline; }
     .coords { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; }
+    .coords-sub { font-size: .75rem; font-weight: 600; color: var(--muted); }
 
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem 1.2rem; }
     .grid .v { font-size: .98rem; font-weight: 700; overflow-wrap: anywhere; }
@@ -158,6 +159,7 @@
               <div class="stop-body">
                 <div class="stop-head"><span class="label">Pickup</span><a id="pickupMap" href="#" target="_blank" rel="noopener noreferrer" hidden>View on map</a></div>
                 <div id="pickup" class="coords">—</div>
+                <div id="pickupCoords" class="coords-sub" hidden></div>
               </div>
             </div>
             <div class="stop">
@@ -165,6 +167,7 @@
               <div class="stop-body">
                 <div class="stop-head"><span class="label">Drop-off</span><a id="dropoffMap" href="#" target="_blank" rel="noopener noreferrer" hidden>View on map</a></div>
                 <div id="dropoff" class="coords">—</div>
+                <div id="dropoffCoords" class="coords-sub" hidden></div>
               </div>
             </div>
           </div>
@@ -257,8 +260,18 @@
       setText("distance", t.distanceKm == null ? "Not recorded" : `${Number(t.distanceKm).toFixed(2)} km`);
       setText("passengerName", t.passengerName || "Not recorded");
       setText("driverName", t.driverName || "Not recorded");
-      setText("pickup", coordinates(t.pickupLat, t.pickupLng));
-      setText("dropoff", coordinates(t.dropoffLat, t.dropoffLng));
+      
+      const pCoords = coordinates(t.pickupLat, t.pickupLng);
+      const dCoords = coordinates(t.dropoffLat, t.dropoffLng);
+      const pName = (t.pickupAddress || "").trim();
+      const dName = (t.dropoffAddress || "").trim();
+      setText("pickup", pName || pCoords);
+      setText("dropoff", dName || dCoords);
+      if (pName) { setText("pickupCoords", pCoords); document.getElementById("pickupCoords").hidden = false; }
+      if (dName) { setText("dropoffCoords", dCoords); document.getElementById("dropoffCoords").hidden = false; }
+      if (pName || dName) {
+        document.querySelector(".note").textContent += " Place names © OpenStreetMap contributors.";
+      }
       mapLink("pickupMap", t.pickupLat, t.pickupLng);
       mapLink("dropoffMap", t.dropoffLat, t.dropoffLng);
       setText("paymentMethod", t.paymentMethod || "Cash");

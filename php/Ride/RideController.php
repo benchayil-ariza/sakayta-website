@@ -63,6 +63,10 @@ final class RideController
             throw new RideException('Longitude must be between -180 and 180.', 400);
         }
 
+        // Place names come from the browser. They are labels only: clean them, and keep the coordinates as the truth.
+        $pickupAddress  = self::cleanPlace($body['pickupAddress'] ?? null);
+        $dropoffAddress = self::cleanPlace($body['dropoffAddress'] ?? null);
+
         $ride = $this->service->createRide(
             $claims['uid'],
             $passengerName,
@@ -70,7 +74,9 @@ final class RideController
             $pickupLat,
             $pickupLng,
             $dropoffLat,
-            $dropoffLng
+            $dropoffLng,
+            $pickupAddress,
+            $dropoffAddress
         );
         Response::json(201, $ride);
     }
@@ -230,6 +236,18 @@ final class RideController
 
         $result = $this->service->cancelRide($claims['uid'], $id);
         Response::json(200, $result);
+    }
+
+        /** Cleans a place name: no tags, no control characters, max 200 characters, empty becomes null. */
+    private static function cleanPlace(mixed $v): ?string
+    {
+        if (!is_string($v)) {
+            return null;
+        }
+        $v = strip_tags($v);
+        $v = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $v) ?? '';
+        $v = trim($v);
+        return $v === '' ? null : mb_substr($v, 0, 200);
     }
 
     /** @return array<string,mixed> */

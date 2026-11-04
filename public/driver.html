@@ -943,8 +943,8 @@
     }
 
     document.getElementById("reqPassenger").textContent = escapeHtml(ride.passengerName);
-    document.getElementById("reqPickup").textContent = `${Number(ride.pickupLat)?.toFixed(4)}, ${Number(ride.pickupLng)?.toFixed(4)}`;
-    document.getElementById("reqDropoff").textContent = `${Number(ride.dropoffLat)?.toFixed(4)}, ${Number(ride.dropoffLng)?.toFixed(4)}`;
+    document.getElementById("reqPickup").textContent = ride.pickupAddress || `${Number(ride.pickupLat)?.toFixed(4)}, ${Number(ride.pickupLng)?.toFixed(4)}`;
+    document.getElementById("reqDropoff").textContent = ride.dropoffAddress || `${Number(ride.dropoffLat)?.toFixed(4)}, ${Number(ride.dropoffLng)?.toFixed(4)}`;
     document.getElementById("reqFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
 
     document.getElementById("rideRequestCard").style.display = "block";
@@ -1308,11 +1308,11 @@
     <div class="req-route">
       <div class="req-stop">
         <span class="req-dot pickup"></span>
-        <div><div class="req-small">Pickup</div><div class="req-coords">${pt(ride.pickupLat, ride.pickupLng)}</div></div>
+        <div><div class="req-small">Pickup</div><div class="req-coords">${escapeHtml(ride.pickupAddress || pt(ride.pickupLat, ride.pickupLng))}</div></div>
       </div>
       <div class="req-stop">
         <span class="req-dot drop"></span>
-        <div><div class="req-small">Drop-off</div><div class="req-coords">${ride.dropoffLat != null ? pt(ride.dropoffLat, ride.dropoffLng) : "—"}</div></div>
+        <div><div class="req-small">Drop-off</div><div class="req-coords">${escapeHtml(ride.dropoffAddress || (ride.dropoffLat != null ? pt(ride.dropoffLat, ride.dropoffLng) : "—"))}</div></div>
       </div>
     </div>`;
     const startBtn = document.getElementById("startRouteBtn");
