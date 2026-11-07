@@ -396,3 +396,57 @@ html:not(.dev) #view-location #stopBtn,
 .fb-dash #notificationList .mark-read-btn { background: rgba(47, 125, 85, 0.15) !important; color: var(--accent) !important; }
 .fb-dash #notificationList .mark-read-btn:hover,
 .fb-dash #notificationList .delete-notif-btn:hover { filter: brightness(0.95); }
+
+/* ===== Driver notification Delete button: match Passenger UI ===== */
+
+#notificationPanel #notificationList .notif-item {
+  position: relative !important;
+}
+
+#notificationPanel #notificationList .notif-actions {
+  display: contents !important;
+}
+
+#notificationPanel #notificationList .delete-notif-btn {
+  position: absolute !important;
+  right: 12px !important;
+  bottom: 12px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  margin: 0 !important;
+  padding: 4px 11px !important;
+
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+
+  background: #fff !important;
+  color: #606770 !important;
+  border: 1px solid #dddfe2 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+}
+
+#notificationPanel #notificationList .notif-item:hover .delete-notif-btn,
+#notificationPanel #notificationList .notif-item:focus-within .delete-notif-btn {
+  opacity: 1;
+}
+
+#notificationPanel #notificationList .delete-notif-btn:hover {
+  background: #fde8e6 !important;
+  color: #b3392b !important;
+  border-color: #f0c9c4 !important;
+}
+
+@media (hover: none) {
+  #notificationPanel #notificationList .delete-notif-btn {
+    opacity: 1;
+  }
+}

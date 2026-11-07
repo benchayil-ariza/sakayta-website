@@ -45,9 +45,8 @@
       <span class="brand-name">SakayTa</span>
     </a>
   </div>
-  <span class="driver-topbar-title">Passenger View</span>
+  
   <div class="driver-topbar-right">
-    <span id="topbarPassenger" aria-hidden="true">Loading&hellip;</span>
     <!-- Notification bell -->
     <button id="notificationBell" class="notification-bell" title="Notifications" style="position: relative; background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px 8px;"><svg class="ic"><use href="#i-bell"/></svg> <span id="unreadCount" class="unread-badge" style="position: absolute; top: 0; right: 0; background: #E8604E; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: 700;">0</span></button>
     <div id="notificationPanel" class="notification-panel" style="display:none; position: absolute; top: 50px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid var(--sage-300); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; overflow-y: auto;">
@@ -86,9 +85,6 @@
       </button>
       <button type="button" class="sidebar-link" data-view="my-rides">
         <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-list"/></svg></span> My Rides
-      </button>
-      <button type="button" class="sidebar-link" data-view="notifications">
-        <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-bell"/></svg></span> Notifications
       </button>
     </nav>
 
@@ -356,7 +352,6 @@ const socket = io({
 });
 
 const rideIdInput = document.getElementById("rideId");
-const topbarPassengerEl = document.getElementById("topbarPassenger");
 const sidebarPassengerNameEl = document.getElementById("sidebarPassengerName");
 
 // Notification state
@@ -390,19 +385,23 @@ async function loadNotifications() {
     console.warn("Could not load notifications:", err.message);
   }
 }
-function timeAgo(d) {
-  const t = new Date(d).getTime();
-  if (!t) return "";
-  const s = Math.floor((Date.now() - t) / 1000);
-  if (s < 60) return "Just now";
-  if (s < 3600) return Math.floor(s / 60) + " min ago";
-  if (s < 86400) return Math.floor(s / 3600) + " hr ago";
-  return new Date(t).toLocaleDateString();
-}
+ function timeAgo(d) {
+    const t = new Date(String(d || "").replace(" ", "T")).getTime();
+    if (!t) return "";
+    const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (s < 60) return "Just now";
+    if (s < 3600) return Math.floor(s / 60) + " min ago";
+    if (s < 86400) return Math.floor(s / 3600) + " hr ago";
+    const days = Math.floor(s / 86400);
+    if (days === 1) return "Yesterday";
+    if (days < 7) return days + " days ago";
+    if (days < 30) { const w = Math.floor(days / 7); return w + (w === 1 ? " week ago" : " weeks ago"); }
+    return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
 
 function notifHtml(n) {
   const receiptLink = n.type === "receipt_ready" && n.rideId
-    ? `<a class="notif-receipt-link" href="receipt.html?rideId=${encodeURIComponent(n.rideId)}">View cash receipt</a>`
+    ? `<a class="notif-receipt-link" href="receipt.html?rideId=${encodeURIComponent(n.rideId)}">View receipt</a>`
     : "";
   return `
     <div class="notif-item ${n.read ? "" : "unread"}">
@@ -508,7 +507,6 @@ async function loadRideInfo() {
     document.getElementById("greeting").textContent = `Good day, ${ride.passengerName}`;
     document.getElementById("rideFare").textContent = ride.fareEstimate ? "₱" + ride.fareEstimate : "—";
     document.getElementById("rideVehicleType").textContent = rideTypeLabel(ride.rideType);
-    topbarPassengerEl.textContent = ride.passengerName || "Passenger";
     sidebarPassengerNameEl.textContent = ride.passengerName || "Passenger";
 
     // Manage cancel button visibility based on BR-05 rules
@@ -755,8 +753,6 @@ function updatePassengerLabels(hasPassenger, passengerData) {
   } catch (e) {}
   const greet = document.getElementById("greeting");
   if (greet) greet.textContent = "Good day, " + name;
-  const top = document.getElementById("topbarPassenger");
-  if (top) top.textContent = hasPassenger ? name : "Loading…";
   const side = document.getElementById("sidebarPassengerName");
   if (side) side.textContent = hasPassenger ? name : "Loading…";
 }
@@ -1336,20 +1332,17 @@ function renderMyRides() {
     <div class="ride-card">
       <div class="rc-main">
         <div class="rc-top">
-          <span class="rc-type">${escapeHtml(r.rideType || "Tricycle")}</span>
+          <span class="rc-type">${escapeHtml(rideTypeLabel(r.rideType))}</span>
           <span class="rc-fare">${r.fareEstimate ? "₱" + escapeHtml(r.fareEstimate) : "—"}</span>
         </div>
-        <div class="rc-route">
-          <span>From ${escapeHtml(r.pickupAddress || pt(r.pickupLat, r.pickupLng))}</span>
+       <div class="rc-route">
+          <span>${escapeHtml(r.pickupAddress || pt(r.pickupLat, r.pickupLng))}</span>
           <span class="rc-arrow">→</span>
-          <span>To ${escapeHtml(r.dropoffAddress || pt(r.dropoffLat, r.dropoffLng))}</span>
+          <span>${escapeHtml(r.dropoffAddress || pt(r.dropoffLat, r.dropoffLng))}</span>
         </div>
       </div>
       <div class="rc-side">
         <span class="status-badge status-${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
-        ${["pending", "assigned"].includes(r.status)
-          ? `<button class="cancel-ride-btn" data-id="${escapeHtml(r.id)}">Cancel</button>`
-          : ""}
         <div class="rc-links">
           <a href="/api/rides/${encodeURIComponent(r.id)}" target="_blank">JSON</a>
           <a href="/api/rides/${encodeURIComponent(r.id)}/xml" target="_blank">XML</a>
@@ -1366,28 +1359,6 @@ document.querySelectorAll(".filter-pill").forEach((pill) => {
     currentMyRidesFilter = pill.dataset.filter;
     renderMyRides();
   });
-});
-
-document.getElementById("myRidesBody").addEventListener("click", async (e) => {
-  const btn = e.target.closest(".cancel-ride-btn");
-  if (!btn) return;
-  if (!confirm("Cancel this ride? This cannot be undone.")) return;
-
-  btn.disabled = true;
-  btn.textContent = "Cancelling...";
-  try {
-    const res = await fetch(`http://localhost:8088/api/rides/${encodeURIComponent(btn.dataset.id)}/cancel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
-    });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      alert(d.error || "Could not cancel this ride.");
-    }
-  } catch (err) {
-    alert("Network error: " + err.message);
-  }
-  loadMyRides();
 });
 
 // ===== Full Notifications view =====
@@ -1682,6 +1653,48 @@ loadAuthenticatedPassenger();
     [a, b].forEach(function (n) { mo.observe(n, { childList: true, characterData: true, subtree: true }); });
     paint();
   } catch (e) { console.warn("Booking steps unavailable", e); }
+})();
+</script>
+
+<script>
+// Bell list: clicking a notification marks it as read. Opening its receipt marks it as read too.
+// It clicks the hidden "Mark read" button, so the page's own code does the saving.
+(function () {
+  try {
+    var list = document.getElementById("notificationList");
+    var panel = document.getElementById("notificationPanel");
+    var bell = document.getElementById("notificationBell");
+    if (!list) return;
+
+    list.addEventListener("click", function (e) {
+      if (e.target.closest(".delete-notif-btn") || e.target.closest(".mark-read-btn")) return;
+      var item = e.target.closest(".notif-item");
+      var btn = item && item.querySelector(".mark-read-btn");
+      if (!btn) return;                                   // it is already read
+      var link = e.target.closest("a[href]");
+      if (link && link.target !== "_blank") {
+        e.preventDefault();                               // save first, then open the receipt
+        var href = link.href, tries = 0;
+        btn.click();
+        (function wait() {
+          if (!document.body.contains(btn) || ++tries > 12) { window.location.href = href; return; }
+          setTimeout(wait, 120);
+        })();
+      } else {
+        btn.click();
+      }
+    });
+
+    // close the dropdown when you click outside it, or press Escape
+    document.addEventListener("click", function (e) {
+      if (panel && panel.style.display === "block" && !panel.contains(e.target) && !(bell && bell.contains(e.target))) {
+        panel.style.display = "none";
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && panel && panel.style.display === "block") panel.style.display = "none";
+    });
+  } catch (err) { console.warn("Notification clicks unavailable", err); }
 })();
 </script>
   

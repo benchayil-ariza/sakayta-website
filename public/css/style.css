@@ -1375,7 +1375,7 @@ input:checked + .slider::before { transform: translateX(18px); }
   color: #fff;
   flex-shrink: 0;
   position: relative;
-  z-index: 60;
+  z-index: 2000;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 .driver-topbar-left {
@@ -1740,6 +1740,8 @@ input:checked + .slider::before { transform: translateX(18px); }
   gap: 8px;
   min-width: 0;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2001;
 }
 #topbarDriver {
   font-size: 12px;
@@ -2910,3 +2912,60 @@ body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
 .fb-dash .bk-route-info[data-state="loading"] { background: #f0f2f5; color: #606770; }
 .fb-dash .bk-route-info[data-state="err"] { background: #fff4d6; color: #8a5a00; }
 .fb-dash .bk-route-info[hidden] { display: none; }
+
+/* Keep notification dropdown above the Leaflet map */
+.driver-topbar .notification-panel {
+  z-index: 2002 !important;
+}
+
+/* "View receipt": a link that looks like a button (passenger bell list and driver list) */
+.fb-dash #notificationList a[href*="receipt"],
+.fb-dash #fullNotificationList a[href*="receipt"] {
+  display: inline-flex !important;
+  align-items: center;
+  margin: 8px 0 4px !important;
+  padding: 8px 18px !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+.fb-dash #notificationList a[href*="receipt"]:hover,
+.fb-dash #fullNotificationList a[href*="receipt"]:hover { background: var(--accent-hi) !important; }
+.fb-dash #notificationList a[href*="receipt"]:focus-visible,
+.fb-dash #fullNotificationList a[href*="receipt"]:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 2px; }
+
+/* ===== Bell list: calm spacing, delete on hover ===== */
+.fb-dash #notificationList { display: flex; flex-direction: column; gap: 8px; padding: 8px !important; }
+.fb-dash #notificationList .notif-item { position: relative; margin: 0; padding: 14px 16px; }
+
+/* the row of buttons takes no space; only Delete shows, and only on hover */
+.fb-dash #notificationList .notif-actions { display: contents; }
+.fb-dash #notificationList .delete-notif-btn {
+  position: absolute; right: 12px; bottom: 12px;
+  padding: 4px 11px !important; font-size: 12px !important; font-weight: 700;
+  background: #fff !important; color: #606770 !important;
+  border: 1px solid #dddfe2 !important; border-radius: 999px !important;
+  opacity: 0; transition: opacity 0.15s ease; cursor: pointer;
+}
+.fb-dash #notificationList .notif-item:hover .delete-notif-btn,
+.fb-dash #notificationList .notif-item:focus-within .delete-notif-btn { opacity: 1; }
+.fb-dash #notificationList .delete-notif-btn:hover { background: #fde8e6 !important; color: #b3392b !important; border-color: #f0c9c4 !important; }
+@media (hover: none) { .fb-dash #notificationList .delete-notif-btn { opacity: 1; } }
+
+/* "Mark read" is hidden, but a keyboard user can still reach it and press it */
+.fb-dash #notificationList .mark-read-btn {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0 !important;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 !important;
+}
+.fb-dash #notificationList .mark-read-btn:focus-visible {
+  width: auto; height: auto; margin: 0; padding: 5px 12px !important; clip: auto; overflow: visible;
+  right: 12px; top: 12px; background: rgba(47, 125, 85, 0.15) !important; color: var(--accent) !important;
+  border-radius: 999px !important; font-size: 12px !important; font-weight: 700;
+}
+.fb-dash #notificationList .notif-item { cursor: pointer; }
