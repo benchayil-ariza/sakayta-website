@@ -196,3 +196,33 @@
 .admin-ui .ad-prev-row b { color: #14201A; font-weight: 800; }
 
 .admin-ui .sidebar-link:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+
+/* ===== Admin Overview: one screen on laptop / PC ===== */
+@media (min-width: 1100px) {
+  .admin-ui #overview .ad-sub { display: none; }
+  .admin-ui #overview .ad-title { font-size: 26px; margin-bottom: 12px; }
+  .admin-ui #overview .ov-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px 14px; align-items: stretch; }
+  .admin-ui #overview #statsContainer { display: contents; }
+  .admin-ui #overview #statsContainer > .loading,
+  .admin-ui #overview #statsContainer > .feedback { grid-column: 1 / -1; }
+
+  /* needs attention (left) and the two rates (right), same height */
+  .admin-ui #overview #needsAttention { grid-column: span 7; display: flex; }
+  .admin-ui #overview #needsAttention > .ad-attn { margin: 0; flex: 1; padding: 14px 18px; }
+  .admin-ui #overview .ad-attn-item { padding: 8px 0; }
+  .admin-ui #overview .ad-attn-ico { width: 34px; height: 34px; border-radius: 10px; }
+  .admin-ui #overview .ad-rates { grid-column: span 5; gap: 14px; }
+  .admin-ui #overview .ad-rate { padding: 14px 18px; display: flex; flex-direction: column; justify-content: center; }
+  .admin-ui #overview .ad-rate-value { font-size: 34px; margin: 4px 0 2px; }
+
+  /* People: one row of 5. Rides: one row of 6 */
+  .admin-ui #overview .ad-group { grid-column: 1 / -1; margin: 6px 0 0; font-size: 15px; }
+  .admin-ui #overview .ad-stat-grid { grid-column: 1 / -1; gap: 12px; }
+  .admin-ui #overview .ad-stat-grid:nth-of-type(2) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .admin-ui #overview .ad-stat-grid:nth-of-type(3) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .admin-ui #overview .ad-stat { padding: 12px 14px; gap: 10px; }
+  .admin-ui #overview .ad-stat-ico { width: 38px; height: 38px; border-radius: 12px; }
+  .admin-ui #overview .ad-stat-ico .ic { width: 20px; height: 20px; }
+  .admin-ui #overview .ad-stat-value { font-size: 24px; }
+  .admin-ui #overview .ad-stat-label { font-size: 12.5px; line-height: 1.25; }
+}

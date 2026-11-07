@@ -910,6 +910,56 @@ final class RideService
         return $ride ? $ride : null;
     }
 
+        /**
+     * This driver's own rides, newest first (READ-ONLY).
+     * @return array<int,array<string,mixed>>
+     */
+    public function getDriverRides(string $userId, int $limit = 10): array
+    {
+        $driver = $this->getDriverProfile($userId);
+        $limit = max(1, min(50, $limit));
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            'SELECT id, passengerName, rideType, pickupAddress, dropoffAddress, driverId, status,
+                    distanceKm, fareEstimate, createdAt, updatedAt, startedAt, completedAt, cancelledAt
+             FROM rides
+             WHERE driverId = :did
+             ORDER BY COALESCE(completedAt, cancelledAt, startedAt, updatedAt, createdAt) DESC
+             LIMIT ' . $limit
+        );
+        $stmt->execute(['did' => (string) $driver['id']]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Today's rides and earnings (completed rides), plus all-time totals (READ-ONLY).
+     * "Today" uses the same PHP clock that wrote completedAt.
+     * @return array<string,int|float>
+     */
+    public function getDriverStats(string $userId): array
+    {
+        $driver = $this->getDriverProfile($userId);
+        $start = date('Y-m-d 00:00:00');
+        $end = date('Y-m-d 00:00:00', strtotime('tomorrow'));
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) AS completedRides,
+                    COALESCE(SUM(fareEstimate), 0) AS totalEarnings,
+                    COALESCE(SUM(CASE WHEN completedAt >= :s1 AND completedAt < :e1 THEN 1 ELSE 0 END), 0) AS todayRides,
+                    COALESCE(SUM(CASE WHEN completedAt >= :s2 AND completedAt < :e2 THEN fareEstimate ELSE 0 END), 0) AS todayEarnings
+             FROM rides
+             WHERE driverId = :did AND status = 'completed'"
+        );
+        $stmt->execute(['s1' => $start, 'e1' => $end, 's2' => $start, 'e2' => $end, 'did' => (string) $driver['id']]);
+        $row = $stmt->fetch() ?: [];
+        return [
+            'todayRides'     => (int) ($row['todayRides'] ?? 0),
+            'todayEarnings'  => round((float) ($row['todayEarnings'] ?? 0), 2),
+            'completedRides' => (int) ($row['completedRides'] ?? 0),
+            'totalEarnings'  => round((float) ($row['totalEarnings'] ?? 0), 2),
+        ];
+    }
+
     // ----------------------------------------------------- Cancel (commuter)
 
     /**

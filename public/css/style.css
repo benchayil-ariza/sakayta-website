@@ -2426,12 +2426,12 @@ body.fb-dash,
 }
 
 /* --- Overview: cleaner --- */
-.fb-dash #view-dashboard label[for="rideId"],
-.fb-dash #view-dashboard #rideId { display: none; }   /* hide the testing box */
+.pg-passenger #view-dashboard label[for="rideId"],
+.pg-passenger #view-dashboard #rideId { display: none; }   /* hide the testing box */
 
-.fb-dash #view-dashboard .card { max-width: 900px; }
+.pg-passenger #view-dashboard .card { max-width: 900px; }
 
-.fb-dash #view-dashboard h2 { font-size: 32px !important; font-weight: 800; }
+.pg-passenger #view-dashboard h2 { font-size: 32px !important; font-weight: 800; }
 
 /* status pill */
 .fb-dash .ride-status-line {
@@ -2719,7 +2719,7 @@ body.fb-dash,
 
 /* ===== Passenger Overview: fits one screen on laptop / PC ===== */
 @media (min-width: 1000px) {
-  .fb-dash #view-dashboard.active {
+  .pg-passenger #view-dashboard.active {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
@@ -2728,35 +2728,35 @@ body.fb-dash,
     align-content: start;
     max-width: 1180px;
   }
-  .fb-dash #view-dashboard > nav,
-  .fb-dash #view-dashboard > p { display: none; }
-  .fb-dash #view-dashboard > h2 { grid-area: title; margin: 0 !important; font-size: 26px !important; }
+  .pg-passenger #view-dashboard > nav,
+  .pg-passenger #view-dashboard > p { display: none; }
+  .pg-passenger #view-dashboard > h2 { grid-area: title; margin: 0 !important; font-size: 26px !important; }
 
   /* stat cards */
-  .fb-dash #view-dashboard .stat-grid { grid-area: stats; margin: 0; max-width: none; gap: 14px; }
-  .fb-dash #view-dashboard .stat-card { padding: 12px 18px; gap: 2px; }
-  .fb-dash #view-dashboard .stat-label { font-size: 12px; }
-  .fb-dash #view-dashboard .stat-value { font-size: 26px; }
+  .pg-passenger #view-dashboard .stat-grid { grid-area: stats; margin: 0; max-width: none; gap: 14px; }
+  .pg-passenger #view-dashboard .stat-card { padding: 12px 18px; gap: 2px; }
+  .pg-passenger #view-dashboard .stat-label { font-size: 12px; }
+  .pg-passenger #view-dashboard .stat-value { font-size: 26px; }
 
   /* the two cards: Current ride (left) and Recent rides (right) */
-  .fb-dash #view-dashboard > div:nth-of-type(2),
-  .fb-dash #view-dashboard > div:nth-of-type(3) {
+  .pg-passenger #view-dashboard > div:nth-of-type(2),
+  .pg-passenger #view-dashboard > div:nth-of-type(3) {
     margin: 0 !important; max-width: none !important; padding: 16px 20px !important;
     display: flex; flex-direction: column; min-height: 0;
   }
-  .fb-dash #view-dashboard > div:nth-of-type(2) { grid-area: ride; }
-  .fb-dash #view-dashboard > div:nth-of-type(3) { grid-area: recent; }
-  .fb-dash #view-dashboard .card-head { margin-bottom: 4px; }
+  .pg-passenger #view-dashboard > div:nth-of-type(2) { grid-area: ride; }
+  .pg-passenger #view-dashboard > div:nth-of-type(3) { grid-area: recent; }
+  .pg-passenger #view-dashboard .card-head { margin-bottom: 4px; }
   .fb-dash #recentRides { flex: 1; min-height: 0; overflow: hidden; }
   .fb-dash #recentRides .recent-row { padding: 10px 0; }
   .fb-dash #recentRides .recent-row:nth-child(n+6) { display: none; }
 
   /* empty state: small and centered in its card */
-  .fb-dash #view-dashboard #noRideState { margin-block: auto; padding: 8px; }
-  .fb-dash #view-dashboard .empty-icon { font-size: 36px; margin-bottom: 4px; }
-  .fb-dash #view-dashboard .empty-state h4 { font-size: 17px; margin-bottom: 4px; }
-  .fb-dash #view-dashboard .empty-state p { margin-bottom: 14px; }
-  .fb-dash #view-dashboard .empty-state button { padding: 10px 28px !important; }
+  .pg-passenger #view-dashboard #noRideState { margin-block: auto; padding: 8px; }
+  .pg-passenger #view-dashboard .empty-icon { font-size: 36px; margin-bottom: 4px; }
+  .pg-passenger #view-dashboard .empty-state h4 { font-size: 17px; margin-bottom: 4px; }
+  .pg-passenger #view-dashboard .empty-state p { margin-bottom: 14px; }
+  .pg-passenger #view-dashboard .empty-state button { padding: 10px 28px !important; }
 }
 
 /* show fewer recent rides on shorter screens */

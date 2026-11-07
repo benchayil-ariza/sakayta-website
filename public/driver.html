@@ -172,16 +172,24 @@
           </div>
 
           <div class="dash-overview-grid">
-            <div class="dash-panel">
-              <div class="dash-panel-head"><h3>Current Ride Status</h3></div>
-              <div class="dash-panel-body" id="dashboardRideStatus">
-                <p class="active-ride-empty">Checking&hellip;</p>
+            <div class="dash-left">
+              <div class="dash-panel dash-now">
+                <div class="dash-panel-head"><h3>Current ride</h3></div>
+                <div class="dash-panel-body" id="dashboardRideStatus">
+                  <p class="active-ride-empty">Checking&hellip;</p>
+                </div>
+              </div>
+              <div class="dash-panel">
+                <div class="dash-panel-head"><h3>Driver verification</h3></div>
+                <div class="dash-panel-body" id="dashboardLicenseStatus">
+                  <p class="active-ride-empty">Checking&hellip;</p>
+                </div>
               </div>
             </div>
-            <div class="dash-panel">
-              <div class="dash-panel-head"><h3>Driver Verification</h3></div>
-              <div class="dash-panel-body" id="dashboardLicenseStatus">
-                <p class="active-ride-empty">Checking&hellip;</p>
+            <div class="dash-panel dash-recent">
+              <div class="dash-panel-head"><h3>Recent rides</h3></div>
+              <div class="dash-panel-body" id="dashRecentRides">
+                <p class="active-ride-empty">Loading&hellip;</p>
               </div>
             </div>
           </div>
@@ -840,29 +848,71 @@ if (notificationBell && notificationPanel) {
     }
   }
 
-  // ===== Driver Stats =====
+   // ===== Driver Stats + Recent rides =====
+  function money(n) {
+    return "₱" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function placeShort(a) { return a ? String(a).split(",")[0].trim() : ""; }
+  function rideWhen(v) {
+    const t = new Date(String(v || "").replace(" ", "T"));
+    if (isNaN(t)) return "";
+    const day0 = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diff = Math.round((day0(new Date()) - day0(t)) / 86400000);
+    const time = t.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    if (diff === 0) return "Today, " + time;
+    if (diff === 1) return "Yesterday, " + time;
+    return t.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ", " + time;
+  }
+  function recentRowHtml(r) {
+    const st = String(r.status || "");
+    const cls = st === "en_route" ? "assigned" : st;
+    const label = { completed: "Completed", cancelled: "Cancelled", assigned: "Active", en_route: "Active", pending: "Pending" }[st] || st;
+    const from = placeShort(r.pickupAddress), to = placeShort(r.dropoffAddress);
+    const route = from && to
+      ? escapeHtml(from) + " → " + escapeHtml(to)
+      : (r.distanceKm != null ? Number(r.distanceKm).toFixed(1) + " km trip" : "Trip");
+    const when = rideWhen(r.completedAt || r.cancelledAt || r.startedAt || r.createdAt);
+    return `
+      <div class="dr-row">
+        <span class="dr-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></span>
+        <div class="dr-main">
+          <div class="dr-name">${escapeHtml(r.passengerName || "Passenger")}</div>
+          <div class="dr-sub">${route}${when ? " · " + escapeHtml(when) : ""}</div>
+        </div>
+        <div class="dr-end">
+          <div class="dr-fare${st === "completed" ? "" : " muted"}">${st === "completed" ? money(r.fareEstimate) : "—"}</div>
+          <span class="status-badge status-${escapeHtml(cls)}">${escapeHtml(label)}</span>
+        </div>
+      </div>`;
+  }
+
   async function loadDriverStats() {
-    const driverId = getDriverId();
-    if (!driverId) return; // no authenticated profile yet — fail gracefully
+    const t = localStorage.getItem("sakayta_token");
+    if (!t) return;
+    const headers = { Authorization: "Bearer " + t };
     try {
-      const statsToken = localStorage.getItem("sakayta_token");
-      const headers = {};
-      if (statsToken) headers["Authorization"] = `Bearer ${statsToken}`;
-
-      const res = await fetch("http://localhost:8088/api/rides", { headers });
-      const rides = await res.json();
-      const mine = rides.filter(r => r.driverId === driverId);
-      const completed = mine.filter(r => r.status === "completed");
-      const earnings = completed.reduce((sum, r) => sum + Number(r.fareEstimate || 0), 0);
-
-      document.getElementById("statRides").textContent = mine.length;
-      document.getElementById("statCompleted").textContent = completed.length;
-      document.getElementById("statEarnings").textContent =
-  "₱" + earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const [sRes, rRes] = await Promise.all([
+        fetch("http://localhost:8088/api/drivers/me/stats", { headers }),
+        fetch("http://localhost:8088/api/drivers/me/rides?limit=8", { headers })
+      ]);
+      if (sRes.ok) {
+        const s = await sRes.json();
+        document.getElementById("statRides").textContent = s.todayRides;
+        document.getElementById("statEarnings").textContent = money(s.todayEarnings);
+        document.getElementById("statCompleted").textContent = s.completedRides;
+      }
+      const box = document.getElementById("dashRecentRides");
+      if (rRes.ok && box) {
+        const rides = await rRes.json();
+        box.innerHTML = rides.length
+          ? rides.map(recentRowHtml).join("")
+          : '<p class="active-ride-empty">No rides yet. Your trips will show up here.</p>';
+      }
     } catch (err) {
       console.warn("Could not load driver stats:", err.message);
     }
   }
+  window.loadDriverStats = loadDriverStats;
 
   // ===== License Info =====
   async function loadLicenseInfo() {
@@ -1837,7 +1887,7 @@ if (notificationBell && notificationPanel) {
     views.forEach((v) => v.classList.toggle("active", v.id === "view-" + name));
     navLinks.forEach((l) => l.classList.toggle("active", l.dataset.view === name));
 
-    if (name === "dashboard") { loadDashboardSummary(); }
+    if (name === "dashboard") { loadDashboardSummary(); loadDriverStats(); }
     if (name === "profile" || name === "dashboard") { updateDriverLabels(); }
     if (name === "notifications") { loadNotifications(); }
     if (name === "location" && map) { setTimeout(() => map.invalidateSize(), 80); }
@@ -2489,6 +2539,58 @@ setInterval(function () {
       }, 400);
     });
   } catch (e) { root.classList.add("loc-show"); console.warn("Auto location unavailable", e); }
+})();
+</script>
+
+<script>
+// Driver Dashboard: fits one screen on laptop / PC (layout only), and refreshes the numbers.
+// If the window is too small, normal scrolling stays on so nothing is cut off.
+(function () {
+  try {
+    var view = document.getElementById("view-dashboard");
+    if (!view) return;
+    var desk = window.matchMedia("(min-width: 1000px) and (min-height: 540px)");
+    var queued = false;
+    var mo = new MutationObserver(schedule);
+
+    function unlock() { document.body.classList.remove("ov-fit"); view.style.height = ""; }
+    function fit() {
+      queued = false;
+      unlock();
+      if (!view.classList.contains("active") || !desk.matches) { mo.takeRecords(); return; }
+      var main = view.closest(".driver-main");
+      if (main) main.scrollTop = 0;
+      window.scrollTo(0, 0);
+      var below = 0;
+      for (var el = view.parentElement; el; el = el.parentElement) {
+        var cs = getComputedStyle(el);
+        below += (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+        if (el === document.body) break;
+      }
+      var room = Math.floor(window.innerHeight - view.getBoundingClientRect().top - below) - 4;
+      if (view.offsetHeight <= room) {
+        document.body.classList.add("ov-fit");
+        view.style.height = room + "px";
+      }
+      mo.takeRecords();
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (desk.addEventListener) desk.addEventListener("change", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    mo.observe(view, { attributes: true, attributeFilter: ["class"] });
+    mo.observe(view, { childList: true, characterData: true, subtree: true });
+
+    // keep the numbers and the recent rides fresh while the Dashboard is open
+    setInterval(function () {
+      if (document.visibilityState === "visible" && view.classList.contains("active") && typeof window.loadDriverStats === "function") {
+        window.loadDriverStats();
+      }
+    }, 10000);
+    schedule();
+  } catch (e) { console.warn("Driver dashboard fit unavailable", e); }
 })();
 </script>
 </body>

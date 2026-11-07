@@ -121,6 +121,12 @@ try {
             if ($method !== 'GET') $methodNotAllowed('GET');
             $rideController = new RideController();
             $rideController->driverActiveRide();
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'rides') {
+            if ($method !== 'GET') $methodNotAllowed('GET');
+            (new RideController())->driverRides();
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'stats') {
+            if ($method !== 'GET') $methodNotAllowed('GET');
+            (new RideController())->driverStats();
         } else {
             $notFound();
         }

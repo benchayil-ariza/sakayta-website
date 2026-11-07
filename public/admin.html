@@ -149,8 +149,10 @@
         <section id="overview" class="ad-view">
           <h2 class="ad-title" id="adminGreeting">Admin Dashboard</h2>
           <p class="ad-sub">A quick look at your drivers and rides.</p>
-          <div id="needsAttention"></div>
-          <div id="statsContainer"><div class="loading">Loading statistics...</div></div>
+          <div class="ov-grid">
+            <div id="needsAttention"></div>
+            <div id="statsContainer"><div class="loading">Loading statistics...</div></div>
+          </div>
         </section>
 
         <!-- Driver activity report -->
@@ -1073,4 +1075,45 @@
   });
 })();
 </script>
+
+<script>
+// Admin Overview: locks the page to one screen on laptop / PC when everything fits (layout only).
+(function () {
+  try {
+    var view = document.getElementById("overview");
+    if (!view) return;
+    var desk = window.matchMedia("(min-width: 1100px) and (min-height: 560px)");
+    var queued = false;
+    var mo = new MutationObserver(schedule);
+
+    function fit() {
+      queued = false;
+      document.body.classList.remove("ov-fit");
+      if (getComputedStyle(view).display === "none" || !desk.matches) { mo.takeRecords(); return; }
+      var main = view.closest(".driver-main");
+      if (main) main.scrollTop = 0;
+      window.scrollTo(0, 0);
+      var below = 0;
+      for (var el = view.parentElement; el; el = el.parentElement) {
+        var cs = getComputedStyle(el);
+        below += (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+        if (el === document.body) break;
+      }
+      var room = Math.floor(window.innerHeight - view.getBoundingClientRect().top - below) - 4;
+      if (view.offsetHeight <= room) document.body.classList.add("ov-fit");
+      mo.takeRecords();
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (desk.addEventListener) desk.addEventListener("change", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    mo.observe(view, { attributes: true, attributeFilter: ["style"] });      // switching pages
+    mo.observe(view, { childList: true, characterData: true, subtree: true }); // numbers loaded
+    schedule();
+  } catch (e) { console.warn("Admin overview fit unavailable", e); }
+})();
+</script>
+</body>
 </html>
