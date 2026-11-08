@@ -148,15 +148,17 @@ final class RideController
         Response::json(200, $ride ?: ['message' => 'No active ride.', 'ride' => null]);
     }
 
-        /** GET /api/drivers/me/rides?limit=8 — this driver's own rides, newest first */
+    /** GET /api/drivers/me/rides?limit=20&offset=0&status=completed — this driver's own rides, newest first */
     public function driverRides(): void
     {
         $claims = CurrentUser::required();
         if (($claims['role'] ?? '') !== 'driver') {
             throw new RideException('Only drivers.', 403);
         }
-        $limit = (int) ($_GET['limit'] ?? 10);
-        Response::json(200, $this->service->getDriverRides($claims['uid'], $limit));
+        $limit  = (int) ($_GET['limit'] ?? 10);
+        $offset = (int) ($_GET['offset'] ?? 0);
+        $status = (string) ($_GET['status'] ?? '');
+        Response::json(200, $this->service->getDriverRides($claims['uid'], $limit, $offset, $status));
     }
 
     /** GET /api/drivers/me/stats — today's rides and earnings, plus all-time totals */

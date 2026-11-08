@@ -1618,14 +1618,15 @@ loadAuthenticatedPassenger();
     if (desk.addEventListener) desk.addEventListener("change", schedule);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
 
-    // switching between pages
-    views.forEach(function (v) { mo.observe(v, { attributes: true, attributeFilter: ["class"] }); });
-    // Overview content changes (stats, current ride, recent rides)
-    var dash = document.getElementById("view-dashboard");
-    if (dash) mo.observe(dash, { childList: true, characterData: true, subtree: true });
-    // Book a Ride left column changes (error message, booking confirmed card)
-    var left = document.querySelector("#view-book-ride .booking-grid > div:first-child");
-    if (left) mo.observe(left, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden", "class"] });
+    // every watch needs its own observer: one observer watching the same page twice forgets the first watch
+    function watchNode(node, opts) { if (node) new MutationObserver(schedule).observe(node, opts); }
+    views.forEach(function (v) { watchNode(v, { attributes: true, attributeFilter: ["class"] }); });
+    watchNode(document.getElementById("view-dashboard"), { childList: true, characterData: true, subtree: true });
+    watchNode(document.querySelector("#view-book-ride .booking-grid > div:first-child"),
+      { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["style", "hidden", "class"] });
+    // any menu click: measure again after the page has switched
+    document.querySelectorAll(".sidebar-link").forEach(function (l) { l.addEventListener("click", schedule); });
+
 
     schedule();
   } catch (e) { console.warn("Fit-to-screen unavailable", e); }

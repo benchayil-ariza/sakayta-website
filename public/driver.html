@@ -20,6 +20,7 @@
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
 </svg>
 
 <!-- ============================================================
@@ -124,6 +125,9 @@
         </button>
         <button type="button" class="sidebar-link" data-view="active-ride">
           <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-car"/></svg></span> Active Ride
+        </button>
+        <button type="button" class="sidebar-link" data-view="history">
+          <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-list"/></svg></span> Ride History
         </button>
         <button type="button" class="sidebar-link" data-view="location">
           <span class="sl-ico" aria-hidden="true"><svg class="ic"><use href="#i-pin"/></svg></span> Location
@@ -261,6 +265,30 @@
               <div id="rideActionStatus" class="dash-msg-center-soft"></div>
             </div>
           </div>
+        </section>
+
+                <!-- ==================== RIDE HISTORY VIEW ==================== -->
+        <section id="view-history" class="driver-view">
+          <div class="view-head">
+            <h2 class="view-title">Ride history</h2>
+          </div>
+          <p class="view-subtitle">Every trip you drove, with its fare and receipt.</p>
+
+          <div class="hist-sum">
+            <div class="driver-kpi"><span class="driver-kpi-label">Completed rides</span><span class="driver-kpi-value" id="histCompleted">&mdash;</span></div>
+            <div class="driver-kpi"><span class="driver-kpi-label">Total earnings</span><span class="driver-kpi-value" id="histEarnings">&mdash;</span></div>
+          </div>
+
+          <div class="ride-filters" id="histFilters" role="group" aria-label="Filter rides by status" style="display:flex; gap:8px; margin-bottom:14px;">
+            <button type="button" class="filter-pill active" data-status="">All</button>
+            <button type="button" class="filter-pill" data-status="completed">Completed</button>
+            <button type="button" class="filter-pill" data-status="cancelled">Cancelled</button>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel-body" id="histList"><p class="active-ride-empty">Loading&hellip;</p></div>
+          </div>
+          <div class="hist-more"><button type="button" id="histMore" class="ghost" hidden>Show more</button></div>
         </section>
 
         <!-- ==================== LOCATION VIEW ==================== -->
@@ -913,6 +941,93 @@ if (notificationBell && notificationPanel) {
     }
   }
   window.loadDriverStats = loadDriverStats;
+
+    // ===== Ride history =====
+  let histStatus = "";
+  let histOffset = 0;
+  let histSeq = 0;
+  const HIST_PAGE = 20;
+
+  function historyRowHtml(r) {
+    const st = String(r.status || "");
+    const cls = st === "en_route" ? "assigned" : st;
+    const label = { completed: "Completed", cancelled: "Cancelled", assigned: "Active", en_route: "Active", pending: "Pending" }[st] || st;
+    const from = placeShort(r.pickupAddress), to = placeShort(r.dropoffAddress);
+    const route = from && to
+      ? escapeHtml(from) + " → " + escapeHtml(to)
+      : (r.distanceKm != null ? Number(r.distanceKm).toFixed(1) + " km trip" : "Trip");
+    const when = rideWhen(r.completedAt || r.cancelledAt || r.startedAt || r.createdAt);
+    return `
+      <div class="dr-row">
+        <span class="dr-avatar" aria-hidden="true"><svg class="ic"><use href="#i-user"/></svg></span>
+        <div class="dr-main">
+          <div class="dr-name">${escapeHtml(r.passengerName || "Passenger")}</div>
+          <div class="dr-sub">${route}${when ? " · " + escapeHtml(when) : ""}</div>
+        </div>
+        <div class="dr-end">
+          <div class="dr-fare${st === "completed" ? "" : " muted"}">${st === "completed" ? money(r.fareEstimate) : "—"}</div>
+          <span class="status-badge status-${escapeHtml(cls)}">${escapeHtml(label)}</span>
+        </div>
+      </div>`;
+  }
+
+  async function loadRideHistory(reset = true) {
+    const box = document.getElementById("histList");
+    const more = document.getElementById("histMore");
+    const t = localStorage.getItem("sakayta_token");
+    if (!box || !t) return;
+    const mySeq = ++histSeq;
+    const headers = { Authorization: "Bearer " + t };
+    if (reset) {
+      histOffset = 0;
+      box.innerHTML = '<p class="active-ride-empty">Loading…</p>';
+      more.hidden = true;
+      // totals at the top
+      fetch("http://localhost:8088/api/drivers/me/stats", { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((s) => {
+          if (!s) return;
+          document.getElementById("histCompleted").textContent = s.completedRides;
+          document.getElementById("histEarnings").textContent = money(s.totalEarnings);
+        }).catch(() => {});
+    }
+    more.disabled = true;
+    try {
+      const q = "limit=" + HIST_PAGE + "&offset=" + histOffset + (histStatus ? "&status=" + histStatus : "");
+      const res = await fetch("http://localhost:8088/api/drivers/me/rides?" + q, { headers });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const rides = await res.json();
+      if (mySeq !== histSeq) return;                       // the filter changed while loading
+      const html = rides.map(historyRowHtml).join("");
+      if (reset) {
+        const none = histStatus === "completed" ? "No completed rides yet."
+                   : histStatus === "cancelled" ? "No cancelled rides."
+                   : "No rides yet. Your trips will show up here.";
+        box.innerHTML = html || '<p class="active-ride-empty">' + none + "</p>";
+      } else {
+        box.insertAdjacentHTML("beforeend", html);
+      }
+      histOffset += rides.length;
+      more.hidden = rides.length < HIST_PAGE;
+    } catch (err) {
+      if (mySeq !== histSeq) return;
+      console.warn("Could not load ride history:", err.message);
+      if (reset) box.innerHTML = '<p class="active-ride-empty">Could not load your rides. Please try again.</p>';
+    } finally {
+      more.disabled = false;
+    }
+  }
+  window.loadRideHistory = loadRideHistory;
+
+  document.querySelectorAll("#histFilters .filter-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll("#histFilters .filter-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      histStatus = pill.dataset.status || "";
+      loadRideHistory(true);
+    });
+  });
+  document.getElementById("histMore").addEventListener("click", () => loadRideHistory(false));
 
   // ===== License Info =====
   async function loadLicenseInfo() {
@@ -1888,6 +2003,7 @@ if (notificationBell && notificationPanel) {
     navLinks.forEach((l) => l.classList.toggle("active", l.dataset.view === name));
 
     if (name === "dashboard") { loadDashboardSummary(); loadDriverStats(); }
+    if (name === "history") { loadRideHistory(true); }
     if (name === "profile" || name === "dashboard") { updateDriverLabels(); }
     if (name === "notifications") { loadNotifications(); }
     if (name === "location" && map) { setTimeout(() => map.invalidateSize(), 80); }
@@ -2544,20 +2660,18 @@ setInterval(function () {
 
 <script>
 // Driver Dashboard: fits one screen on laptop / PC (layout only), and refreshes the numbers.
-// If the window is too small, normal scrolling stays on so nothing is cut off.
 (function () {
   try {
     var view = document.getElementById("view-dashboard");
     if (!view) return;
     var desk = window.matchMedia("(min-width: 1000px) and (min-height: 540px)");
     var queued = false;
-    var mo = new MutationObserver(schedule);
 
     function unlock() { document.body.classList.remove("ov-fit"); view.style.height = ""; }
     function fit() {
       queued = false;
       unlock();
-      if (!view.classList.contains("active") || !desk.matches) { mo.takeRecords(); return; }
+      if (!view.classList.contains("active") || !desk.matches) return;
       var main = view.closest(".driver-main");
       if (main) main.scrollTop = 0;
       window.scrollTo(0, 0);
@@ -2572,16 +2686,17 @@ setInterval(function () {
         document.body.classList.add("ov-fit");
         view.style.height = room + "px";
       }
-      mo.takeRecords();
     }
     function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+    function watchNode(node, opts) { new MutationObserver(schedule).observe(node, opts); }
 
     window.addEventListener("resize", schedule);
     window.addEventListener("load", schedule);
     if (desk.addEventListener) desk.addEventListener("change", schedule);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
-    mo.observe(view, { attributes: true, attributeFilter: ["class"] });
-    mo.observe(view, { childList: true, characterData: true, subtree: true });
+    watchNode(view, { attributes: true, attributeFilter: ["class"] });
+    watchNode(view, { childList: true, characterData: true, subtree: true });
+    document.querySelectorAll(".sidebar-link").forEach(function (l) { l.addEventListener("click", schedule); });
 
     // keep the numbers and the recent rides fresh while the Dashboard is open
     setInterval(function () {

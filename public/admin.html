@@ -1084,12 +1084,11 @@
     if (!view) return;
     var desk = window.matchMedia("(min-width: 1100px) and (min-height: 560px)");
     var queued = false;
-    var mo = new MutationObserver(schedule);
 
     function fit() {
       queued = false;
       document.body.classList.remove("ov-fit");
-      if (getComputedStyle(view).display === "none" || !desk.matches) { mo.takeRecords(); return; }
+      if (getComputedStyle(view).display === "none" || !desk.matches) return;
       var main = view.closest(".driver-main");
       if (main) main.scrollTop = 0;
       window.scrollTo(0, 0);
@@ -1101,16 +1100,19 @@
       }
       var room = Math.floor(window.innerHeight - view.getBoundingClientRect().top - below) - 4;
       if (view.offsetHeight <= room) document.body.classList.add("ov-fit");
-      mo.takeRecords();
     }
     function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+    // every watch needs its own observer: one observer watching the same page twice forgets the first watch
+    function watchNode(node, opts) { new MutationObserver(schedule).observe(node, opts); }
 
     window.addEventListener("resize", schedule);
     window.addEventListener("load", schedule);
     if (desk.addEventListener) desk.addEventListener("change", schedule);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
-    mo.observe(view, { attributes: true, attributeFilter: ["style"] });      // switching pages
-    mo.observe(view, { childList: true, characterData: true, subtree: true }); // numbers loaded
+    watchNode(view, { attributes: true, attributeFilter: ["style"] });        // switching pages
+    watchNode(view, { childList: true, characterData: true, subtree: true }); // numbers loaded
+    // any menu click: measure again after the page has switched
+    document.querySelectorAll(".sidebar-link").forEach(function (l) { l.addEventListener("click", schedule); });
     schedule();
   } catch (e) { console.warn("Admin overview fit unavailable", e); }
 })();

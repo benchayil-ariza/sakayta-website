@@ -910,24 +910,31 @@ final class RideService
         return $ride ? $ride : null;
     }
 
-        /**
-     * This driver's own rides, newest first (READ-ONLY).
+            /**
+     * This driver's own rides, newest first, with paging and an optional status filter (READ-ONLY).
      * @return array<int,array<string,mixed>>
      */
-    public function getDriverRides(string $userId, int $limit = 10): array
+    public function getDriverRides(string $userId, int $limit = 10, int $offset = 0, string $status = ''): array
     {
         $driver = $this->getDriverProfile($userId);
-        $limit = max(1, min(50, $limit));
+        $limit  = max(1, min(50, $limit));
+        $offset = max(0, min(100000, $offset));
         $pdo = Database::connection();
-        $stmt = $pdo->prepare(
-            'SELECT id, passengerName, rideType, pickupAddress, dropoffAddress, driverId, status,
-                    distanceKm, fareEstimate, createdAt, updatedAt, startedAt, completedAt, cancelledAt
-             FROM rides
-             WHERE driverId = :did
-             ORDER BY COALESCE(completedAt, cancelledAt, startedAt, updatedAt, createdAt) DESC
-             LIMIT ' . $limit
-        );
-        $stmt->execute(['did' => (string) $driver['id']]);
+
+        $sql = 'SELECT id, passengerName, rideType, pickupAddress, dropoffAddress, driverId, status,
+                       distanceKm, fareEstimate, createdAt, updatedAt, startedAt, completedAt, cancelledAt
+                FROM rides
+                WHERE driverId = :did';
+        $params = ['did' => (string) $driver['id']];
+        if (in_array($status, ['completed', 'cancelled', 'assigned', 'en_route'], true)) {
+            $sql .= ' AND status = :st';
+            $params['st'] = $status;
+        }
+        $sql .= ' ORDER BY COALESCE(completedAt, cancelledAt, startedAt, updatedAt, createdAt) DESC, id DESC
+                  LIMIT ' . $limit . ' OFFSET ' . $offset;
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 
