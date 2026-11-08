@@ -41,8 +41,9 @@ final class RideController
         if ($passengerName === '' || strlen($passengerName) > 255) {
             throw new RideException('Authenticated account name is missing or invalid.', 400);
         }
+        // SakayTa offers one vehicle: the taxicle. It is saved as "Tricycle" and shown as "Taxicle".
         $rideType = $body['rideType'] ?? 'Tricycle';
-        if (!in_array($rideType, ['Tricycle', 'Bicycle', 'Car', 'Motorcycle', 'Habal-Habal'], true)) {
+        if ($rideType !== 'Tricycle') {
             throw new RideException('Invalid ride type.', 400);
         }
 
