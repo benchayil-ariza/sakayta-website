@@ -732,7 +732,7 @@ final class RideService
         ?string $dropoffAddress = null,
     ): array {
         $pdo = Database::connection();
-        $distanceKm = $this->estimateDistanceKm($pickupLat, $pickupLng, $dropoffLat, $dropoffLng);
+        $distanceKm = RoadDistance::between($pickupLat, $pickupLng, $dropoffLat, $dropoffLng)['km'];
         $fareEstimate = $this->estimateFare($distanceKm);
         $id = 'r_' . time() . '_' . substr(bin2hex(random_bytes(9)), 0, 9);
         $now = date('Y-m-d H:i:s');
@@ -817,12 +817,14 @@ final class RideService
             throw new RideException('Longitude must be between -180 and 180.', 400);
         }
 
-        $distanceKm = $this->estimateDistanceKm($pickupLat, $pickupLng, $dropoffLat, $dropoffLng);
+        $road = RoadDistance::between($pickupLat, $pickupLng, $dropoffLat, $dropoffLng);
+        $distanceKm = $road['km'];
         $cfg = $this->fareConfig();
         $fareEstimate = round($cfg['baseFare'] + $distanceKm * $cfg['ratePerKm']);
 
         return [
-            'distanceKm'    => $distanceKm,
+            'distanceKm'     => $distanceKm,
+            'distanceSource' => $road['source'],
             'baseFare'      => $cfg['baseFare'],
             'ratePerKm'     => $cfg['ratePerKm'],
             'fareEstimate'  => $fareEstimate,
