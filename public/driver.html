@@ -2979,5 +2979,75 @@ setInterval(function () {
   } catch (e) { console.warn("Driver map unavailable", e); }
 })();
 </script>
+
+<script>
+// Driver Active Ride: details on the left and the map on the right, fitted to one screen on laptop / PC.
+// Layout only. If the window is too small, normal scrolling stays on so nothing is cut off.
+(function () {
+  try {
+    var info = document.getElementById("activeRideInfo");
+    if (!info) return;
+    var track = document.getElementById("drvTrack");      // the map block, built by the driver map script
+    var wrap = info.parentElement;
+    var outer = wrap.parentElement;
+    var view = wrap.closest("section");
+    if (!view) return;
+
+    // give the three layout boxes names that the CSS can use
+    view.classList.add("arv-view");
+    wrap.classList.add("arv-wrap");
+    if (outer && outer !== view) outer.classList.add("arv-outer");
+
+    var desk = window.matchMedia("(min-width: 1000px) and (min-height: 560px)");
+    var queued = false, lastMode = "";
+
+    function live() { return !!track && !track.hidden; }
+    function unlock() { document.body.classList.remove("arv-fit"); view.style.height = ""; }
+
+    function fit() {
+      queued = false;
+      unlock();
+      var mode = "off";
+      if (view.classList.contains("active") && desk.matches && live()) {
+        var main = view.closest(".driver-main");
+        if (main) main.scrollTop = 0;
+        window.scrollTo(0, 0);
+        var below = 0;
+        for (var el = view.parentElement; el; el = el.parentElement) {
+          var cs = getComputedStyle(el);
+          below += (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+          if (el === document.body) break;
+        }
+        var room = Math.floor(window.innerHeight - view.getBoundingClientRect().top - below) - 4;
+        mode = "open";
+        if (view.offsetHeight <= room) {
+          document.body.classList.add("arv-fit");
+          view.style.height = room + "px";
+          mode = "locked";
+        }
+      }
+      // the map changed size: show the whole trip again
+      if (mode !== lastMode) {
+        lastMode = mode;
+        var rc = document.getElementById("drvRecenter");
+        if (rc && live()) setTimeout(function () { rc.click(); }, 150);
+      }
+    }
+    function schedule() { if (!queued) { queued = true; requestAnimationFrame(fit); } }
+    // every watch needs its own observer: one observer watching the same node twice forgets the first watch
+    function watchNode(node, opts) { if (node) new MutationObserver(schedule).observe(node, opts); }
+
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (desk.addEventListener) desk.addEventListener("change", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    watchNode(view, { attributes: true, attributeFilter: ["class"] });      // switching pages
+    watchNode(track, { attributes: true, attributeFilter: ["hidden"] });    // a ride starts or ends
+    watchNode(info, { childList: true, subtree: true });                    // the ride card is redrawn
+    document.querySelectorAll(".sidebar-link").forEach(function (l) { l.addEventListener("click", schedule); });
+    schedule();
+  } catch (e) { console.warn("Driver ride layout unavailable", e); }
+})();
+</script>
 </body>
 </html>

@@ -527,3 +527,45 @@ html:not(.dev) #view-location #stopBtn,
 .drv-arrived.near { animation: drvPulse 1.6s ease-in-out infinite; }
 @keyframes drvPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(47, 125, 85, 0.45); } 50% { box-shadow: 0 0 0 9px rgba(47, 125, 85, 0); } }
 @media (prefers-reduced-motion: reduce) { .drv-arrived.near, .trk-status::before { animation: none; } }
+
+/* ===== Driver Active Ride: details on the left, map on the right, one screen on laptop / PC ===== */
+@media (min-width: 1000px) {
+  .arv-view .view-subtitle { display: none; }
+  .arv-view .view-head { margin-bottom: 12px; }
+  .arv-view .view-title { font-size: 26px; }
+
+  /* only while a ride is assigned or on the way (the map block is visible) */
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.5fr);
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: 18px;
+    row-gap: 12px;
+  }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) #drvTrack { display: contents; }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) > #activeRideInfo { grid-column: 1; grid-row: 1; min-width: 0; }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) .drv-strip { grid-column: 1; grid-row: 2; margin: 0; }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) > #rideActionButtons { grid-column: 1; grid-row: 3; margin: 0; }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) > #rideActionStatus { grid-column: 1; grid-row: 4; align-self: start; }
+  .fb-dash .arv-wrap:has(#drvTrack:not([hidden])) .drv-map-box { grid-column: 2; grid-row: 1 / span 4; height: auto; min-height: 320px; }
+
+  /* the details card, a little tighter */
+  .fb-dash .arv-wrap #activeRideInfo .req-fare { font-size: 28px; }
+  .fb-dash .arv-wrap #activeRideInfo .ar-steps { margin: 10px 0; }
+  .fb-dash .arv-wrap #activeRideInfo .req-route { padding: 10px 14px; margin: 0; }
+  .fb-dash .arv-wrap #activeRideInfo .nav-btn { margin-top: 12px; padding: 10px 16px; font-size: 15px; }
+  .fb-dash .arv-wrap .drv-strip .trk-eta-main { font-size: 22px; }
+  .fb-dash .arv-wrap .drv-arrived { padding: 10px 18px; }
+  .fb-dash .arv-wrap #rideActionButtons button { padding: 13px 18px; }
+}
+
+/* short laptop screens: the status pill on the map already says the step, so the 3-step bar goes */
+@media (min-width: 1000px) and (max-height: 780px) {
+  .fb-dash .arv-wrap #activeRideInfo .ar-steps { display: none; }
+  .fb-dash .arv-wrap #activeRideInfo .req-fare { font-size: 24px; }
+}
+
+/* turned on by the small script, only when everything fits */
+body.arv-fit .arv-view.active { display: flex; flex-direction: column; overflow: hidden; }
+body.arv-fit .arv-view.active > .arv-outer { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+body.arv-fit .arv-view.active .arv-wrap { flex: 1 1 auto; min-height: 0; }
