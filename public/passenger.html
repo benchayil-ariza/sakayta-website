@@ -131,6 +131,31 @@
 
     <!-- shown when there is an active ride -->
     <div id="activeRideState" style="display:none;">
+            <div id="trackWrap" class="trk-wrap">
+        <div class="trk-map-box">
+          <div id="trackMap" class="trk-map" role="application" aria-label="Live map of your ride"></div>
+          <span id="trkStatus" class="trk-status" role="status" aria-live="polite">Looking for a driver…</span>
+          <button type="button" id="trkRecenter" class="trk-recenter" aria-label="Show the whole trip" title="Show the whole trip">
+            <svg class="ic" viewBox="0 0 24 24"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <div id="trkNote" class="trk-note" hidden></div>
+        </div>
+        <div class="trk-strip">
+          <div class="trk-who">
+            <span class="trk-avatar" aria-hidden="true">
+              <svg class="ic" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+            </span>
+            <div class="trk-who-text">
+              <div id="trkDriver" class="trk-driver-name">Finding the nearest driver</div>
+              <div id="trkMeta" class="trk-driver-meta"></div>
+            </div>
+          </div>
+          <div class="trk-eta">
+            <div id="trkEta" class="trk-eta-main">—</div>
+            <div id="trkAway" class="trk-eta-sub"></div>
+          </div>
+        </div>
+      </div>
       <div id="currentRideInfo">
         <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Driver</span><span id="riderDriverName">Verified driver</span></div>
         <div class="trip-summary-row" style="border-bottom:1px dashed var(--sage-300); padding:8px 0; display:flex; justify-content:space-between;"><span style="color:var(--ink-soft); font-weight:600;">Vehicle</span><span id="rideVehicleType">Taxicle</span></div>
@@ -350,6 +375,9 @@ const token = localStorage.getItem("sakayta_token");
 const socket = io({
   auth: { token: token }
 });
+
+window.sakaytaSocket = socket;        // lets the live-tracking script use the same connection
+window.loadOverview = loadOverview;   // lets it refresh the Overview when the ride changes
 
 const rideIdInput = document.getElementById("rideId");
 const sidebarPassengerNameEl = document.getElementById("sidebarPassengerName");
@@ -1696,6 +1724,253 @@ loadAuthenticatedPassenger();
       if (e.key === "Escape" && panel && panel.style.display === "block") panel.style.display = "none";
     });
   } catch (err) { console.warn("Notification clicks unavailable", err); }
+})();
+</script>
+
+<script>
+// Live tracking on the Overview "Current ride" card (passenger).
+// Shows the pickup, the drop-off, the route, and the driver moving in real time (Socket.io).
+// If the socket does not deliver, it asks the server every 4 seconds instead.
+// It only reads data. It does not change any booking or ride logic.
+(function () {
+  try {
+    var mapEl = document.getElementById("trackMap");
+    var view = document.getElementById("view-dashboard");
+    if (!mapEl || !view || !window.L) return;
+
+    var API = "http://localhost:8088/api";
+    var ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";   // free demo server: light use only
+    var FALLBACK_KMH = 20;      // only used when the routing service does not answer
+    var CAR = '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>';
+    var $ = function (id) { return document.getElementById(id); };
+
+    var map = null, tripLayer = null, driverMarker = null;
+    var ride = null, driverPos = null;
+    var tripKey = "", fittedKey = "", joinedRide = "";
+    var userMoved = false, hooked = false, lastSocketAt = 0;
+    var etaCalc = null, etaBusy = false, etaLastAt = 0, etaLastFrom = null;
+
+    // ---------- small helpers ----------
+    function km(a, b) {                       // straight-line km between two {lat,lng}
+      var R = 6371, rad = Math.PI / 180;
+      var dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+      var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+    function fmtMin(sec) { var m = Math.max(1, Math.round(sec / 60)); return m < 60 ? m + " min" : Math.floor(m / 60) + " hr " + (m % 60) + " min"; }
+    function fmtDist(k) { return k < 1 ? Math.max(10, Math.round(k * 100) * 10) + " m" : k.toFixed(1) + " km"; }
+    function ts(v) { var t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; }
+    function pin(kind) {
+      return L.divIcon({ className: "bk-pin", html: '<span class="' + kind + '"></span>', iconSize: [28, 34], iconAnchor: [14, 34] });
+    }
+    var driverIcon = L.divIcon({
+      className: "trk-driver", html: '<span><svg class="ic" viewBox="0 0 24 24">' + CAR + '</svg></span>',
+      iconSize: [44, 44], iconAnchor: [22, 22]
+    });
+
+    // ---------- the map ----------
+    function ensureMap() {
+      if (map) return true;
+      if (!mapEl.offsetWidth) return false;                 // the card is hidden: wait until it is shown
+      map = L.map(mapEl).setView([7.8249, 123.4365], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+      tripLayer = L.layerGroup().addTo(map);
+      map.on("dragstart", function () { userMoved = true; });
+      return true;
+    }
+    function target() {
+      if (!ride) return null;
+      return ride.status === "en_route"
+        ? { lat: +ride.dropoffLat, lng: +ride.dropoffLng }
+        : { lat: +ride.pickupLat, lng: +ride.pickupLng };
+    }
+    function fitAll() {
+      if (!map || !ride) return;
+      var pts = [[+ride.pickupLat, +ride.pickupLng], [+ride.dropoffLat, +ride.dropoffLng]];
+      if (driverPos) pts.push([driverPos.lat, driverPos.lng]);
+      pts = pts.filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });
+      if (!pts.length) return;
+      map.invalidateSize();
+      map.fitBounds(L.latLngBounds(pts), { padding: [50, 50], maxZoom: 17 });
+    }
+
+    function drawTrip() {
+      if (!ride || !ensureMap()) return;
+      var a = L.latLng(+ride.pickupLat, +ride.pickupLng), b = L.latLng(+ride.dropoffLat, +ride.dropoffLng);
+      if (!isFinite(a.lat) || !isFinite(a.lng) || !isFinite(b.lat) || !isFinite(b.lng)) return;
+      var key = ride.id + "|" + a.lat + "," + a.lng + "|" + b.lat + "," + b.lng;
+      if (key === tripKey) return;
+      tripKey = key;
+      tripLayer.clearLayers();
+      L.marker(a, { icon: pin("pickup"), title: "Pickup", keyboard: false }).addTo(tripLayer);
+      L.marker(b, { icon: pin("dropoff"), title: "Drop-off", keyboard: false }).addTo(tripLayer);
+      function dashed() {
+        if (key === tripKey) L.polyline([a, b], { color: "#606770", weight: 3, dashArray: "6 8", interactive: false }).addTo(tripLayer);
+      }
+      fetch(ROUTE_URL + "/" + a.lng + "," + a.lat + ";" + b.lng + "," + b.lat + "?overview=full&geometries=geojson")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (key !== tripKey) return;
+          var r0 = d && d.routes && d.routes[0];
+          if (!r0) return dashed();
+          var line = r0.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+          L.polyline(line, { color: "#fff", weight: 9, opacity: 0.9, interactive: false }).addTo(tripLayer);
+          L.polyline(line, { color: "#2F7D55", weight: 4, interactive: false }).addTo(tripLayer);
+        })
+        .catch(dashed);
+    }
+
+    // ---------- the driver ----------
+    function setDriver(lat, lng, at) {
+      if (!isFinite(lat) || !isFinite(lng)) return;
+      driverPos = { lat: lat, lng: lng, at: at || Date.now() };
+      if (ensureMap()) {
+        if (!driverMarker) driverMarker = L.marker([lat, lng], { icon: driverIcon, zIndexOffset: 1000, title: "Your driver", keyboard: false }).addTo(map);
+        else driverMarker.setLatLng([lat, lng]);
+      }
+      render();
+      refreshEta();
+    }
+
+    // ---------- ETA: the routing service about every 20 s, a simple estimate in between ----------
+    function etaNow() {
+      var t = target();
+      if (!driverPos || !t || !isFinite(t.lat) || !isFinite(t.lng)) return null;
+      var d = km(driverPos, t), key = ride.id + "|" + ride.status;
+      if (etaCalc && etaCalc.key === key) {
+        var ratio = etaCalc.straightKm > 0 ? Math.min(1, d / etaCalc.straightKm) : 1;
+        return { sec: etaCalc.sec * ratio, meters: etaCalc.meters * ratio, straight: d };
+      }
+      return { sec: (d * 1.3 / FALLBACK_KMH) * 3600, meters: d * 1300, straight: d };
+    }
+    function refreshEta() {
+      var t = target();
+      if (!ride || !driverPos || !t || !isFinite(t.lat) || etaBusy) return;
+      var key = ride.id + "|" + ride.status;
+      var same = etaCalc && etaCalc.key === key;
+      var moved = etaLastFrom ? km(etaLastFrom, driverPos) : 9;
+      if (same && (Date.now() - etaLastAt < 20000 || moved < 0.08)) return;
+      etaBusy = true; etaLastAt = Date.now();
+      var from = etaLastFrom = { lat: driverPos.lat, lng: driverPos.lng };
+      fetch(ROUTE_URL + "/" + from.lng + "," + from.lat + ";" + t.lng + "," + t.lat + "?overview=false")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          var r0 = d && d.routes && d.routes[0];
+          if (r0) etaCalc = { key: key, sec: r0.duration, meters: r0.distance, straightKm: km(from, t) };
+        })
+        .catch(function () {})
+        .then(function () { etaBusy = false; render(); });
+    }
+
+    // ---------- the card ----------
+    function render() {
+      if (!ride) return;
+      var st = ride.status, drv = ride.driver, e = etaNow();
+      var here = !!(e && e.straight < 0.12);
+      $("trkStatus").textContent =
+        st === "pending" ? "Looking for a driver…" :
+        st === "assigned" ? (here ? "Your driver has arrived" : "Your driver is on the way") :
+        (here ? "Almost at your drop-off" : "You are on your way");
+      $("trkDriver").textContent = drv ? drv.name : "Finding the nearest driver";
+      var fare = ride.fareEstimate != null
+        ? "₱" + Number(ride.fareEstimate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+      $("trkMeta").textContent = [drv && drv.plateNumber, "Taxicle", fare].filter(Boolean).join(" · ");
+      if (drv && e) {
+        $("trkEta").textContent = here ? "Here" : fmtMin(e.sec);
+        $("trkAway").textContent = here ? "" : fmtDist(e.meters / 1000) + (st === "en_route" ? " to drop-off" : " away");
+      } else {
+        $("trkEta").textContent = "—";
+        $("trkAway").textContent = drv ? "Waiting for location" : "";
+      }
+      var note = $("trkNote"), age = driverPos ? (Date.now() - driverPos.at) / 1000 : 0;
+      if (drv && !driverPos) { note.hidden = false; note.textContent = "Waiting for your driver's location…"; }
+      else if (drv && age > 60) { note.hidden = false; note.textContent = "Driver location last updated " + (age < 3600 ? Math.round(age / 60) + " min" : "over an hour") + " ago"; }
+      else note.hidden = true;
+
+      if (map) {
+        var fk = ride.id + "|" + st + "|" + (driverPos ? 1 : 0);
+        if (fk !== fittedKey) { fittedKey = fk; userMoved = false; fitAll(); }
+        else if (driverPos && !userMoved && !map.getBounds().contains([driverPos.lat, driverPos.lng])) fitAll();
+      }
+    }
+    function clearTrip() {
+      tripKey = ""; fittedKey = ""; joinedRide = "";
+      driverPos = null; etaCalc = null; etaLastFrom = null;
+      if (tripLayer) tripLayer.clearLayers();
+      if (driverMarker && map) map.removeLayer(driverMarker);
+      driverMarker = null;
+    }
+
+    // ---------- live updates (socket) and the fallback (asking the server) ----------
+    function joinRoom() {
+      var s = window.sakaytaSocket;
+      if (!s || !ride || joinedRide === ride.id || !s.connected) return;
+      s.emit("joinRide", ride.id);
+      joinedRide = ride.id;
+    }
+    function hookSocket() {
+      var s = window.sakaytaSocket;
+      if (hooked || !s) return;
+      hooked = true;
+      s.on("ride:driverLocation", function (p) {
+        if (!ride || !p) return;
+        lastSocketAt = Date.now();
+        setDriver(+p.lat, +p.lng, +p.timestamp || Date.now());
+      });
+      s.on("connect", function () { joinedRide = ""; joinRoom(); });
+      s.on("connect_error", function (err) { console.warn("[live] socket not connected, using the 4-second fallback:", err && err.message); });
+    }
+
+    function poll() {
+      var t = localStorage.getItem("sakayta_token");
+      if (!t || document.visibilityState !== "visible") return;
+      hookSocket();
+      fetch(API + "/rides/active", { headers: { Authorization: "Bearer " + t } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          var next = d.ride || null;
+          var hadRide = !!ride;
+          var changed = (ride ? ride.id + ride.status : "") !== (next ? next.id + next.status : "");
+          ride = next;
+          if (!ride) {
+            if (hadRide) { clearTrip(); if (window.loadOverview) window.loadOverview(); }
+            return;
+          }
+          if (changed && window.loadOverview) window.loadOverview();   // refreshes the numbers and the other cards
+          joinRoom();
+          drawTrip();
+          var dr = ride.driver;
+          if (dr && dr.latitude != null && dr.longitude != null && Date.now() - lastSocketAt > 8000) {
+            setDriver(+dr.latitude, +dr.longitude, ts(dr.locationUpdatedAt));
+          } else {
+            render();
+            refreshEta();
+          }
+        })
+        .catch(function () {});
+    }
+
+    function start() {
+      hookSocket();
+      poll();
+      setInterval(function () { if (view.classList.contains("active")) poll(); }, 4000);
+      setInterval(function () { if (ride) render(); }, 15000);
+      new MutationObserver(function () { if (view.classList.contains("active")) poll(); })
+        .observe(view, { attributes: true, attributeFilter: ["class"] });
+      if (window.ResizeObserver) {
+        new ResizeObserver(function () {
+          if (map) map.invalidateSize();
+          else if (ride) { drawTrip(); render(); }
+        }).observe(mapEl);
+      }
+      $("trkRecenter").addEventListener("click", function () { userMoved = false; fittedKey = ""; render(); });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  } catch (e) { console.warn("Live tracking unavailable", e); }
 })();
 </script>
   

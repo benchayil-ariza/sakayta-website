@@ -967,6 +967,48 @@ final class RideService
         ];
     }
 
+        /**
+     * The passenger's current ride (pending, assigned or en route) with its driver (READ-ONLY).
+     * The driver's name, plate and last position are returned only while a driver is assigned,
+     * and only to the passenger who owns the ride.
+     * @return array<string,mixed>|null
+     */
+    public function getMyActiveRideWithDriver(string $userId): ?array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare(
+            "SELECT r.id, r.status, r.rideType, r.pickupLat, r.pickupLng, r.dropoffLat, r.dropoffLng,
+                    r.pickupAddress, r.dropoffAddress, r.distanceKm, r.fareEstimate, r.createdAt, r.startedAt,
+                    d.name AS driverName, d.plateNumber AS driverPlate,
+                    d.latitude AS driverLat, d.longitude AS driverLng, d.locationUpdatedAt AS driverLocationAt
+             FROM rides r
+             LEFT JOIN drivers d ON d.id = r.driverId
+             WHERE r.userId = :uid AND r.status IN ('pending', 'assigned', 'en_route')
+             ORDER BY r.createdAt DESC
+             LIMIT 1"
+        );
+        $stmt->execute(['uid' => $userId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
+
+        $driver = null;
+        if (in_array($row['status'], ['assigned', 'en_route'], true) && $row['driverName'] !== null) {
+            $hasPos = is_numeric($row['driverLat']) && is_numeric($row['driverLng']);
+            $driver = [
+                'name'              => $row['driverName'],
+                'plateNumber'       => $row['driverPlate'],
+                'latitude'          => $hasPos ? (float) $row['driverLat'] : null,
+                'longitude'         => $hasPos ? (float) $row['driverLng'] : null,
+                'locationUpdatedAt' => $row['driverLocationAt'],
+            ];
+        }
+        unset($row['driverName'], $row['driverPlate'], $row['driverLat'], $row['driverLng'], $row['driverLocationAt']);
+        $row['driver'] = $driver;
+        return $row;
+    }
+
     // ----------------------------------------------------- Cancel (commuter)
 
     /**

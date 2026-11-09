@@ -144,7 +144,10 @@ try {
                 'POST' => $controller->create(),
             };
         } elseif ($depth === 2) {
-            if (strtolower($parts[1] ?? '') === 'estimate') {
+            if (strtolower($parts[1] ?? '') === 'active') {
+                if ($method !== 'GET') { $methodNotAllowed('GET'); }
+                $controller->active();
+            } elseif (strtolower($parts[1] ?? '') === 'estimate') {
                 if ($method !== 'GET') {
                     $methodNotAllowed('GET');
                 }

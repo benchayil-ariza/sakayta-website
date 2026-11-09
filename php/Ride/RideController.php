@@ -172,6 +172,16 @@ final class RideController
         Response::json(200, $this->service->getDriverStats($claims['uid']));
     }
 
+        /** GET /api/rides/active — the passenger's current ride, with the driver's details and last known position */
+    public function active(): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'commuter') {
+            throw new RideException('Only passengers.', 403);
+        }
+        Response::json(200, ['ride' => $this->service->getMyActiveRideWithDriver($claims['uid'])]);
+    }
+
     public function accept(string $id): void
     {
         $claims = CurrentUser::required();
