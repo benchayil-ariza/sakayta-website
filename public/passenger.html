@@ -861,7 +861,10 @@ function selectBookingRideType(card) {
 
   function getGeocoder() {
     if (!geocoder && window.L && L.Control && L.Control.Geocoder) {
-      geocoder = L.Control.Geocoder.nominatim({ reverseQueryParams: { "accept-language": "en" } });
+      geocoder =       geocoder = L.Control.Geocoder.nominatim({
+        serviceUrl: "http://localhost:8088/api/geocode/",   // our own server asks OpenStreetMap for us
+        reverseQueryParams: { "accept-language": "en" }
+      });
     }
     return geocoder;
   }

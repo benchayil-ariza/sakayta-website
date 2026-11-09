@@ -253,6 +253,15 @@ try {
         } else {
             $notFound();
         }
+       } elseif ($resource === 'geocode') {
+        // GET /api/geocode/reverse: place names, asked through our server
+        if ($sub !== 'reverse' || $depth !== 2) {
+            $notFound();
+        }
+        if ($method !== 'GET') {
+            $methodNotAllowed('GET');
+        }
+        \Sakayta\Geo\ReverseGeocoder::reverse();
     } else {
         $notFound();
     }
