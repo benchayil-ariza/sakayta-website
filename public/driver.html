@@ -2708,5 +2708,276 @@ setInterval(function () {
   } catch (e) { console.warn("Driver dashboard fit unavailable", e); }
 })();
 </script>
+
+<script>
+// Driver Active Ride: a map with the passenger's pickup pin, the route, and the driver's own position,
+// plus the "I've arrived" button. It only reads ride data. Accept, Start and Complete are not touched.
+(function () {
+  try {
+    if (!window.L) { console.warn("[driver map] Leaflet is not loaded on this page"); return; }
+    var API = "http://localhost:8088/api";
+    var ROUTE_URL = "https://router.project-osrm.org/route/v1/driving";   // free demo server: light use only
+    var FALLBACK_KMH = 20;     // used only when the routing service does not answer
+    var $ = function (id) { return document.getElementById(id); };
+
+    var anchor = $("rideActionButtons");
+    if (!anchor || !anchor.parentNode) { console.warn("[driver map] rideActionButtons not found"); return; }
+
+    var box = document.createElement("div");
+    box.id = "drvTrack";
+    box.className = "drv-track";
+    box.hidden = true;
+    box.innerHTML =
+      '<div class="drv-map-box">' +
+        '<div id="drvMap" class="drv-map" role="application" aria-label="Map of your ride"></div>' +
+        '<span id="drvStatus" class="trk-status" role="status" aria-live="polite">Head to the pickup</span>' +
+        '<button type="button" id="drvRecenter" class="trk-recenter" aria-label="Show the whole trip" title="Show the whole trip">' +
+          '<svg class="ic" viewBox="0 0 24 24"><line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/></svg>' +
+        '</button>' +
+        '<div id="drvNote" class="trk-note" hidden></div>' +
+      '</div>' +
+      '<div class="drv-strip">' +
+        '<div class="trk-eta" style="text-align:left"><div id="drvEta" class="trk-eta-main">—</div><div id="drvAway" class="trk-eta-sub"></div></div>' +
+        '<button type="button" id="drvArrived" class="drv-arrived"></button>' +
+      '</div>';
+    anchor.parentNode.insertBefore(box, anchor);
+
+    var map = null, pinLayer = null, routeLayer = null, meMarker = null;
+    var ride = null, me = null, watchId = null, gpsError = "";
+    var pinKey = "", fittedKey = "", userMoved = false;
+    var routeCalc = null, routeBusy = false, routeLastAt = 0, routeLastFrom = null;
+    var arrivedBusy = false, flash = "";
+
+    // ---------- helpers ----------
+    function km(a, b) {
+      var R = 6371, rad = Math.PI / 180;
+      var dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+      var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    }
+    function fmtMin(sec) { var m = Math.max(1, Math.round(sec / 60)); return m < 60 ? m + " min" : Math.floor(m / 60) + " hr " + (m % 60) + " min"; }
+    function fmtDist(k) { return k < 1 ? Math.max(10, Math.round(k * 100) * 10) + " m" : k.toFixed(1) + " km"; }
+    function pin(kind) {
+      return L.divIcon({ className: "bk-pin", html: '<span class="' + kind + '"></span>', iconSize: [28, 34], iconAnchor: [14, 34] });
+    }
+    function currentKey() { return ride ? ride.id + "|" + ride.status : ""; }
+    function target() {
+      if (!ride) return null;
+      return ride.status === "en_route"
+        ? { lat: +ride.dropoffLat, lng: +ride.dropoffLng }
+        : { lat: +ride.pickupLat, lng: +ride.pickupLng };
+    }
+
+    // ---------- the map ----------
+    function ensureMap() {
+      if (map) return true;
+      var el = $("drvMap");
+      if (!el.offsetWidth) return false;                    // the page is hidden: wait until it is shown
+      map = L.map(el).setView([7.8249, 123.4365], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+      routeLayer = L.layerGroup().addTo(map);
+      pinLayer = L.layerGroup().addTo(map);
+      map.on("dragstart", function () { userMoved = true; });
+      return true;
+    }
+    function fitAll() {
+      if (!map || !ride) return;
+      var pts = [[+ride.pickupLat, +ride.pickupLng], [+ride.dropoffLat, +ride.dropoffLng]];
+      if (me) pts.push([me.lat, me.lng]);
+      pts = pts.filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });
+      if (!pts.length) return;
+      map.invalidateSize();
+      map.fitBounds(L.latLngBounds(pts), { padding: [50, 50], maxZoom: 17 });
+    }
+    function drawPins() {
+      if (!ride || !ensureMap()) return;
+      var key = ride.id + "|" + ride.pickupLat + "," + ride.pickupLng + "|" + ride.dropoffLat + "," + ride.dropoffLng;
+      if (key === pinKey) return;
+      pinKey = key;
+      pinLayer.clearLayers();
+      var a = [+ride.pickupLat, +ride.pickupLng], b = [+ride.dropoffLat, +ride.dropoffLng];
+      if (isFinite(a[0]) && isFinite(a[1])) L.marker(a, { icon: pin("pickup"), title: "Pickup", keyboard: false }).addTo(pinLayer);
+      if (isFinite(b[0]) && isFinite(b[1])) L.marker(b, { icon: pin("dropoff"), title: "Drop-off", keyboard: false }).addTo(pinLayer);
+    }
+    function placeMe() {
+      if (!me || !ensureMap()) return;
+      if (!meMarker) {
+        meMarker = L.circleMarker([me.lat, me.lng], {
+          radius: 9, color: "#fff", weight: 3, fillColor: "#2a5bd7", fillOpacity: 1, interactive: false
+        }).addTo(map);
+      } else meMarker.setLatLng([me.lat, me.lng]);
+    }
+
+    // ---------- the route and the ETA ----------
+    function drawLine(line, dashed) {
+      routeLayer.clearLayers();
+      if (dashed) { L.polyline(line, { color: "#606770", weight: 3, dashArray: "6 8", interactive: false }).addTo(routeLayer); return; }
+      L.polyline(line, { color: "#fff", weight: 9, opacity: 0.9, interactive: false }).addTo(routeLayer);
+      L.polyline(line, { color: "#2F7D55", weight: 4, interactive: false }).addTo(routeLayer);
+    }
+    function refreshRoute() {
+      var t = target();
+      if (!ride || !me || !t || !isFinite(t.lat) || !isFinite(t.lng) || routeBusy || !ensureMap()) return;
+      var key = currentKey();
+      var same = routeCalc && routeCalc.key === key;
+      var moved = routeLastFrom ? km(routeLastFrom, me) : 9;
+      if (same && (Date.now() - routeLastAt < 15000 || moved < 0.08)) return;
+      routeBusy = true; routeLastAt = Date.now();
+      var from = routeLastFrom = { lat: me.lat, lng: me.lng };
+      function fallback() {
+        if (key !== currentKey()) return;
+        routeCalc = null;
+        drawLine([[from.lat, from.lng], [t.lat, t.lng]], true);
+      }
+      fetch(ROUTE_URL + "/" + from.lng + "," + from.lat + ";" + t.lng + "," + t.lat + "?overview=full&geometries=geojson")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (key !== currentKey()) return;              // the ride or its step changed while we waited
+          var r0 = d && d.routes && d.routes[0];
+          if (!r0) return fallback();
+          routeCalc = { key: key, sec: r0.duration, meters: r0.distance, straightKm: km(from, t) };
+          drawLine(r0.geometry.coordinates.map(function (c) { return [c[1], c[0]]; }), false);
+        })
+        .catch(fallback)
+        .then(function () { routeBusy = false; render(); });
+    }
+    function etaNow() {
+      var t = target();
+      if (!me || !t || !isFinite(t.lat) || !isFinite(t.lng)) return null;
+      var d = km(me, t);
+      if (routeCalc && routeCalc.key === currentKey()) {
+        var ratio = routeCalc.straightKm > 0 ? Math.min(1, d / routeCalc.straightKm) : 1;
+        return { sec: routeCalc.sec * ratio, meters: routeCalc.meters * ratio, straight: d };
+      }
+      return { sec: (d * 1.3 / FALLBACK_KMH) * 3600, meters: d * 1300, straight: d };
+    }
+
+    // ---------- the driver's own position ----------
+    function startWatch() {
+      if (watchId !== null || !navigator.geolocation) return;
+      watchId = navigator.geolocation.watchPosition(function (p) {
+        gpsError = "";
+        me = { lat: p.coords.latitude, lng: p.coords.longitude };
+        placeMe(); refreshRoute(); render();
+      }, function (err) {
+        gpsError = err.code === 1 ? "denied" : "unavailable";
+        render();
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+    }
+    function stopWatch() {
+      if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+
+    // ---------- the card ----------
+    function render() {
+      if (!ride) return;
+      var st = ride.status, toDrop = st === "en_route", e = etaNow();
+      var near = !!(e && e.straight < 0.1);
+      $("drvStatus").textContent = toDrop
+        ? (near ? "You're at the drop-off" : "Heading to the drop-off")
+        : (near ? "You're at the pickup" : "Head to the pickup");
+      if (e) {
+        $("drvEta").textContent = near ? "Here" : fmtMin(e.sec);
+        $("drvAway").textContent = near ? "" : fmtDist(e.meters / 1000) + (toDrop ? " to drop-off" : " to pickup");
+      } else {
+        $("drvEta").textContent = "—";
+        $("drvAway").textContent = "Waiting for your location";
+      }
+
+      var note = $("drvNote");
+      var msg = flash ||
+        (gpsError === "denied" ? "Location is blocked. Allow it in your browser to see yourself and the route." :
+         (gpsError === "unavailable" && !me ? "Can't find your location right now." : ""));
+      note.hidden = !msg;
+      note.textContent = msg;
+
+      var btn = $("drvArrived");
+      btn.hidden = st !== "assigned";
+      if (!btn.hidden) {
+        var done = !!ride.arrivedAt;
+        if (!arrivedBusy) { btn.disabled = done; btn.textContent = done ? "Passenger notified ✓" : "I've arrived"; }
+        btn.classList.toggle("near", near && !done);
+      }
+
+      if (map) {
+        var fk = ride.id + "|" + st + "|" + (me ? 1 : 0);
+        if (fk !== fittedKey) { fittedKey = fk; userMoved = false; fitAll(); }
+        else if (me && !userMoved && !map.getBounds().contains([me.lat, me.lng])) fitAll();
+      }
+    }
+    function showNote(text) {
+      flash = text; render();
+      setTimeout(function () { flash = ""; render(); }, 5000);
+    }
+    function clearTrip() {
+      pinKey = ""; fittedKey = ""; routeCalc = null; routeLastFrom = null; routeLastAt = 0; me = null;
+      if (pinLayer) pinLayer.clearLayers();
+      if (routeLayer) routeLayer.clearLayers();
+      if (meMarker && map) map.removeLayer(meMarker);
+      meMarker = null;
+    }
+
+    // ---------- the "I've arrived" button ----------
+    $("drvArrived").addEventListener("click", function () {
+      if (!ride || arrivedBusy || ride.arrivedAt) return;
+      var token = localStorage.getItem("sakayta_token");
+      var btn = this;
+      arrivedBusy = true; btn.disabled = true; btn.textContent = "Notifying…";
+      fetch(API + "/rides/" + encodeURIComponent(ride.id) + "/arrived", { method: "POST", headers: { Authorization: "Bearer " + token } })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b || {} }; });
+        })
+        .then(function (res) {
+          if (res.ok) ride.arrivedAt = res.body.arrivedAt || new Date().toISOString();
+          else showNote(res.body.error || res.body.message || "Could not notify the passenger. Try again.");
+        })
+        .catch(function () { showNote("Could not reach the server. Try again."); })
+        .then(function () { arrivedBusy = false; render(); poll(); });
+    });
+
+    // ---------- ask the server for the current ride ----------
+    function poll() {
+      var token = localStorage.getItem("sakayta_token");
+      if (!token || document.visibilityState !== "visible") return;
+      fetch(API + "/drivers/me/active-ride", { headers: { Authorization: "Bearer " + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          var next = d.id && (d.status === "assigned" || d.status === "en_route") ? d : null;
+          var changed = (ride ? ride.id + ride.status : "") !== (next ? next.id + next.status : "");
+          ride = next;
+          box.hidden = !ride;
+          if (!ride) { clearTrip(); stopWatch(); return; }
+          startWatch();
+          if (changed) {
+            routeCalc = null; routeLastFrom = null; routeLastAt = 0; fittedKey = "";
+            if (routeLayer) routeLayer.clearLayers();
+          }
+          drawPins(); placeMe(); refreshRoute(); render();
+        })
+        .catch(function () {});
+    }
+
+    function start() {
+      poll();
+      setInterval(poll, 4000);
+      setInterval(function () { if (ride) render(); }, 10000);
+      document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") poll(); });
+      if (window.ResizeObserver) {
+        new ResizeObserver(function () {
+          if (map) map.invalidateSize();
+          else if (ride) { drawPins(); placeMe(); refreshRoute(); render(); }
+        }).observe($("drvMap"));
+      }
+      $("drvRecenter").addEventListener("click", function () { userMoved = false; fittedKey = ""; render(); });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  } catch (e) { console.warn("Driver map unavailable", e); }
+})();
+</script>
 </body>
 </html>

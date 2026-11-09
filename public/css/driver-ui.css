@@ -509,3 +509,21 @@ html:not(.dev) #view-location #stopBtn,
 .fb-dash .hist-more { text-align: center; margin: 16px 0 8px; }
 .fb-dash #histMore[hidden] { display: none; }
 @media (max-width: 520px) { .fb-dash .hist-sum { grid-template-columns: 1fr; } }
+
+/* ===== Driver Active Ride: map and "I've arrived" ===== */
+.drv-track { margin: 16px 0 4px; }
+.drv-track[hidden] { display: none; }
+.drv-map-box { position: relative; height: clamp(260px, 42vh, 420px); border-radius: 14px; overflow: hidden; background: #eef0f2; }
+.drv-map { position: absolute; inset: 0; }
+.drv-strip { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 12px; }
+.drv-arrived {
+  padding: 12px 22px; border: none; border-radius: 999px; cursor: pointer;
+  background: var(--accent); color: #fff; font: inherit; font-size: 15px; font-weight: 800;
+}
+.drv-arrived:hover:not(:disabled) { filter: brightness(0.94); }
+.drv-arrived:disabled { background: rgba(47, 125, 85, 0.14); color: var(--accent); cursor: default; }
+.drv-arrived[hidden] { display: none; }
+.drv-arrived:focus-visible { outline: 3px solid rgba(47, 125, 85, 0.45); outline-offset: 2px; }
+.drv-arrived.near { animation: drvPulse 1.6s ease-in-out infinite; }
+@keyframes drvPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(47, 125, 85, 0.45); } 50% { box-shadow: 0 0 0 9px rgba(47, 125, 85, 0); } }
+@media (prefers-reduced-motion: reduce) { .drv-arrived.near, .trk-status::before { animation: none; } }

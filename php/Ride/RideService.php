@@ -694,7 +694,7 @@ final class RideService
             'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
-                    startedAt, completedAt, cancelledAt, userId
+                    startedAt, completedAt, cancelledAt, arrivedAt, userId
              FROM rides WHERE id = :id LIMIT 1'
         );
         try { $stmt->execute(['id' => $rideId]); } catch (\PDOException $e) { error_log('[SakayTa dispatch PDO] offerRide lookup failed code='. $e->getCode() .' message='. $e->getMessage()); throw $e; }
@@ -871,7 +871,7 @@ final class RideService
             'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
-                    startedAt, completedAt, cancelledAt, userId
+                    startedAt, completedAt, cancelledAt, arrivedAt, userId
              FROM rides
              WHERE requestedDriver = :did
                AND requestStatus = \'pending\'
@@ -899,7 +899,7 @@ final class RideService
             'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
-                    startedAt, completedAt, cancelledAt, userId
+                    startedAt, completedAt, cancelledAt, arrivedAt, userId
              FROM rides
              WHERE driverId = :did
                AND status IN (\'assigned\', \'en_route\')
@@ -978,7 +978,7 @@ final class RideService
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
             "SELECT r.id, r.status, r.rideType, r.pickupLat, r.pickupLng, r.dropoffLat, r.dropoffLng,
-                    r.pickupAddress, r.dropoffAddress, r.distanceKm, r.fareEstimate, r.createdAt, r.startedAt,
+                    r.pickupAddress, r.dropoffAddress, r.distanceKm, r.fareEstimate, r.createdAt, r.startedAt, r.arrivedAt,
                     d.name AS driverName, d.plateNumber AS driverPlate,
                     d.latitude AS driverLat, d.longitude AS driverLng, d.locationUpdatedAt AS driverLocationAt
              FROM rides r
@@ -1007,6 +1007,78 @@ final class RideService
         unset($row['driverName'], $row['driverPlate'], $row['driverLat'], $row['driverLng'], $row['driverLocationAt']);
         $row['driver'] = $driver;
         return $row;
+    }
+
+        /**
+     * The assigned driver tells the passenger "I have arrived at the pickup point".
+     * Only the driver of this ride, only while it is assigned, and only once.
+     * @return array{message:string,arrivedAt:string,alreadyNotified:bool}
+     */
+    public function markDriverArrived(string $userId, string $rideId): array
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            // same lock order as acceptRide() and startRide(): ride first, then driver
+            $rideStmt = $pdo->prepare(
+                'SELECT id, userId, driverId, status, arrivedAt FROM rides WHERE id = :id LIMIT 1 FOR UPDATE'
+            );
+            $rideStmt->execute(['id' => $rideId]);
+            $ride = $rideStmt->fetch();
+            if (!$ride) {
+                throw new RideException('Ride not found.', 404);
+            }
+
+            $driverStmt = $pdo->prepare('SELECT id FROM drivers WHERE user_id = :uid LIMIT 1 FOR UPDATE');
+            $driverStmt->execute(['uid' => $userId]);
+            $driver = $driverStmt->fetch();
+            if (!$driver) {
+                throw new RideException('Driver profile not found.', 404);
+            }
+
+            $driverId = (string) $driver['id'];
+            if (($ride['driverId'] ?? null) !== $driverId) {
+                throw new RideException('This ride is assigned to another driver.', 403);
+            }
+            if ($ride['status'] !== 'assigned') {
+                throw new RideException('Arrival can only be marked before the trip starts.', 409);
+            }
+            if (!empty($ride['arrivedAt'])) {
+                $pdo->commit();
+                return ['message' => 'The passenger was already notified.', 'arrivedAt' => (string) $ride['arrivedAt'], 'alreadyNotified' => true];
+            }
+
+            $passengerUserId = $ride['userId'] ?? null;
+            if (!is_string($passengerUserId) || trim($passengerUserId) === '') {
+                throw new RideException('Passenger account is unavailable.', 409);
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $upd = $pdo->prepare(
+                "UPDATE rides SET arrivedAt = :arrivedAt, updatedAt = :updatedAt
+                 WHERE id = :id AND driverId = :driverId AND status = 'assigned' AND arrivedAt IS NULL"
+            );
+            $upd->execute(['arrivedAt' => $now, 'updatedAt' => $now, 'id' => $rideId, 'driverId' => $driverId]);
+            if ($upd->rowCount() !== 1) {
+                throw new RideException('Ride is no longer available.', 409);
+            }
+
+            $this->createNotification(
+                $passengerUserId,
+                $rideId,
+                'driver_arrived',
+                'Your driver has arrived',
+                'Your driver is waiting at the pickup point.'
+            );
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return ['message' => 'Passenger notified.', 'arrivedAt' => $now, 'alreadyNotified' => false];
     }
 
     // ----------------------------------------------------- Cancel (commuter)
@@ -1189,7 +1261,7 @@ final class RideService
             'SELECT id, passengerName, rideType, pickupLat, pickupLng, dropoffLat, dropoffLng, pickupAddress, dropoffAddress,
                     driverId, status, requestedDriver, requestStatus, requestCreatedAt,
                     requestExpiresAt, distanceKm, fareEstimate, createdAt, updatedAt,
-                    startedAt, completedAt, cancelledAt, userId
+                    startedAt, completedAt, cancelledAt, arrivedAt, userId
              FROM rides WHERE id = :id AND userId = :uid LIMIT 1'
         );
         $stmt->execute(['id' => $rideId, 'uid' => $userId]);

@@ -182,6 +182,19 @@ final class RideController
         Response::json(200, ['ride' => $this->service->getMyActiveRideWithDriver($claims['uid'])]);
     }
 
+        /** POST /api/rides/:id/arrived -> 200 | 401 | 403 | 404 | 409 */
+    public function arrived(string $id): void
+    {
+        $claims = CurrentUser::required();
+        if (($claims['role'] ?? '') !== 'driver') {
+            throw new RideException('Only drivers can mark arrival.', 403);
+        }
+        if (trim($id) === '') {
+            throw new RideException('Ride ID is required.', 400);
+        }
+        Response::json(200, $this->service->markDriverArrived($claims['uid'], $id));
+    }
+
     public function accept(string $id): void
     {
         $claims = CurrentUser::required();

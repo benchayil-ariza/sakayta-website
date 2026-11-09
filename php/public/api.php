@@ -180,6 +180,9 @@ try {
         } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'decline') {
             if ($method !== 'POST') { $methodNotAllowed('POST'); }
             $controller->decline($parts[1]);
+        } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'arrived') {
+            if ($method !== 'POST') { $methodNotAllowed('POST'); }
+            $controller->arrived($parts[1]);
         } elseif ($depth === 3 && strtolower($parts[2] ?? '') === 'expire') {
             if ($method !== 'POST') { $methodNotAllowed('POST'); }
             $controller->expire($parts[1]);

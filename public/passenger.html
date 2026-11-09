@@ -1872,7 +1872,7 @@ loadAuthenticatedPassenger();
     function render() {
       if (!ride) return;
       var st = ride.status, drv = ride.driver, e = etaNow();
-      var here = !!(e && e.straight < 0.12);
+      var here = (st === "assigned" && !!ride.arrivedAt) || !!(e && e.straight < 0.12);
       $("trkStatus").textContent =
         st === "pending" ? "Looking for a driver…" :
         st === "assigned" ? (here ? "Your driver has arrived" : "Your driver is on the way") :
