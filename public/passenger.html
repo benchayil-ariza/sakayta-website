@@ -247,7 +247,6 @@
     <div class="bk-done-row small"><span>Reference</span><b id="bookRideIdOut"></b></div>
     <p hidden>Source: <span id="bookFareSourceOut"></span></p>
     <div class="bk-done-actions">
-      <button type="button" class="ghost" onclick="window.resetBooking && window.resetBooking()">Book another ride</button>
       <button type="button" class="primary" onclick="document.querySelector('.sidebar-link[data-view=dashboard]').click()">View my ride</button>
     </div>
   </div>
@@ -1974,6 +1973,72 @@ loadAuthenticatedPassenger();
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
   } catch (e) { console.warn("Live tracking unavailable", e); }
+})();
+</script>
+
+<script>
+// Book a Ride: one active ride at a time.
+// While the passenger has a ride in progress, the form is replaced by the "Ride booked" card and the map is locked.
+// When the ride ends or is cancelled, the form comes back by itself. The server also refuses a second ride (409).
+(function () {
+  try {
+    var view = document.getElementById("view-book-ride");
+    var col = view && view.querySelector(".bk-col");
+    var card = document.getElementById("bookResultCard");
+    if (!view || !col || !card) return;
+
+    var API = "http://localhost:8088/api/rides/active";
+    var busy = false, had = false;
+
+    function money(v) {
+      return v == null || v === "" ? "" :
+        "₱" + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function paint(ride) {
+      var h = card.querySelector(".bk-done-head h3");
+      var p = card.querySelector(".bk-done-head p");
+      var st = ride.status;
+      if (h) h.textContent = st === "pending" ? "Ride booked" : st === "assigned" ? "Driver on the way" : "You're on your way";
+      if (p) p.textContent = st === "pending" ? "We're looking for a driver near you."
+                           : st === "assigned" ? "Your driver accepted your ride." : "Enjoy your ride.";
+      var fare = document.getElementById("bookFareOut");
+      var ref = document.getElementById("bookRideIdOut");
+      if (fare) fare.textContent = money(ride.fareEstimate);
+      if (ref) ref.textContent = ride.id || "";
+    }
+    function apply(ride) {
+      if (ride) {
+        paint(ride);
+        col.classList.add("has-ride");
+        had = true;
+        return;
+      }
+      col.classList.remove("has-ride");
+      if (had) {                         // the ride ended or was cancelled: a fresh, empty booking form
+        had = false;
+        if (typeof window.resetBooking === "function") window.resetBooking();
+        else card.style.display = "none";
+      }
+    }
+    function poll() {
+      var t = localStorage.getItem("sakayta_token");
+      if (!t || busy) return;
+      busy = true;
+      fetch(API, { headers: { Authorization: "Bearer " + t } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d) apply(d.ride || null); })
+        .catch(function () {})
+        .then(function () { busy = false; });
+    }
+
+    // every watch has its own observer
+    new MutationObserver(poll).observe(card, { attributes: true, attributeFilter: ["style"] });   // a booking just succeeded
+    new MutationObserver(function () { if (view.classList.contains("active")) poll(); })
+      .observe(view, { attributes: true, attributeFilter: ["class"] });                             // the page was opened
+    setInterval(function () { if (document.visibilityState === "visible") poll(); }, 5000);
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") poll(); });
+    poll();
+  } catch (e) { console.warn("Active-ride guard unavailable", e); }
 })();
 </script>
   

@@ -3037,3 +3037,8 @@ body.ov-fit #view-book-ride .map-wrap { min-height: 0; }
   left: 50% !important; transform: translateX(-50%);
   white-space: nowrap; max-width: calc(100% - 130px); overflow: hidden; text-overflow: ellipsis;
 }
+
+/* Book a Ride: while a ride is in progress, the "Ride booked" card replaces the form and the map is locked */
+.fb-dash .bk-col.has-ride #bookCard { display: none !important; }
+.fb-dash .bk-col.has-ride #bookResultCard { display: block !important; }
+.fb-dash .booking-grid:has(.bk-col.has-ride) #bookingMap { pointer-events: none; }

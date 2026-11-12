@@ -737,9 +737,24 @@ final class RideService
         $id = 'r_' . time() . '_' . substr(bin2hex(random_bytes(9)), 0, 9);
         $now = date('Y-m-d H:i:s');
 
+               // one active ride at a time. The lock makes sure two requests at the same moment cannot both pass the check
+        $lockName = 'sakayta_book_' . md5($userId);
+        $gotLock = (int) $pdo->query('SELECT GET_LOCK(' . $pdo->quote($lockName) . ', 5)')->fetchColumn() === 1;
+        if (!$gotLock) {
+            throw new RideException('Please wait a moment and try again.', 409);
+        }
+
         $pdo->beginTransaction();
         try {
-                        $pdo->prepare(
+            $busy = $pdo->prepare(
+                "SELECT id FROM rides WHERE userId = :uid AND status IN ('pending', 'assigned', 'en_route') LIMIT 1"
+            );
+            $busy->execute(['uid' => $userId]);
+            if ($busy->fetchColumn() !== false) {
+                throw new RideException('You already have a ride in progress. Open it from the Overview, or cancel it first.', 409);
+            }
+
+            $pdo->prepare(
                 'INSERT INTO rides (id, passengerName, rideType, pickupLat, pickupLng, dropoffLat,
                                     dropoffLng, pickupAddress, dropoffAddress, status, distanceKm,
                                     fareEstimate, createdAt, updatedAt, userId)
@@ -785,6 +800,8 @@ final class RideService
                 $pdo->rollBack();
             }
             throw $e;
+        } finally {
+            $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lockName) . ')');
         }
 
         // Dispatch happens after booking and its passenger notification commit.
