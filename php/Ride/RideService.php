@@ -1654,6 +1654,13 @@ final class RideService
             throw $e;
         }
 
+        // The receipt also goes to both people's real email. A mail problem must never undo or block the finished ride.
+        try {
+            \Sakayta\Mail\ReceiptMailer::sendForRide($rideId);
+        } catch (\Throwable $e) {
+            error_log('[SakayTa receipt email] ride=' . $rideId . ' ' . get_class($e) . ': ' . $e->getMessage());
+        }
+
         return ['message' => 'Ride completed successfully.', 'ride' => $updatedRide];
     }
 

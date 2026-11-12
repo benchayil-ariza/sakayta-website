@@ -70,7 +70,21 @@ try {
     $sub      = strtolower($parts[1] ?? '');
     $depth    = count($parts);
 
-    if ($resource === 'auth') {
+    if ($resource === 'auth' && $sub === 'otp') {
+        // POST /api/auth/otp/send and /api/auth/otp/verify: email verification codes sent with Brevo
+        $action = strtolower($parts[2] ?? '');
+        if ($depth !== 3 || !in_array($action, ['send', 'verify'], true)) {
+            $notFound();
+        }
+        if ($method !== 'POST') {
+            $methodNotAllowed('POST');
+        }
+        if ($action === 'send') {
+            \Sakayta\Auth\EmailOtp::send();
+        } else {
+            \Sakayta\Auth\EmailOtp::verify();
+        }
+    } elseif ($resource === 'auth') {
         if (!in_array($sub, ['register', 'login', 'me'], true)) {
             $notFound();
         }
