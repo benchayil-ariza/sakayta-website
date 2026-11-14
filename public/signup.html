@@ -8,6 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css" />
+<script>
+  // Signup needs a verified email first (see verify-email.html)
+  (function () {
+    var v = null;
+    try { v = JSON.parse(sessionStorage.getItem("sakayta_email_verified") || "null"); } catch (e) {}
+    if (!v || !v.email || !v.token || !(v.until > Date.now())) location.replace("/verify-email.html");
+  })();
+</script>
 </head>
 <body class="auth-su">
 
@@ -24,8 +32,9 @@
       <input type="text" id="signupName" placeholder="Enter your full name" />
     </div>
     <div class="auth-field">
-      <label for="signupIdentifier">Email or mobile number</label>
-      <input type="text" id="signupIdentifier" placeholder="Email or mobile number" />
+      <label for="signupIdentifier">Email</label>
+      <input type="email" id="signupIdentifier" placeholder="Your verified email" readonly />
+      <p style="margin:6px 0 0;font-size:13px;color:#606770;">&#10003; Email verified. <a href="/verify-email.html" style="color:#2F7D55;font-weight:700;text-decoration:none;">Use a different email</a></p>
     </div>
     <div class="auth-field">
       <label for="signupPassword">Password</label>
@@ -67,6 +76,15 @@
 
 <script src="/js/auth-transition.js"></script>
 <script>
+
+    // The email was verified with a code on verify-email.html
+  const VERIFIED_KEY = "sakayta_email_verified";
+  let verified = null;
+  try { verified = JSON.parse(sessionStorage.getItem(VERIFIED_KEY) || "null"); } catch (e) {}
+  if (verified && verified.email) {
+    document.getElementById("signupIdentifier").value = verified.email;
+  }
+
   function togglePw(inputId, btn) {
     const input = document.getElementById(inputId);
     const isPassword = input.type === "password";
@@ -90,24 +108,29 @@
     selectedRole = card.dataset.type;
   }
 
-  // Handle signup form submission
+    // Handle signup form submission
   document.getElementById("signupBtn").addEventListener("click", async () => {
     const nameInput = document.getElementById("signupName");
-    const identifierInput = document.getElementById("signupIdentifier");
     const passwordInput = document.getElementById("signupPassword");
     const confirmInput = document.getElementById("signupConfirm");
     const errorEl = document.getElementById("signupError");
     const btn = document.getElementById("signupBtn");
     const spinner = document.getElementById("signupSpinner");
 
+    errorEl.hidden = true;
+
+    // the email must be verified with a code first
+    if (!verified || !verified.email || !verified.token || !(verified.until > Date.now())) {
+      location.href = "/verify-email.html";
+      return;
+    }
+
     const full_name = nameInput.value.trim();
-    const identifier = identifierInput.value.trim();
+    const identifier = verified.email;
     const password = passwordInput.value;
     const confirm_password = confirmInput.value;
 
-    errorEl.hidden = true;
-
-    if (!full_name || !identifier || !password || !confirm_password) {
+    if (!full_name || !password || !confirm_password) {
       errorEl.textContent = "All fields are required.";
       errorEl.hidden = false;
       return;
@@ -121,7 +144,7 @@
       const res = await fetch("http://localhost:8088/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, full_name, password, confirm_password, role: selectedRole }),
+        body: JSON.stringify({ identifier, full_name, password, confirm_password, role: selectedRole, emailToken: verified.token }),
       });
 
       const data = await res.json();
@@ -132,8 +155,14 @@
         btn.disabled = false;
         btn.textContent = "Create Account";
         spinner.hidden = true;
+        if (res.status === 403) {   // the proof of verification expired: verify again
+          sessionStorage.removeItem(VERIFIED_KEY);
+          setTimeout(() => { location.href = "/verify-email.html"; }, 1800);
+        }
         return;
       }
+
+      sessionStorage.removeItem(VERIFIED_KEY);
 
       // Store token in localStorage
       localStorage.setItem("sakayta_token", data.token);
