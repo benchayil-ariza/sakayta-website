@@ -84,6 +84,20 @@ try {
         } else {
             \Sakayta\Auth\EmailOtp::verify();
         }
+    } elseif ($resource === 'auth' && $sub === 'password') {
+        // POST /api/auth/password/forgot and /api/auth/password/reset: forgot password with an emailed code
+        $action = strtolower($parts[2] ?? '');
+        if ($depth !== 3 || !in_array($action, ['forgot', 'reset'], true)) {
+            $notFound();
+        }
+        if ($method !== 'POST') {
+            $methodNotAllowed('POST');
+        }
+        if ($action === 'forgot') {
+            \Sakayta\Auth\EmailOtp::sendReset();
+        } else {
+            \Sakayta\Auth\EmailOtp::resetPassword();
+        }
     } elseif ($resource === 'auth') {
         if (!in_array($sub, ['register', 'login', 'me'], true)) {
             $notFound();

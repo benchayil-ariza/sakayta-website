@@ -38,3 +38,5 @@ php/bin/99_soap_request.xml
 *.db
 *.db.*
 .env
+
+php/bin/preview.html

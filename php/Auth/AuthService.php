@@ -105,8 +105,8 @@ final class AuthService
         if ($password !== $confirmPassword) {
             throw new AuthException('Passwords do not match.', 400);
         }
-        if (strlen($password) < 6) {
-            throw new AuthException('Password must be at least 6 characters long.', 400);
+        if (strlen($password) < 8) {
+            throw new AuthException('Password must be at least 8 characters long.', 400);
         }
         if ($fullName === '' || strlen($fullName) > 255) {
             throw new AuthException('Full name must be 1-255 characters.', 400);
