@@ -1,92 +1,111 @@
 // server.js
+// Node.js has two small jobs in SakayTa:
+//   1) serve the web pages in public/
+//   2) carry the live driver position (Socket.io) from the driver to the commuter.
+// It has NO database. All data lives in MariaDB behind the PHP API.
+//
+// Security rules in this file:
+//   - A socket can only join a ride after the PHP API confirms the user belongs to that ride.
+//   - Only the driver can send a location, and only into a ride room the driver joined.
+//   - The login token is checked with JWT_SECRET (the same value as AUTH_TOKEN_SECRET in php/config/.env).
+//   - There is no fallback secret in the code. The server refuses to start without JWT_SECRET.
+
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
-const cors = require("cors");
 const path = require("path");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
-const db = require("./db");
-const ridesRouter = require("./routes/rides");
-const driversRouter = require("./routes/drivers");
-const authRouter = require("./routes/auth");
-const notificationsRouter = require("./routes/notifications");
-const adminRouter = require("./routes/admin");
-const { broadcastRideRequest } = require("./services/queueConsumer");
+const PORT = Number(process.env.PORT) || 3000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const PHP_API_URL = (process.env.PHP_API_URL || "http://localhost:8088/api").replace(/\/$/, "");
+const SITE_ORIGIN = process.env.SITE_ORIGIN || `http://localhost:${PORT}`;
+
+if (!JWT_SECRET || JWT_SECRET.length < 16) {
+  console.error("JWT_SECRET is missing or shorter than 16 characters.");
+  console.error("Put the same value as AUTH_TOKEN_SECRET (php/config/.env) into JWT_SECRET in the .env file of the project root.");
+  process.exit(1);
+}
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, { cors: { origin: SITE_ORIGIN } });
 
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
-
-// Pass Socket.io instance to request handlers via middleware
+// ---------- web pages ----------
+app.disable("x-powered-by");
 app.use((req, res, next) => {
-  req.io = io;
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
+app.use(express.static(path.join(__dirname, "public")));
+// The API is NOT on this server. Make a wrong call obvious instead of silent.
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: `The API is at ${PHP_API_URL}` });
+});
 
-app.use("/api/auth", authRouter);
-app.use("/api/rides", ridesRouter);
-app.use("/api/drivers", driversRouter);
-app.use("/api/notifications", notificationsRouter);
-app.use("/api/admin", adminRouter);
-
-// ---------- Real-time location tracking + user-specific notifications (Socket.io) ----------
-io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
-
-  // Authenticate socket and attach user info
-  const token = socket.handshake.auth.token;
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "sakayta-dev-secret-change-in-production");
-      socket.userId = decoded.userId;
-      socket.userRole = decoded.role;
-      // Join user-specific room for notifications
-      socket.join(`user:${decoded.userId}`);
-      console.log(`User ${decoded.userId} joined notification room`);
-    } catch (err) {
-      console.log("Socket authentication failed:", err.message);
-    }
+// ---------- live tracking ----------
+function readUser(token) {
+  try {
+    const p = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+    const id = p.uid ?? p.userId ?? p.sub;
+    if (!id || !p.role) return null;
+    return { id: String(id), role: String(p.role) };
+  } catch (_) {
+    return null;
   }
+}
 
-  socket.on("joinRide", (rideId) => {
-    socket.join(rideId);
+// Ask the PHP API if this user may see the ride (commuter or driver of that ride).
+async function userOwnsRide(token, rideId) {
+  try {
+    const res = await fetch(`${PHP_API_URL}/rides/${encodeURIComponent(rideId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+const RIDE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const room = (rideId) => `ride:${rideId}`;
+
+io.on("connection", (socket) => {
+  const token = socket.handshake.auth && socket.handshake.auth.token;
+  socket.data.token = token;
+  socket.data.user = token ? readUser(token) : null;
+  socket.data.rides = new Set();
+  socket.data.lastSent = 0;
+
+  socket.on("joinRide", async (rideId, ack) => {
+    const reply = typeof ack === "function" ? ack : () => {};
+    if (!socket.data.user) return reply({ ok: false, error: "login required" });
+    if (typeof rideId !== "string" || !RIDE_ID.test(rideId)) return reply({ ok: false, error: "bad ride id" });
+    if (!(await userOwnsRide(socket.data.token, rideId))) return reply({ ok: false, error: "not your ride" });
+    socket.join(room(rideId));
+    socket.data.rides.add(rideId);
+    reply({ ok: true });
   });
 
-  socket.on("driver:location", ({ rideId, lat, lng }) => {
-    // FR-10: Persist driver location for nearest-driver matching
-    // Validate coordinates before storing
-    if (
-      typeof lat === "number" && typeof lng === "number" &&
-      isFinite(lat) && isFinite(lng) &&
-      lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-    ) {
-      if (socket.userId) {
-        const driver = db.prepare("SELECT id FROM drivers WHERE user_id = ?").get(socket.userId);
-        if (driver) {
-          db.prepare("UPDATE drivers SET latitude=?, longitude=?, locationUpdatedAt=? WHERE id=?")
-            .run(lat, lng, new Date().toISOString(), driver.id);
-        }
-      }
-    }
-
-    // Existing relay behavior preserved
-    io.to(rideId).emit("ride:driverLocation", { lat, lng, timestamp: Date.now() });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+  socket.on("driver:location", (msg) => {
+    const u = socket.data.user;
+    if (!u || u.role !== "driver" || !msg) return;
+    const { rideId, lat, lng } = msg;
+    if (typeof rideId !== "string" || !socket.data.rides.has(rideId)) return;
+    if (typeof lat !== "number" || typeof lng !== "number" || !isFinite(lat) || !isFinite(lng)) return;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+    const now = Date.now();
+    if (now - socket.data.lastSent < 800) return; // at most about 1 update each second
+    socket.data.lastSent = now;
+    io.to(room(rideId)).emit("ride:driverLocation", { lat, lng, timestamp: now });
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`SakayTa website running: http://localhost:${PORT}`);
-  console.log(`Remember to also run the queue worker in a separate terminal: npm run worker`);
+  console.log(`SakayTa pages and live tracking: http://localhost:${PORT}`);
+  console.log(`PHP API expected at: ${PHP_API_URL}`);
 });

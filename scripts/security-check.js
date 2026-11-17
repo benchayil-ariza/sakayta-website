@@ -5,8 +5,9 @@
  * What it does: calls your LOCAL API and checks login, roles, input validation and
  * a few "does not leak" rules. It prints a table and writes security-evidence.md.
  *
- * It does NOT send any email, does NOT create a ride, and does NOT change any data.
- * It never prints passwords or tokens.
+ * It does NOT send any email and does NOT create a ride. Test A8 tries to register without an
+ * email code: if your server wrongly accepts it, that test account is created and the script
+ * tells you to delete it (x-test-nomail@example.com). It never prints passwords or tokens.
  *
  * Run (PowerShell, from the project folder; use TEST accounts only):
  *   $env:COMMUTER_ID="commuter@test.com"; $env:COMMUTER_PW="..."
@@ -51,10 +52,12 @@ function expectStatus(id, name, res, accepted, note) {
   return ok;
 }
 function skip(id, name, why) { results.push({ section, id, name, expected: "-", actual: "-", result: "SKIP", note: why }); }
+const loginWhy = {};
 async function login(role) {
   const [id, pw] = ACCOUNTS[role];
-  if (!id || !pw) return null;
+  if (!id || !pw) { loginWhy[role] = `${role.toUpperCase()}_ID / ${role.toUpperCase()}_PW are not set`; return null; }
   const r = await call("POST", "/auth/login", { body: { identifier: id, password: pw } });
+  if (!(r.json && r.json.token)) loginWhy[role] = `login as ${role} failed (HTTP ${r.status}). Check the email and password.`;
   return r.json && r.json.token ? r.json.token : null;
 }
 
@@ -65,6 +68,7 @@ async function login(role) {
 
   const tok = {};
   for (const r of ["commuter", "driver", "admin"]) tok[r] = await login(r);
+  for (const r of Object.keys(loginWhy)) console.log("NOTE: " + loginWhy[r] + " -> those tests are skipped.");
 
   // ---------- 1. Authentication ----------
   section = "1. Authentication";
@@ -86,9 +90,11 @@ async function login(role) {
     const same = w1.status === w2.status && (w1.json && w2.json ? w1.json.error === w2.json.error : true);
     add("A7", "Same answer for unknown account and wrong password (no account guessing)", "same status and message", `${w1.status} / ${w2.status}`, same);
   }
-  expectStatus("A8", "Register without an email token is refused", await call("POST", "/auth/register", { body: { identifier: "x-test-nomail@example.com", full_name: "Test", password: "LongEnough123", confirm_password: "LongEnough123", role: "commuter" } }), [400, 401, 403, 422]);
+  const a8 = await call("POST", "/auth/register", { body: { identifier: "x-test-nomail@example.com", full_name: "Test", password: "LongEnough123", confirm_password: "LongEnough123", role: "commuter" } });
+  expectStatus("A8", "Register without an email token is refused", a8, [400, 401, 403, 422], a8.status === 201 ? "THE ACCOUNT WAS CREATED. Delete x-test-nomail@example.com from the users table." : "");
   expectStatus("A9", "Wrong one-time code is refused", await call("POST", "/auth/otp/verify", { body: { email: "no-such-user@example.com", code: "000000" } }), [400, 401, 403, 404, 410, 422, 429], "No email is sent by this test.");
-  expectStatus("A10", "Admin role cannot be chosen at signup", await call("POST", "/auth/register", { body: { identifier: "x-test-admin@example.com", full_name: "Test", password: "LongEnough123", confirm_password: "LongEnough123", role: "admin" } }), [400, 401, 403, 422]);
+  const a10 = await call("POST", "/auth/register", { body: { identifier: "x-test-admin@example.com", full_name: "Test", password: "LongEnough123", confirm_password: "LongEnough123", role: "admin" } });
+  expectStatus("A10", "Admin role cannot be chosen at signup", a10, [400, 401, 403, 422], a10.status === 201 ? "THE ACCOUNT WAS CREATED. Delete x-test-admin@example.com from the users table." : "");
 
   // ---------- 2. Role-based authorization ----------
   section = "2. Role-based authorization";
