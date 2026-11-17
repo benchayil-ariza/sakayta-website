@@ -1,112 +1,112 @@
-# SakayTa - Full System Setup Guide
+# SakayTa
 
-This is the complete version, tested end-to-end before being sent to you. It has:
-- A real website (homepage, booking with a map, live rides dashboard, driver/passenger tracking)
-- REST API with a real SQLite database
-- A third-party fare API (with a working fallback so it runs even without a key)
-- A SOAP/WSDL service written in **PHP** (different stack from your Node.js API)
-- A message queue (**RabbitMQ**) for asynchronous driver assignment
-- Two data stores (SQLite + a JSON audit log)
-- Real-time GPS tracking (same as before)
+SakayTa is a ride booking website for tricycles, which are called **Taxicle** in our place (Pagadian City, Zamboanga del Sur). A commuter books a ride, a nearby driver accepts it, and both of them can follow each other on a map until the ride is done. When the ride is completed, both get a receipt in the website and in their email.
 
-There are **4 separate things** that need to be running at the same time. That sounds like a lot, but each one is one command, and you open one terminal per thing.
+This is our IPT2 group project at JHCSC. Authors: Benchayil Ariza and Nuel Jay Dayhop.
 
----
+## What it can do
 
-## Step 1: Install what you need
+**Commuter**
+- Sign up with a verified email (a 6-digit code is sent to the email), log in, and reset a forgotten password.
+- Book a ride by tapping the map or using "Use my location". Pickup and drop-off show as place names, for example "Macasing, Pagadian City, Zamboanga del Sur".
+- See the fare before booking. The fare is based on the road distance.
+- Follow the driver on a map. Only one active ride at a time.
+- See ride history and receipts. A receipt is also sent to the commuter's email.
 
-| Tool | Why | Get it |
+**Driver**
+- Submit a license for verification, set available or unavailable, and accept or decline requests.
+- Dashboard (today's rides and earnings), ride history, and an Active Ride page with a map, a Navigate button, and an "I've arrived" button.
+
+**Admin**
+- Overview, verify or reject drivers, change the fare settings, and read the action logs.
+
+## How it is built
+
+| Part | What it is | Address |
 |---|---|---|
-| Node.js | Runs your main server | nodejs.org (you already have this) |
-| **XAMPP** | Gives you PHP with SOAP support, no config needed | apachefriends.org — install it, you only need the PHP part, don't worry about Apache/MySQL |
-| **Docker Desktop** | Runs RabbitMQ (the message queue) with one command | docker.com/products/docker-desktop |
+| Web pages | HTML, CSS, and JavaScript in `public/`, served by Node.js | http://localhost:3000 |
+| API | PHP REST API (`php/public/api.php`) on Apache | http://localhost:8088/api |
+| Database | MariaDB, database name `sakayta` | port 3306 |
+| Live tracking | Socket.io on the Node.js server (no database in Node) | http://localhost:3000 |
+| License check | PHP SOAP service in `soap-service/` (sample data) | http://localhost:8080 |
 
-## Step 2: Set up the project
+Outside services: OSRM (road distance and route line), Nominatim (place names), OpenStreetMap tiles with Leaflet (maps), and Brevo (emails: codes and receipts).
 
-```
-cd sakayta-website
-npm install
-copy .env.example .env
-```
-(On Mac, use `cp` instead of `copy`)
+## What you need
 
-You don't need to edit `.env` yet — everything has safe defaults.
+- XAMPP with Apache, MariaDB, and PHP 8.2 or newer (the `curl` and `soap` extensions on)
+- Node.js 18 or newer
+- A free Brevo account with a verified sender and an API key (only needed for emails)
 
-## Step 3: Start RabbitMQ (only needs to be done once, then it just keeps running)
+## Setup
 
-With Docker Desktop open, run this in any terminal:
-```
-docker run -d --name sakayta-rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-```
-This also gives you a **management dashboard** at http://localhost:15672 (login: guest / guest) — this is genuinely useful for your defense, since your checklist asks for a "broker or queue dashboard" as evidence.
+1. **Get the code and install**
+   ```
+   git clone https://github.com/benchayil-ariza/sakayta-website.git
+   cd sakayta-website
+   npm install
+   ```
 
-## Step 4: Start the SOAP service (Terminal 1)
+2. **Database.** Start Apache and MariaDB in XAMPP. In phpMyAdmin create a database named `sakayta` and import `php/sql/schema.sql`.
 
-```
-cd soap-service
-[path-to-xampp]/php/php.exe -S localhost:8080 driverVerification.php
-```
-On Windows, that's usually:
-```
-C:\xampp\php\php.exe -S localhost:8080 driverVerification.php
-```
-Leave this terminal open. You should see `PHP Development Server ... started`.
+3. **PHP settings.** Copy `php/config/.env.example` to `php/config/.env` and fill in the values (database login, `AUTH_TOKEN_SECRET` with at least 16 random characters, and the Brevo settings). This file is ignored by Git. Never commit it.
 
-## Step 5: Start the main server (Terminal 2)
+4. **Node settings.** Copy `.env.example` to `.env`. Set `JWT_SECRET` to the **same value** as `AUTH_TOKEN_SECRET`, and fill in `PHP_API_URL` and `SITE_ORIGIN`.
 
-```
-npm start
-```
-You should see `SakayTa website running: http://localhost:3000`.
+5. **Apache.** Point the Apache DocumentRoot to `php/public` on port 8088, as described in `php/README.md`. The API is then at http://localhost:8088/api/.
 
-## Step 6: Start the queue worker (Terminal 3)
+6. **SOAP service** (leave this terminal open):
+   ```
+   cd soap-service
+   C:\xampp\php\php.exe -S localhost:8080 driverVerification.php
+   ```
 
-```
-npm run worker
-```
-You should see `Queue consumer started, waiting for ride requests...`
+7. **Start the website:**
+   ```
+   npm start
+   ```
+   Open http://localhost:3000.
 
-**Important:** this is a separate process from your main server on purpose — it's what makes the driver assignment *asynchronous* instead of instant, which is exactly what your course means by "queued/event-driven transaction."
+8. **Create the first admin** (public signup cannot make admins):
+   ```
+   $env:ADMIN_EMAIL="admin@example.com"
+   $env:ADMIN_PASSWORD="a strong password"
+   C:\xampp\php\php.exe php\bin\create-admin.php
+   ```
 
----
+## Useful commands
 
-## Step 7: Try it out
-
-Open **http://localhost:3000** in your browser.
-
-1. Go to **Book a Ride** — click the map once for pickup, once for drop-off, enter your name, click Book. You'll see a fare estimate.
-2. Go to **All Rides** — refresh, you'll see your ride. Watch its status change from `pending` to `assigned` after a couple seconds (that's the queue worker doing its job in the background). Click JSON or XML next to it to see both formats.
-3. Still on **All Rides**, try the "Test SOAP Driver Verification" box — type `d1` or `d2`, click Verify, and you'll see the raw SOAP XML envelope. Great to show at defense.
-4. Open **Driver View** and **Passenger View** in two tabs with the same Ride ID, click "Simulate Movement" on the driver tab — same real-time tracking as before.
-
----
-
-## How each piece maps to your course checklist
-
-| Requirement | Where it is |
+| Command | What it does |
 |---|---|
-| CRUD (2 entities) | `routes/rides.js` + `routes/drivers.js`, saved in `data/sakayta.db` (SQLite) |
-| Published REST API | Everything under `/api/rides` and `/api/drivers` (8+ endpoints) |
-| SOAP/WSDL | `soap-service/driverVerification.php` + `.wsdl`, consumed from `services/soapClient.js` |
-| Third-party API | `services/fareService.js` (OpenRouteService, with fallback) |
-| JSON + XML | Compare `/api/rides/:id` vs `/api/rides/:id/xml` |
-| Middleware/messaging | `services/queueProducer.js` (publishes) + `services/queueConsumer.js` (consumes), via RabbitMQ |
-| Heterogeneity | Node.js (REST + queue) + PHP (SOAP) as two stacks; SQLite + JSON audit log as two data stores |
-| Real-time tracking | Socket.io in `server.js`, `driver.html` + `passenger.html` |
+| `php php\bin\mail-tools.php test you@gmail.com` | Sends a test email through Brevo |
+| `php php\bin\mail-tools.php receipt <rideId>` | Sends the receipt of a ride |
+| `php php\bin\mail-tools.php preview otp` | Makes a preview page of an email design |
+| `node scripts/security-check.js` | Runs the login, role, and input checks on the local API (test accounts only) |
 
-## Getting a free fare API key (optional, for real distances instead of straight-line)
+## Security
 
-1. Sign up free at openrouteservice.org/dev/#/signup
-2. Copy your API key
-3. Paste it into `.env` as `ORS_API_KEY=your-key-here`
-4. Restart the server (`npm start` again)
+- Passwords are hashed with bcrypt (8 to 72 characters). One-time codes are saved only as hashes, work once, expire in 10 minutes, and are blocked after 5 wrong tries. There are limits per email and per IP address.
+- Login gives a signed token. The server checks the token and the role on every protected route, and users can only open their own rides.
+- All database queries use prepared statements. Place names are cleaned on the server.
+- Secrets are only in `.env` files, which Git ignores. The repository holds `.env.example` files with empty or fake values only.
+- Emails hold only the receipt data or the code. The Brevo key is used on the server and never reaches the browser.
 
-Until you do this, fare estimates use straight-line distance — which is fine for a demo, just mention it if asked.
+## Folders
 
-## Troubleshooting
+```
+public/        web pages, CSS, JavaScript, images
+server.js      Node.js: serves public/ and carries the live driver position (Socket.io)
+php/           PHP API (Auth, Driver, Ride, Admin, Mail, Geo), config, sql, bin tools
+soap-service/  PHP SOAP service for the license check
+scripts/       security-check.js
+```
 
-- **"Could not publish to RabbitMQ"** in the server log → Docker isn't running, or you haven't run the `docker run` command from Step 3 yet.
-- **SOAP errors / verification always fails** → make sure the PHP service (Terminal 1) is actually running and reachable at http://localhost:8080/driverVerification.php?wsdl in your browser.
-- **Ride stays "pending" forever** → check Terminal 3 (the worker) is running. If the worker isn't running, nothing ever picks up queued rides.
-- **PHP says "Class SoapServer not found"** → your PHP doesn't have the SOAP extension enabled. This is why we recommended XAMPP — it's enabled by default there.
-- **Port already in use** → something else is using that port. Close other terminals running the same service, or restart your computer.
+## Known limits
+
+- The site runs on http://localhost. HTTPS and a real domain are needed before real use.
+- The fare estimate and place-name routes do not need a login yet.
+- A failed receipt email is not sent again by itself. The receipt stays in the website.
+- OSRM and Nominatim are free public services with fair-use limits. The app keeps caches to reduce the calls.
+- Payment is cash only. There is no online payment.
+
+More detail is in the SRS (Chapters 5 to 8).

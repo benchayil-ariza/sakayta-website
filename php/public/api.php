@@ -5,9 +5,9 @@
  *
  * .htaccess rewrites:  /api/auth/register  ->  api.php?route=auth/register
  *
- * Scope for this phase: authentication + driver self-service + ride foundation.
- * Admin, notification, SOAP, mapping/fare, and HTTPS are intentionally NOT
- * implemented yet — those routes 404.
+  * Routes: auth (register, login, me, email codes, password reset), drivers,
+ * rides, admin, notifications, and place names. The SOAP license check and the
+ * road-distance fare are included. HTTPS is not set up (development only).
  */
 
 namespace Sakayta;
@@ -35,6 +35,7 @@ header('Access-Control-Allow-Origin: http://localhost:3000');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Max-Age: 86400');
+header('X-Content-Type-Options: nosniff');
 
 Config::bootstrap();
 
@@ -108,6 +109,9 @@ try {
         }
 
         $controller = new AuthController();
+        if ($sub === 'register') {
+            \Sakayta\Auth\EmailOtp::requireVerified();
+        }
         match ($sub) {
             'register' => $controller->register(),
             'login'    => $controller->login(),
